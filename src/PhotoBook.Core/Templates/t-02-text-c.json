@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-c",
+  "name": "Wide hero over a small photo and journal",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.05,
+        "w": 0.92,
+        "h": 0.5
+      },
+      "aspect": 2.3812,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.62,
+        "y": 0.59,
+        "w": 0.34,
+        "h": 0.32
+      },
+      "aspect": 1.375,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.6,
+        "w": 0.5,
+        "h": 0.31
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "t-05-notext-a",
+  "name": "Mosaic: one big and four descending",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 5,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.56,
+        "h": 0.62
+      },
+      "aspect": 1.1689,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.62,
+        "y": 0.06,
+        "w": 0.34,
+        "h": 0.36
+      },
+      "aspect": 1.2222,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.62,
+        "y": 0.44,
+        "w": 0.34,
+        "h": 0.24
+      },
+      "aspect": 1.8333,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.04,
+        "y": 0.7,
+        "w": 0.34,
+        "h": 0.24
+      },
+      "aspect": 1.8333,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.4,
+        "y": 0.7,
+        "w": 0.2,
+        "h": 0.24
+      },
+      "aspect": 1.0784,
+      "aspectTolerance": 0.4,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

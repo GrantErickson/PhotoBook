@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-a",
+  "name": "Two outer photos with journal column",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.5,
+        "y": 0.07,
+        "w": 0.46,
+        "h": 0.44
+      },
+      "aspect": 1.3529,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.56,
+        "y": 0.53,
+        "w": 0.4,
+        "h": 0.34
+      },
+      "aspect": 1.5225,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.22,
+        "w": 0.39,
+        "h": 0.5
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

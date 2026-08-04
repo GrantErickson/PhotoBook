@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-e",
+  "name": "Three days, two photos each \u2014 the catch-up page",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 6,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.04,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.52,
+        "y": 0.04,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.04,
+        "y": 0.35,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.52,
+        "y": 0.35,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.04,
+        "y": 0.66,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s6",
+      "rect": {
+        "x": 0.52,
+        "y": 0.66,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "aspect": 2.8471,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.26,
+        "w": 0.905,
+        "h": 0.06
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.055,
+        "y": 0.57,
+        "w": 0.905,
+        "h": 0.06
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t3",
+      "rect": {
+        "x": 0.055,
+        "y": 0.88,
+        "w": 0.905,
+        "h": 0.06
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1",
+        "s2"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s3",
+        "s4"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    },
+    {
+      "id": "d3",
+      "slotIds": [
+        "s5",
+        "s6"
+      ],
+      "textSlotIds": [
+        "t3"
+      ]
+    }
+  ]
+}

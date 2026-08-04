@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-c",
+  "name": "Month title over a three-photo band",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 3,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.38,
+        "w": 0.2933,
+        "h": 0.44
+      },
+      "aspect": 0.8626,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.3533,
+        "y": 0.38,
+        "w": 0.2933,
+        "h": 0.44
+      },
+      "aspect": 0.8626,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.6667,
+        "y": 0.38,
+        "w": 0.2933,
+        "h": 0.44
+      },
+      "aspect": 0.8626,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.1,
+        "w": 0.88,
+        "h": 0.2
+      },
+      "role": "monthTitle",
+      "align": "center"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

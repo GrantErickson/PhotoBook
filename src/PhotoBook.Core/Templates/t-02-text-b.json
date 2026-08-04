@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-b",
+  "name": "Pair on top, journal band below",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.44,
+        "h": 0.52
+      },
+      "aspect": 1.095,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.52,
+        "y": 0.06,
+        "w": 0.44,
+        "h": 0.52
+      },
+      "aspect": 1.095,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.64,
+        "w": 0.88,
+        "h": 0.28
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

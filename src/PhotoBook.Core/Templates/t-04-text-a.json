@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-text-a",
+  "name": "Four up with journal",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 0.5,
+        "h": 0.66
+      },
+      "aspect": 0.98,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.52,
+        "y": 0.0,
+        "w": 0.48,
+        "h": 0.42
+      },
+      "aspect": 1.48,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.76,
+        "y": 0.44,
+        "w": 0.2,
+        "h": 0.24
+      },
+      "aspect": 1.08,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.0,
+        "y": 0.68,
+        "w": 0.5,
+        "h": 0.28
+      },
+      "aspect": 2.31,
+      "aspectTolerance": 0.4,
+      "tierAffinity": "any",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.55,
+        "y": 0.72,
+        "w": 0.41,
+        "h": 0.22
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

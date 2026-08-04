@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-b",
+  "name": "Month title beneath a wide photo",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.04,
+        "w": 0.92,
+        "h": 0.62
+      },
+      "aspect": 1.9203,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.72,
+        "w": 0.88,
+        "h": 0.2
+      },
+      "role": "monthTitle",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

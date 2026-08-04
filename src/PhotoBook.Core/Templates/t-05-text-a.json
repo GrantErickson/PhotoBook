@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "t-05-text-a",
+  "name": "Hero over a 2x2 grid, journal rail",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 5,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.34,
+        "y": 0.06,
+        "w": 0.62,
+        "h": 0.44
+      },
+      "aspect": 1.8235,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.34,
+        "y": 0.52,
+        "w": 0.3,
+        "h": 0.2
+      },
+      "aspect": 1.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.66,
+        "y": 0.52,
+        "w": 0.3,
+        "h": 0.2
+      },
+      "aspect": 1.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.34,
+        "y": 0.74,
+        "w": 0.3,
+        "h": 0.2
+      },
+      "aspect": 1.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.66,
+        "y": 0.74,
+        "w": 0.3,
+        "h": 0.2
+      },
+      "aspect": 1.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.06,
+        "w": 0.24,
+        "h": 0.86
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

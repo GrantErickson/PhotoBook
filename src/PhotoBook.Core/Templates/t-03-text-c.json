@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-text-c",
+  "name": "Hero over two smalls, outer journal rail",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.6,
+        "h": 0.46
+      },
+      "aspect": 1.688,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.04,
+        "y": 0.54,
+        "w": 0.29,
+        "h": 0.38
+      },
+      "aspect": 0.9876,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.35,
+        "y": 0.54,
+        "w": 0.29,
+        "h": 0.38
+      },
+      "aspect": 0.9876,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.68,
+        "y": 0.06,
+        "w": 0.28,
+        "h": 0.6
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

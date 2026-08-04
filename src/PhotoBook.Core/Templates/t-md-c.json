@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-c",
+  "name": "Three days, vertical thirds",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 3,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.2933,
+        "h": 0.4
+      },
+      "aspect": 0.9489,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.3533,
+        "y": 0.06,
+        "w": 0.2933,
+        "h": 0.4
+      },
+      "aspect": 0.9489,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.6667,
+        "y": 0.06,
+        "w": 0.2933,
+        "h": 0.4
+      },
+      "aspect": 0.9489,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.5,
+        "w": 0.2783,
+        "h": 0.42
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.3533,
+        "y": 0.5,
+        "w": 0.2933,
+        "h": 0.42
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t3",
+      "rect": {
+        "x": 0.6667,
+        "y": 0.5,
+        "w": 0.2933,
+        "h": 0.42
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s2"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    },
+    {
+      "id": "d3",
+      "slotIds": [
+        "s3"
+      ],
+      "textSlotIds": [
+        "t3"
+      ]
+    }
+  ]
+}

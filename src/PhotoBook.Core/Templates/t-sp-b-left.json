@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "t-sp-b-left",
+  "name": "Mirrored gallery spread \u2014 left",
+  "pageSize": "11x8.5-landscape",
+  "kind": "spreadPair",
+  "photoCount": 3,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.62,
+        "h": 0.5
+      },
+      "aspect": 1.6047,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.04,
+        "y": 0.6,
+        "w": 0.3,
+        "h": 0.34
+      },
+      "aspect": 1.1419,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.36,
+        "y": 0.6,
+        "w": 0.3,
+        "h": 0.34
+      },
+      "aspect": 1.1419,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.705,
+        "y": 0.2,
+        "w": 0.24,
+        "h": 0.56
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": {
+    "pairId": "sp-b",
+    "side": "left"
+  },
+  "sections": null
+}

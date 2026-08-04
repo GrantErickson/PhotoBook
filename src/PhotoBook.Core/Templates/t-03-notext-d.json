@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-notext-d",
+  "name": "Diagonal cascade of three",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.05,
+        "w": 0.4,
+        "h": 0.34
+      },
+      "aspect": 1.5225,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.3,
+        "y": 0.41,
+        "w": 0.3,
+        "h": 0.4
+      },
+      "aspect": 0.9706,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.7,
+        "y": 0.5,
+        "w": 0.26,
+        "h": 0.42
+      },
+      "aspect": 0.8011,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

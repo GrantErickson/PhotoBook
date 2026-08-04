@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "t-sp-c-left",
+  "name": "Hero spread \u2014 full-bleed left",
+  "pageSize": "11x8.5-landscape",
+  "kind": "spreadPair",
+  "photoCount": 1,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.0,
+        "y": -0.0147,
+        "w": 1.0114,
+        "h": 1.0294
+      },
+      "aspect": 1.2715,
+      "aspectTolerance": 0.25,
+      "tierAffinity": "S",
+      "captionPolicy": "overlay",
+      "bleed": true
+    }
+  ],
+  "textSlots": [],
+  "pair": {
+    "pairId": "sp-c",
+    "side": "left"
+  },
+  "sections": null
+}

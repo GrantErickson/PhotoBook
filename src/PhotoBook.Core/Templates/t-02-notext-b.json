@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-notext-b",
+  "name": "Dominant square with offset portrait",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.05,
+        "y": 0.08,
+        "w": 0.58,
+        "h": 0.75
+      },
+      "aspect": 1.0008,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.68,
+        "y": 0.44,
+        "w": 0.25,
+        "h": 0.43
+      },
+      "aspect": 0.7524,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

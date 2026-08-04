@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-notext-b",
+  "name": "Outer hero with inner rail of three",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.26,
+        "h": 0.28
+      },
+      "aspect": 1.2017,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.32,
+        "y": 0.06,
+        "w": 0.64,
+        "h": 0.88
+      },
+      "aspect": 0.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.04,
+        "y": 0.36,
+        "w": 0.26,
+        "h": 0.28
+      },
+      "aspect": 1.2017,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.04,
+        "y": 0.66,
+        "w": 0.26,
+        "h": 0.28
+      },
+      "aspect": 1.2017,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

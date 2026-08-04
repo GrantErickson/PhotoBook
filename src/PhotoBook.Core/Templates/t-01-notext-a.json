@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-notext-a",
+  "name": "One photo, centered \u2014 the quiet page",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.14,
+        "y": 0.19,
+        "w": 0.72,
+        "h": 0.62
+      },
+      "aspect": 1.5028,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

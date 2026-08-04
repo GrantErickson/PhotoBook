@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-d",
+  "name": "Minimal month title with a small photo",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 1,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.325,
+        "y": 0.11,
+        "w": 0.35,
+        "h": 0.45
+      },
+      "aspect": 1.0065,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.1,
+        "y": 0.64,
+        "w": 0.8,
+        "h": 0.22
+      },
+      "role": "monthTitle",
+      "align": "center"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

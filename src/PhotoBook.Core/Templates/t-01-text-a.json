@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-text-a",
+  "name": "One photo with journal column",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.34,
+        "y": 0.13,
+        "w": 0.62,
+        "h": 0.74
+      },
+      "aspect": 1.0843,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.24,
+        "w": 0.245,
+        "h": 0.48
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

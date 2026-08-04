@@ -6,4 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- The v1 layout template library (doc 07). Templates are data, not code: they ship as embedded
+       JSON, one file per template, and are loaded at startup by TemplateLibrary. LogicalName is set
+       explicitly so a resource name is exactly "PhotoBook.Core.Templates.{id}.json" regardless of
+       how MSBuild would otherwise mangle the hyphenated file names. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\*.json">
+      <LogicalName>PhotoBook.Core.Templates.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

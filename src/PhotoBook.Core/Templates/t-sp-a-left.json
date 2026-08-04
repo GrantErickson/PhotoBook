@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "t-sp-a-left",
+  "name": "Panorama spread \u2014 left",
+  "pageSize": "11x8.5-landscape",
+  "kind": "spreadPair",
+  "photoCount": 1,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.0,
+        "y": -0.0147,
+        "w": 1.0114,
+        "h": 1.0294
+      },
+      "aspect": 1.2715,
+      "aspectTolerance": 0.25,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": true,
+      "spanId": "pan1"
+    }
+  ],
+  "textSlots": [],
+  "pair": {
+    "pairId": "sp-a",
+    "side": "left"
+  },
+  "sections": null
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-a",
+  "name": "Two days, stacked halves",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 2,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.05,
+        "w": 0.44,
+        "h": 0.4
+      },
+      "aspect": 1.4235,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.52,
+        "y": 0.54,
+        "w": 0.44,
+        "h": 0.4
+      },
+      "aspect": 1.4235,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.52,
+        "y": 0.06,
+        "w": 0.44,
+        "h": 0.38
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.055,
+        "y": 0.55,
+        "w": 0.425,
+        "h": 0.38
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s2"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    }
+  ]
+}

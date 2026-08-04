@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-notext-a",
+  "name": "Even 2x2 grid",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.05,
+        "w": 0.4532,
+        "h": 0.4312
+      },
+      "aspect": 1.3601,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.5068,
+        "y": 0.05,
+        "w": 0.4532,
+        "h": 0.4312
+      },
+      "aspect": 1.3601,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.04,
+        "y": 0.4988,
+        "w": 0.4532,
+        "h": 0.4312
+      },
+      "aspect": 1.3601,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.5068,
+        "y": 0.4988,
+        "w": 0.4532,
+        "h": 0.4312
+      },
+      "aspect": 1.3601,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

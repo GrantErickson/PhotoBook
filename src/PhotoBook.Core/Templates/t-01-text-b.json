@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-text-b",
+  "name": "Tall portrait with inner journal",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.51,
+        "y": 0.11,
+        "w": 0.45,
+        "h": 0.78
+      },
+      "aspect": 0.7466,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.3,
+        "w": 0.4,
+        "h": 0.34
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

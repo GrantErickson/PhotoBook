@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "t-06-notext-b",
+  "name": "Hero with a five-photo mosaic",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 6,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.06,
+        "w": 0.52,
+        "h": 0.6
+      },
+      "aspect": 1.1216,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.58,
+        "y": 0.06,
+        "w": 0.38,
+        "h": 0.28
+      },
+      "aspect": 1.7563,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.58,
+        "y": 0.36,
+        "w": 0.18,
+        "h": 0.3
+      },
+      "aspect": 0.7765,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.78,
+        "y": 0.36,
+        "w": 0.18,
+        "h": 0.3
+      },
+      "aspect": 0.7765,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.04,
+        "y": 0.68,
+        "w": 0.3,
+        "h": 0.26
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s6",
+      "rect": {
+        "x": 0.36,
+        "y": 0.68,
+        "w": 0.3,
+        "h": 0.26
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

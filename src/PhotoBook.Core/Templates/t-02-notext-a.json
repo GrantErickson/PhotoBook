@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-notext-a",
+  "name": "Two landscapes, centered",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.05,
+        "y": 0.29,
+        "w": 0.43,
+        "h": 0.42
+      },
+      "aspect": 1.3249,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.52,
+        "y": 0.29,
+        "w": 0.43,
+        "h": 0.42
+      },
+      "aspect": 1.3249,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

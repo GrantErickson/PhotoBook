@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "t-05-notext-c",
+  "name": "Two large over three small",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 5,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.04,
+        "y": 0.05,
+        "w": 0.45,
+        "h": 0.46
+      },
+      "aspect": 1.266,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.51,
+        "y": 0.05,
+        "w": 0.45,
+        "h": 0.46
+      },
+      "aspect": 1.266,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.04,
+        "y": 0.55,
+        "w": 0.2933,
+        "h": 0.36
+      },
+      "aspect": 1.0543,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.3533,
+        "y": 0.55,
+        "w": 0.2933,
+        "h": 0.36
+      },
+      "aspect": 1.0543,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.6667,
+        "y": 0.55,
+        "w": 0.2933,
+        "h": 0.36
+      },
+      "aspect": 1.0543,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

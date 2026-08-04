@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-text-b",
+  "name": "Outer 2x2 grid with journal column",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.42,
+        "y": 0.08,
+        "w": 0.26,
+        "h": 0.4
+      },
+      "aspect": 0.8412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.7,
+        "y": 0.08,
+        "w": 0.26,
+        "h": 0.4
+      },
+      "aspect": 0.8412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.42,
+        "y": 0.5,
+        "w": 0.26,
+        "h": 0.4
+      },
+      "aspect": 0.8412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.7,
+        "y": 0.5,
+        "w": 0.26,
+        "h": 0.4
+      },
+      "aspect": 0.8412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.2,
+        "w": 0.32,
+        "h": 0.56
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

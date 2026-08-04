@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-d",
+  "name": "Portrait outer, landscape inner over journal",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.05,
+        "y": 0.08,
+        "w": 0.53,
+        "h": 0.36
+      },
+      "aspect": 1.9052,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.63,
+        "y": 0.15,
+        "w": 0.33,
+        "h": 0.62
+      },
+      "aspect": 0.6888,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.5,
+        "w": 0.51,
+        "h": 0.4
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}
