@@ -12,6 +12,10 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- The integration tests synthesize their own fixtures: real image files via Magick.NET and a
+         real .docx journal via OpenXML, so nothing depends on a photo existing on the machine. -->
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
   </ItemGroup>
 
   <ItemGroup>

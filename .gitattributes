@@ -1,0 +1,12 @@
+* text=auto eol=crlf
+*.md text eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.webp binary
+*.pdf binary
+*.onnx binary
+*.ttf binary
+*.otf binary
