@@ -1,0 +1,179 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        Palette — the single source of colour truth for PhotoBook.
+
+        A photo tool must recede: every surface here is a near-neutral dark step with only a trace
+        of cool cast, so photographs are the only saturated thing on screen. The accent is used
+        sparingly (selection, primary action, focus) and never as decoration.
+
+        Layering (kernel §8 shell, doc 09):
+            Canvas    #0A0B0C  the page canvas backdrop — darkest, photos sit on it
+            Sunken    #101215  wells: filmstrip, bin, list backgrounds
+            Surface   #14171A  the application background
+            Raised    #1B1F23  panels, rails, command bar
+            Overlay   #22262B  cards, popups, menus, dialogs
+            Highest   #2A2F35  hover/pressed on raised surfaces, chips
+
+        NEVER hardcode a colour in a view — add a semantic entry here instead.
+    -->
+
+    <!-- ============================================================ surfaces -->
+    <Color x:Key="CanvasColor">#FF0A0B0C</Color>
+    <Color x:Key="SurfaceSunkenColor">#FF101215</Color>
+    <Color x:Key="SurfaceColor">#FF14171A</Color>
+    <Color x:Key="SurfaceRaisedColor">#FF1B1F23</Color>
+    <Color x:Key="SurfaceOverlayColor">#FF22262B</Color>
+    <Color x:Key="SurfaceHighestColor">#FF2A2F35</Color>
+    <Color x:Key="TitleBarColor">#FF101317</Color>
+
+    <SolidColorBrush x:Key="CanvasBrush" Color="{StaticResource CanvasColor}" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="{StaticResource SurfaceSunkenColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="{StaticResource SurfaceOverlayColor}" />
+    <SolidColorBrush x:Key="SurfaceHighestBrush" Color="{StaticResource SurfaceHighestColor}" />
+    <SolidColorBrush x:Key="TitleBarBrush" Color="{StaticResource TitleBarColor}" />
+
+    <!-- The colour a printed page is: v1 backgrounds are solid black (kernel §3, doc 10 §6). -->
+    <SolidColorBrush x:Key="PageBlackBrush" Color="#FF000000" />
+    <SolidColorBrush x:Key="TransparentBrush" Color="#00000000" />
+
+    <!-- ============================================================== strokes -->
+    <Color x:Key="BorderSubtleColor">#FF23272C</Color>
+    <Color x:Key="BorderColor">#FF31373E</Color>
+    <Color x:Key="BorderStrongColor">#FF444C56</Color>
+
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
+
+    <!-- =============================================================== text -->
+    <Color x:Key="TextPrimaryColor">#FFECEFF3</Color>
+    <Color x:Key="TextSecondaryColor">#FFA7B0BA</Color>
+    <Color x:Key="TextTertiaryColor">#FF767F8A</Color>
+    <Color x:Key="TextDisabledColor">#FF565D66</Color>
+    <Color x:Key="TextOnAccentColor">#FF0A0D12</Color>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="{StaticResource TextOnAccentColor}" />
+
+    <!-- ============================================================= accent -->
+    <!-- One restrained blue. Selection, primary actions and focus only. -->
+    <Color x:Key="AccentColor">#FF4C8DF5</Color>
+    <Color x:Key="AccentHoverColor">#FF6BA2FF</Color>
+    <Color x:Key="AccentPressedColor">#FF3B76D6</Color>
+    <Color x:Key="AccentDimColor">#FF2C4A75</Color>
+
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="AccentDimBrush" Color="{StaticResource AccentDimColor}" />
+    <!-- Translucent accent washes for selection fills and drop-target rings. -->
+    <SolidColorBrush x:Key="AccentWashBrush" Color="#294C8DF5" />
+    <SolidColorBrush x:Key="AccentWashStrongBrush" Color="#4A4C8DF5" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="#334C8DF5" />
+    <SolidColorBrush x:Key="SelectionBorderBrush" Color="#CC4C8DF5" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#FF7FB0FF" />
+
+    <!-- =========================================================== semantic -->
+    <!-- R14: the empty-slot flag is exactly #FFB300 on page and in every roll-up badge. -->
+    <Color x:Key="AmberFlagColor">#FFFFB300</Color>
+    <SolidColorBrush x:Key="AmberFlagBrush" Color="{StaticResource AmberFlagColor}" />
+    <SolidColorBrush x:Key="AmberFlagWashBrush" Color="#1FFFB300" />
+    <SolidColorBrush x:Key="AmberFlagTextBrush" Color="#FF120C00" />
+
+    <Color x:Key="WarningColor">#FFE0A33C</Color>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+    <SolidColorBrush x:Key="WarningWashBrush" Color="#1FE0A33C" />
+
+    <Color x:Key="ErrorColor">#FFE5544B</Color>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+    <SolidColorBrush x:Key="ErrorWashBrush" Color="#22E5544B" />
+    <SolidColorBrush x:Key="ErrorHoverBrush" Color="#FFF06A61" />
+
+    <Color x:Key="SuccessColor">#FF3FB765</Color>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="SuccessWashBrush" Color="#1F3FB765" />
+
+    <!-- ============================================================== tiers -->
+    <!-- Quality tiers (kernel §4). S reads as a quiet gold, C fades toward the background. -->
+    <Color x:Key="TierSColor">#FFE7C169</Color>
+    <Color x:Key="TierAColor">#FF9BC7F0</Color>
+    <Color x:Key="TierBColor">#FF8B949E</Color>
+    <Color x:Key="TierCColor">#FF5E666F</Color>
+
+    <SolidColorBrush x:Key="TierSBrush" Color="{StaticResource TierSColor}" />
+    <SolidColorBrush x:Key="TierABrush" Color="{StaticResource TierAColor}" />
+    <SolidColorBrush x:Key="TierBBrush" Color="{StaticResource TierBColor}" />
+    <SolidColorBrush x:Key="TierCBrush" Color="{StaticResource TierCColor}" />
+
+    <SolidColorBrush x:Key="TierSWashBrush" Color="#33E7C169" />
+    <SolidColorBrush x:Key="TierAWashBrush" Color="#339BC7F0" />
+    <SolidColorBrush x:Key="TierBWashBrush" Color="#338B949E" />
+    <SolidColorBrush x:Key="TierCWashBrush" Color="#335E666F" />
+
+    <!-- ======================================================= interaction -->
+    <SolidColorBrush x:Key="HoverOverlayBrush" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="PressedOverlayBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#99000000" />
+    <SolidColorBrush x:Key="ScrimHeavyBrush" Color="#CC07080A" />
+    <SolidColorBrush x:Key="DisabledFillBrush" Color="#FF1E2228" />
+    <SolidColorBrush x:Key="TrackBrush" Color="#FF31373E" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#59FFFFFF" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#8CFFFFFF" />
+    <SolidColorBrush x:Key="CloseButtonHoverBrush" Color="#FFC42B1C" />
+    <SolidColorBrush x:Key="CloseButtonPressedBrush" Color="#FF8E2118" />
+
+    <!-- ================================================== shape and rhythm -->
+    <CornerRadius x:Key="RadiusSmall">3</CornerRadius>
+    <CornerRadius x:Key="RadiusMedium">6</CornerRadius>
+    <CornerRadius x:Key="RadiusLarge">10</CornerRadius>
+    <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+
+    <sys:Double x:Key="SpaceXs">4</sys:Double>
+    <sys:Double x:Key="SpaceSm">8</sys:Double>
+    <sys:Double x:Key="SpaceMd">12</sys:Double>
+    <sys:Double x:Key="SpaceLg">20</sys:Double>
+    <sys:Double x:Key="SpaceXl">32</sys:Double>
+
+    <Thickness x:Key="PaddingControl">12,6,12,7</Thickness>
+    <Thickness x:Key="PaddingCard">16</Thickness>
+    <Thickness x:Key="PaddingPanel">20,18,20,18</Thickness>
+
+    <sys:Double x:Key="TitleBarHeight">40</sys:Double>
+    <sys:Double x:Key="CommandBarHeight">48</sys:Double>
+    <sys:Double x:Key="ChapterRailWidth">248</sys:Double>
+    <sys:Double x:Key="InspectorWidth">320</sys:Double>
+
+    <!-- A single soft elevation shadow; used by cards, popups and drag ghosts. -->
+    <DropShadowEffect x:Key="ElevationLow" BlurRadius="12" ShadowDepth="2" Direction="270"
+                      Color="#FF000000" Opacity="0.45" />
+    <DropShadowEffect x:Key="ElevationHigh" BlurRadius="28" ShadowDepth="6" Direction="270"
+                      Color="#FF000000" Opacity="0.6" />
+
+    <!-- The dashboard hero wash: a barely-there vertical gradient so the shell has depth. -->
+    <LinearGradientBrush x:Key="ShellBackdropBrush" StartPoint="0,0" EndPoint="0.35,1">
+        <GradientStop Color="#FF191D22" Offset="0" />
+        <GradientStop Color="#FF14171A" Offset="0.55" />
+        <GradientStop Color="#FF101215" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Empty-state art wash: quiet, never competes with a photograph. -->
+    <LinearGradientBrush x:Key="EmptyStateArtBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF232830" Offset="0" />
+        <GradientStop Color="#FF171B20" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Checkerboard-free placeholder for a thumbnail that has not decoded yet. -->
+    <LinearGradientBrush x:Key="ThumbnailPlaceholderBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF1E2228" Offset="0" />
+        <GradientStop Color="#FF15181C" Offset="1" />
+    </LinearGradientBrush>
+
+</ResourceDictionary>

@@ -1,0 +1,148 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Self-sufficient: the colour keys used below come from Palette. WPF caches a merged
+         dictionary by its pack URI, so merging it here as well as in App.xaml is free and makes
+         this file resolve on its own in the XAML designer. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/PhotoBook.App;component/Themes/Palette.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!--
+        Typography — one six-step scale for the whole shell.
+
+        Family: Segoe UI Variable (Windows 11). WPF resolves a comma-separated family list left to
+        right, so the documented fallback chain is:
+
+            Segoe UI Variable Text  →  Segoe UI  →  Tahoma  →  the WPF default sans
+            Segoe UI Variable Display (headings only, optical size for large type)
+
+        This is UI chrome type only. The *book's* type is a completely separate thing: bundled OFL
+        faces (Source Serif 4 / Source Sans 3 / Playfair Display) resolved by PhotoBook.Rendering's
+        FontLibrary per doc 10 §3. Nothing here ever renders onto a page.
+
+        Scale (size / line height / weight):
+            Display   30 / 38 / SemiBold   screen titles, empty-state headlines
+            Title     20 / 27 / SemiBold   view titles, dialog titles
+            Subtitle  15 / 21 / SemiBold   card titles, group headers
+            Body      13 / 19 / Normal     the default for everything
+            Caption   11.5 / 16 / Normal   secondary metadata under body text
+            Micro     10.5 / 14 / SemiBold uppercase, tracked — section labels and badges
+
+        Foreground is deliberately NOT set by the base styles that controls reuse, so a control can
+        dim its own content when disabled; the *TextStyle variants below do set it, because they are
+        applied to standalone TextBlocks.
+    -->
+
+    <FontFamily x:Key="AppFontFamily">Segoe UI Variable Text, Segoe UI, Tahoma</FontFamily>
+    <FontFamily x:Key="DisplayFontFamily">Segoe UI Variable Display, Segoe UI, Tahoma</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas, Courier New</FontFamily>
+
+    <sys:Double x:Key="FontSizeDisplay">30</sys:Double>
+    <sys:Double x:Key="FontSizeTitle">20</sys:Double>
+    <sys:Double x:Key="FontSizeSubtitle">15</sys:Double>
+    <sys:Double x:Key="FontSizeBody">13</sys:Double>
+    <sys:Double x:Key="FontSizeCaption">11.5</sys:Double>
+    <sys:Double x:Key="FontSizeMicro">10.5</sys:Double>
+
+    <sys:Double x:Key="LineHeightDisplay">38</sys:Double>
+    <sys:Double x:Key="LineHeightTitle">27</sys:Double>
+    <sys:Double x:Key="LineHeightSubtitle">21</sys:Double>
+    <sys:Double x:Key="LineHeightBody">19</sys:Double>
+    <sys:Double x:Key="LineHeightCaption">16</sys:Double>
+    <sys:Double x:Key="LineHeightMicro">14</sys:Double>
+
+    <!-- ================================================ TextBlock text styles -->
+
+    <Style x:Key="BaseTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightBody}" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="TextTrimming" Value="None" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style x:Key="DisplayTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource DisplayFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeDisplay}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightDisplay}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="TitleTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource DisplayFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightTitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="SubtitleTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightSubtitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="BodyTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}" />
+
+    <Style x:Key="BodyStrongTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="BodySecondaryTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="CaptionTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightCaption}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="CaptionMutedTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource CaptionTextStyle}">
+        <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+    </Style>
+
+    <Style x:Key="MicroTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
+        <Setter Property="LineHeight" Value="{StaticResource LineHeightMicro}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+    </Style>
+
+    <!-- Uppercase tracked label above a group of controls: "PHOTOS", "ADJUST", "CHAPTERS". -->
+    <Style x:Key="SectionLabelTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MicroTextStyle}">
+        <Setter Property="Typography.Capitals" Value="AllSmallCaps" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Tabular numerals for counts, page numbers, zoom readouts — digits must not jitter. -->
+    <Style x:Key="NumericTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
+
+    <Style x:Key="MonoTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+    </Style>
+
+    <!-- ==================================================== paragraph styles -->
+
+    <!-- Body copy that must wrap: empty states, dialog explanations, toasts. -->
+    <Style x:Key="ParagraphTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="MaxWidth" Value="520" />
+    </Style>
+
+    <Style x:Key="TruncatingTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+</ResourceDictionary>
