@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Authors>Grant Erickson</Authors>
+    <Product>PhotoBook</Product>
+    <!-- SkiaSharp.Views.WPF ships only .NET Framework assets; we blit Skia to a
+         WriteableBitmap ourselves instead, so that package is deliberately not referenced. -->
+  </PropertyGroup>
+</Project>

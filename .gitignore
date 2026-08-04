@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+artifacts/
+# Local ONNX models are downloaded by the user (see SETUP.md), never committed
+models/*.onnx
+# Local secrets: MSAL client id / Azure keys
+appsettings.local.json
+secrets.local.json
