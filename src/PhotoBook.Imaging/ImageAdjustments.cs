@@ -8,12 +8,12 @@ namespace PhotoBook.Imaging;
 /// uses (doc 05 writes the same sliders as <c>-100 .. 100</c>; divide by 100).
 ///
 /// <para>
-/// <see cref="AdjustmentStack"/> in <c>PhotoBook.Core</c> is the persisted contract and carries the six
-/// parameters the catalog stores today. This record is a superset: it adds the geometry stage, the
-/// highlight/shadow recovery, vibrance, vignette and black-and-white that doc 05 specifies, so the
-/// pipeline is complete before the catalog schema catches up. Converting from the Core stack is
-/// implicit and lossless — <see cref="From"/> maps the six stored parameters and leaves the rest at
-/// identity.
+/// <see cref="AdjustmentStack"/> in <c>PhotoBook.Core</c> is the persisted contract and carries the
+/// same parameter set; this record is the pipeline's view of it, with the geometry projection and
+/// normalization the renderer needs. Conversion is lossless in both directions — <see cref="From"/>
+/// (also available implicitly) and <see cref="ToAdjustmentStack"/> map every parameter, so an edit
+/// made in the pipeline survives a save and comes back identical. The one spelling difference is
+/// <see cref="Sharpen"/>, which the catalog calls <c>Sharpness</c>.
 /// </para>
 ///
 /// <para>
@@ -108,30 +108,48 @@ public sealed record ImageAdjustments
         : Identity;
 
     /// <summary>
-    /// Projects the persisted <see cref="AdjustmentStack"/> onto this record. Null becomes
-    /// <see cref="Identity"/>.
+    /// Converts the persisted <see cref="AdjustmentStack"/> into this record, parameter for parameter.
+    /// Null becomes <see cref="Identity"/>.
     /// </summary>
     public static ImageAdjustments From(AdjustmentStack? stack) => stack is null || stack.IsIdentity
         ? Identity
         : new ImageAdjustments
         {
+            Rotate = stack.Rotate,
+            Straighten = stack.Straighten,
+            FlipHorizontal = stack.FlipHorizontal,
+            ExposureEv = stack.ExposureEv,
             Brightness = stack.Brightness,
             Contrast = stack.Contrast,
-            Saturation = stack.Saturation,
+            Highlights = stack.Highlights,
+            Shadows = stack.Shadows,
             Temperature = stack.Temperature,
             Tint = stack.Tint,
+            Saturation = stack.Saturation,
+            Vibrance = stack.Vibrance,
             Sharpen = stack.Sharpness,
+            Vignette = stack.Vignette,
+            BlackAndWhite = stack.BlackAndWhite,
         };
 
-    /// <summary>Projects the six persisted parameters back onto a Core stack; the extra stages are dropped.</summary>
+    /// <summary>Converts back to the persisted Core stack, parameter for parameter; nothing is dropped.</summary>
     public AdjustmentStack ToAdjustmentStack() => new()
     {
+        Rotate = Rotate,
+        Straighten = Straighten,
+        FlipHorizontal = FlipHorizontal,
+        ExposureEv = ExposureEv,
         Brightness = Brightness,
         Contrast = Contrast,
-        Saturation = Saturation,
+        Highlights = Highlights,
+        Shadows = Shadows,
         Temperature = Temperature,
         Tint = Tint,
+        Saturation = Saturation,
+        Vibrance = Vibrance,
         Sharpness = Sharpen,
+        Vignette = Vignette,
+        BlackAndWhite = BlackAndWhite,
     };
 
     /// <summary>Lets callers pass a catalog <see cref="AdjustmentStack"/> anywhere this record is expected.</summary>
