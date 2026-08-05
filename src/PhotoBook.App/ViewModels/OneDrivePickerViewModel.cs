@@ -47,6 +47,12 @@ public sealed partial class OneDrivePickerViewModel : ObservableObject
     /// <summary>The chosen source, or null while the user has not committed.</summary>
     public BookSource? Result { get; private set; }
 
+    /// <summary>
+    /// How many items the chosen album holds, so the download can show real progress rather than a
+    /// barber pole. Null for folders, where Graph gives no cheap count without walking the tree.
+    /// </summary>
+    public int? ResultItemCount { get; private set; }
+
     /// <summary>Raised when the dialog should close; true when a source was chosen.</summary>
     public event Action<bool>? CloseRequested;
 
@@ -227,6 +233,8 @@ public sealed partial class OneDrivePickerViewModel : ObservableObject
                     Path = album.Name,
                 }
                 : null;
+
+        ResultItemCount = IsFolderMode ? null : SelectedAlbum?.ItemCount;
 
         if (Result is not null)
         {

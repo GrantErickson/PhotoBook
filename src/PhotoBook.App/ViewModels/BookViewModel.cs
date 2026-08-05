@@ -260,12 +260,11 @@ public sealed partial class BookViewModel : ObservableObject
         var photosBefore = _session.PhotoCount;
         await _jobs.RunAsync("Importing photos", async job =>
         {
-            job.IsIndeterminate = false;
+            job.Status = "Counting photos…";
+            var expected = CountSupportedFiles(dialog.FolderName, job.Cancellation.Token);
+
             var progress = new Progress<Ingestion.PhotoImportProgress>(p =>
-            {
-                job.Status = $"{p.Added} added · {p.CurrentFileName}";
-                job.IsIndeterminate = true;
-            });
+                ReportImportProgress(job, p, expected));
 
             var report = await _session
                 .ImportFolderAsync(dialog.FolderName, progress, job.Cancellation.Token)
@@ -377,6 +376,8 @@ public sealed partial class BookViewModel : ObservableObject
             await client.Authenticator.GetAccessTokenAsync().ConfigureAwait(true);
 
             var source = reuseStoredSource ? _session.OneDriveSource : null;
+            int? expectedItems;
+
             if (source is null)
             {
                 var picker = new OneDrivePickerViewModel(client, client.Authenticator.SignedInAccount);
@@ -392,9 +393,15 @@ public sealed partial class BookViewModel : ObservableObject
                 }
 
                 source = picker.Result;
+                expectedItems = picker.ResultItemCount;
+            }
+            else
+            {
+                // "Sync now" skipped the picker, so re-read the album's size for the progress bar.
+                expectedItems = await CountItemsAsync(client, source).ConfigureAwait(true);
             }
 
-            await ImportFromOneDriveAsync(client, source).ConfigureAwait(true);
+            await ImportFromOneDriveAsync(client, source, expectedItems).ConfigureAwait(true);
         }
         catch (Ingestion.OneDrive.OneDriveNotConfiguredException ex)
         {
@@ -410,7 +417,31 @@ public sealed partial class BookViewModel : ObservableObject
         }
     }
 
-    private async Task ImportFromOneDriveAsync(Ingestion.OneDrive.IOneDriveClient client, BookSource source)
+    /// <summary>
+    /// How many items the stored album holds, for the progress bar. One cheap Graph call; a folder
+    /// source has no equivalent, and a failure here must never stop the sync.
+    /// </summary>
+    private static async Task<int?> CountItemsAsync(
+        Ingestion.OneDrive.IOneDriveClient client, BookSource source)
+    {
+        if (source.Kind != BookSourceKind.OneDriveAlbum || source.Id is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var albums = await client.ListAlbumsAsync().ConfigureAwait(true);
+            return albums.FirstOrDefault(a => a.Id == source.Id)?.ItemCount;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task ImportFromOneDriveAsync(
+        Ingestion.OneDrive.IOneDriveClient client, BookSource source, int? expectedItems)
     {
         IsBusy = true;
         var photosBefore = _session.PhotoCount;
@@ -419,10 +450,7 @@ public sealed partial class BookViewModel : ObservableObject
             await _jobs.RunAsync($"Syncing “{source.Path}”", async job =>
             {
                 var progress = new Progress<Ingestion.PhotoImportProgress>(p =>
-                {
-                    job.IsIndeterminate = true;
-                    job.Status = $"{p.Added} downloaded · {p.CurrentFileName}";
-                });
+                    ReportImportProgress(job, p, expectedItems));
 
                 var report = await _session
                     .ImportOneDriveAsync(client, source, progress, job.Cancellation.Token)
@@ -517,6 +545,60 @@ public sealed partial class BookViewModel : ObservableObject
 
         IsBusy = false;
         await SaveAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Counts the importable files in a folder so the bar can fill. A directory walk is far cheaper
+    /// than the decode-and-copy that follows, and returning null on any failure just falls back to
+    /// an indeterminate bar rather than failing the import.
+    /// </summary>
+    private static int? CountSupportedFiles(string folder, CancellationToken ct)
+    {
+        try
+        {
+            var count = 0;
+            foreach (var path in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+            {
+                ct.ThrowIfCancellationRequested();
+                if (Imaging.ImageFormats.IsSupported(path))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Drives the job strip during an import. With a known total the bar fills and the status reads
+    /// "12 of 47"; without one it stays indeterminate rather than inventing a percentage.
+    /// <paramref name="expected"/> counts every item in the source, including videos and duplicates
+    /// that get skipped, so it is matched against items *seen* rather than photos added.
+    /// </summary>
+    private static void ReportImportProgress(Job job, Ingestion.PhotoImportProgress p, int? expected)
+    {
+        if (expected is > 0)
+        {
+            job.IsIndeterminate = false;
+            job.Progress = Math.Clamp(100.0 * p.ItemsSeen / expected.Value, 0, 100);
+            job.Status = $"{p.ItemsSeen} of {expected} · {p.CurrentFileName}";
+        }
+        else
+        {
+            job.IsIndeterminate = true;
+            job.Status = p.ItemsSeen > 0
+                ? $"{p.ItemsSeen} seen · {p.CurrentFileName}"
+                : p.CurrentFileName;
+        }
     }
 
     /// <summary>Renders previews for the chapter's pages.</summary>

@@ -20,6 +20,14 @@ public sealed partial class Job : ObservableObject
     [ObservableProperty]
     private bool _isIndeterminate = true;
 
+    /// <summary>"42%" while a total is known, blank while the work is unmeasurable.</summary>
+    public string PercentLabel =>
+        IsIndeterminate ? string.Empty : Progress.ToString("F0", System.Globalization.CultureInfo.CurrentCulture) + "%";
+
+    partial void OnProgressChanged(double value) => OnPropertyChanged(nameof(PercentLabel));
+
+    partial void OnIsIndeterminateChanged(bool value) => OnPropertyChanged(nameof(PercentLabel));
+
     public CancellationTokenSource Cancellation { get; } = new();
 
     public void Cancel() => Cancellation.Cancel();
