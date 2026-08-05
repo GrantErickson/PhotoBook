@@ -180,6 +180,122 @@ public sealed class ProjectSession : IDisposable
         return report;
     }
 
+    /// <summary>
+    /// Imports (or re-syncs) photos from a OneDrive album or folder, copying originals into the
+    /// project exactly as a folder import does. The chosen source is recorded on the book so a later
+    /// "Sync now" needs no picker, and so re-syncing never resurrects an excluded photo (R17).
+    /// </summary>
+    public async Task<PhotoImportReport> ImportOneDriveAsync(
+        PhotoBook.Ingestion.OneDrive.IOneDriveClient client,
+        BookSource source,
+        IProgress<PhotoImportProgress>? progress,
+        CancellationToken ct = default)
+    {
+        if (Store is null || Book is null)
+        {
+            throw new InvalidOperationException("No project is open.");
+        }
+
+        var importer = new PhotoImporter(Store.Paths);
+        var photoSource = OneDrivePhotoSource.ForBookSource(client, source);
+        var report = await importer.ImportAsync(photoSource, Catalog, null, progress, ct).ConfigureAwait(false);
+
+        Book.Source = source;
+        RebuildImagePipeline();
+        MarkDirty();
+        return report;
+    }
+
+    /// <summary>Non-excluded photos currently in the catalog, whatever year they fall in.</summary>
+    public int PhotoCount => Catalog.Photos.Count(p => !p.Excluded);
+
+    /// <summary>
+    /// Keeps a book's year and its photos from silently disagreeing. A book covers exactly one year
+    /// (R3), so a photo outside it lands in the Outside-book tray — correct, but invisible: import a
+    /// 2022 album into a book that defaulted to this year and every month reads zero with no
+    /// explanation.
+    /// <para>
+    /// An <b>empty</b> book therefore adopts the year its first photos actually come from, which is
+    /// almost always what was meant. A book that already has photos is left alone and the caller is
+    /// told how many fell outside, because retargeting a populated book would move everything.
+    /// </para>
+    /// </summary>
+    /// <param name="photosBeforeImport">Catalog count before the import that just ran.</param>
+    /// <returns>A message worth showing the user, or null when nothing needs saying.</returns>
+    public string? ReconcileYearAfterImport(int photosBeforeImport)
+    {
+        if (Book is null)
+        {
+            return null;
+        }
+
+        var photos = Catalog.Photos.Where(p => !p.Excluded).ToList();
+        if (photos.Count == 0)
+        {
+            return null;
+        }
+
+        var dominant = photos
+            .GroupBy(p => p.TakenAt.Year)
+            .OrderByDescending(g => g.Count())
+            .ThenBy(g => g.Key)
+            .First();
+
+        if (photosBeforeImport == 0 && dominant.Key != Book.Year)
+        {
+            var previous = Book.Year;
+            SetBookYear(dominant.Key);
+
+            var outside = photos.Count - dominant.Count();
+            var note = $"These photos are from {dominant.Key}, so this book is now “{Book.Title}” " +
+                       $"covering {dominant.Key} rather than {previous}.";
+            return outside == 0
+                ? note
+                : note + $" {outside} photo{(outside == 1 ? "" : "s")} from other years " +
+                         "will sit in the Outside-book tray.";
+        }
+
+        var strays = photos.Count(p => p.TakenAt.Year != Book.Year);
+        return strays == 0
+            ? null
+            : $"{strays} photo{(strays == 1 ? " is" : "s are")} outside {Book.Year} and will not appear " +
+              $"in any month. Change the photo's date, or make a book for that year.";
+    }
+
+    /// <summary>
+    /// Retargets an empty book at another year, moving its (empty) chapters with it and rewriting a
+    /// default title like "Family 2026" so the shell does not keep showing the year it is no longer.
+    /// </summary>
+    private void SetBookYear(int year)
+    {
+        if (Book is null)
+        {
+            return;
+        }
+
+        var previous = Book.Year.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Book.Year = year;
+
+        foreach (var chapter in Chapters)
+        {
+            chapter.Year = year;
+        }
+
+        if (Book.Title.Contains(previous, StringComparison.Ordinal))
+        {
+            Book.Title = Book.Title.Replace(
+                previous, year.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        }
+
+        MarkDirty();
+    }
+
+    /// <summary>The OneDrive source this book syncs from, or null when it is a local-folder book.</summary>
+    public BookSource? OneDriveSource =>
+        Book?.Source is { Kind: BookSourceKind.OneDriveAlbum or BookSourceKind.OneDriveFolder } source
+            ? source
+            : null;
+
     /// <summary>Parses a Word journal and merges its entries (R2).</summary>
     public async Task<JournalImportReport> ImportJournalAsync(string docxPath, CancellationToken ct = default)
     {

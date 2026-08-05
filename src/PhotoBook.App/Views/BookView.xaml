@@ -88,12 +88,33 @@
                                 <TextBlock Text="Import photos…" Margin="10,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
-                                Command="{Binding SyncOneDriveCommand}" HorizontalContentAlignment="Left"
-                                ToolTip="Sign in with your Windows account and sync a OneDrive album">
+                        <!-- Re-sync the remembered album; shown only once a book is bound to one. -->
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding ResyncOneDriveCommand}" HorizontalContentAlignment="Left"
+                                ToolTip="{Binding OneDriveSourceLabel, StringFormat='Download anything new from {0}'}"
+                                Visibility="{Binding HasOneDriveSource, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
                                 <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
-                                <TextBlock Text="OneDrive…" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Sync now" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding SyncOneDriveCommand}" HorizontalContentAlignment="Left"
+                                ToolTip="Sign in with your Windows account and choose a OneDrive album or folder">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+                                            <Setter Property="Text" Value="OneDrive…" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasOneDriveSource}" Value="True">
+                                                    <Setter Property="Text" Value="Change source…" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"

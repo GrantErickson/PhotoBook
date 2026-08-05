@@ -122,6 +122,8 @@ public sealed partial class BookViewModel : ObservableObject
 
         OnPropertyChanged(nameof(BookTitle));
         OnPropertyChanged(nameof(Year));
+        OnPropertyChanged(nameof(HasOneDriveSource));
+        OnPropertyChanged(nameof(OneDriveSourceLabel));
     }
 
     partial void OnSelectedChapterChanged(ChapterItemViewModel? value)
@@ -255,6 +257,7 @@ public sealed partial class BookViewModel : ObservableObject
         }
 
         IsBusy = true;
+        var photosBefore = _session.PhotoCount;
         await _jobs.RunAsync("Importing photos", async job =>
         {
             job.IsIndeterminate = false;
@@ -276,6 +279,12 @@ public sealed partial class BookViewModel : ObservableObject
                 StatusMessage = skipped > 0
                     ? $"Imported {added} photo{(added == 1 ? "" : "s")}; skipped {skipped} already in the book."
                     : $"Imported {added} photo{(added == 1 ? "" : "s")}.";
+
+                if (_session.ReconcileYearAfterImport(photosBefore) is { } note)
+                {
+                    ErrorRaised?.Invoke(note);
+                }
+
                 RefreshChapters();
                 JumpToFirstMonthWithPhotos();
             });
@@ -335,28 +344,57 @@ public sealed partial class BookViewModel : ObservableObject
         IsBusy = false;
     }
 
+    /// <summary>True once this book is bound to a OneDrive album or folder, enabling "Sync now".</summary>
+    public bool HasOneDriveSource => _session.OneDriveSource is not null;
+
+    /// <summary>What this book syncs from, for the button's tooltip.</summary>
+    public string OneDriveSourceLabel => _session.OneDriveSource?.Path ?? string.Empty;
+
     /// <summary>
-    /// Signs in to OneDrive through the WAM broker and lists the albums available as a book source.
-    /// Until the user has created an app registration this fails with the actionable setup message
-    /// rather than an exception dialog.
+    /// Signs in through the WAM broker, lets the user pick an album or folder, then downloads it
+    /// into the project exactly as a folder import would. The choice is remembered on the book so
+    /// later syncs skip the picker. Before an app registration exists this surfaces the actionable
+    /// setup message rather than an exception.
     /// </summary>
     [RelayCommand]
-    private async Task SyncOneDriveAsync()
+    private Task SyncOneDriveAsync() => ConnectOneDriveAsync(reuseStoredSource: false);
+
+    /// <summary>Re-syncs the remembered album or folder, picking up anything added since.</summary>
+    [RelayCommand]
+    private Task ResyncOneDriveAsync() => ConnectOneDriveAsync(reuseStoredSource: true);
+
+    private async Task ConnectOneDriveAsync(bool reuseStoredSource)
     {
+        Ingestion.OneDrive.OneDriveClient? client = null;
         try
         {
-            using var client = Ingestion.OneDrive.OneDriveClient.CreateFromConfiguration(
+            client = Ingestion.OneDrive.OneDriveClient.CreateFromConfiguration(
                 configurationFilePath: null, parentWindow: WindowHandles.Main);
 
-            await _jobs.RunAsync("Signing in to OneDrive", async job =>
-            {
-                job.Status = "Waiting for the Windows account picker…";
-                var albums = await client.ListAlbumsAsync(job.Cancellation.Token).ConfigureAwait(false);
+            // Sign in first: the picker cannot list anything without a token, and the WAM prompt
+            // must not appear from underneath a modal dialog.
+            StatusMessage = "Signing in to OneDrive…";
+            await client.Authenticator.GetAccessTokenAsync().ConfigureAwait(true);
 
-                JobQueue.PostUi(() => StatusMessage = albums.Count == 0
-                    ? $"Signed in as {client.Authenticator.SignedInAccount}. No albums found in OneDrive."
-                    : $"Signed in as {client.Authenticator.SignedInAccount}. {albums.Count} album(s) available.");
-            }).ConfigureAwait(true);
+            var source = reuseStoredSource ? _session.OneDriveSource : null;
+            if (source is null)
+            {
+                var picker = new OneDrivePickerViewModel(client, client.Authenticator.SignedInAccount);
+                var window = new Views.OneDrivePickerWindow(picker)
+                {
+                    Owner = System.Windows.Application.Current?.MainWindow,
+                };
+
+                if (window.ShowDialog() != true || picker.Result is null)
+                {
+                    StatusMessage = "OneDrive sync cancelled.";
+                    return;
+                }
+
+                source = picker.Result;
+            }
+
+            await ImportFromOneDriveAsync(client, source).ConfigureAwait(true);
         }
         catch (Ingestion.OneDrive.OneDriveNotConfiguredException ex)
         {
@@ -366,6 +404,60 @@ public sealed partial class BookViewModel : ObservableObject
         {
             ErrorRaised?.Invoke(ex.Message);
         }
+        finally
+        {
+            client?.Dispose();
+        }
+    }
+
+    private async Task ImportFromOneDriveAsync(Ingestion.OneDrive.IOneDriveClient client, BookSource source)
+    {
+        IsBusy = true;
+        var photosBefore = _session.PhotoCount;
+        try
+        {
+            await _jobs.RunAsync($"Syncing “{source.Path}”", async job =>
+            {
+                var progress = new Progress<Ingestion.PhotoImportProgress>(p =>
+                {
+                    job.IsIndeterminate = true;
+                    job.Status = $"{p.Added} downloaded · {p.CurrentFileName}";
+                });
+
+                var report = await _session
+                    .ImportOneDriveAsync(client, source, progress, job.Cancellation.Token)
+                    .ConfigureAwait(false);
+
+                var added = report.Entries.Count(e => e.Outcome == Ingestion.PhotoImportOutcome.Added);
+                var skipped = report.Entries.Count - added;
+
+                JobQueue.PostUi(() =>
+                {
+                    StatusMessage = added == 0
+                        ? $"“{source.Path}” is already up to date ({skipped} item(s) skipped)."
+                        : $"Downloaded {added} photo{(added == 1 ? "" : "s")} from “{source.Path}”" +
+                          (skipped > 0 ? $"; skipped {skipped} (already imported, or not a photo)." : ".");
+
+                    // A book covers one year, so photos outside it vanish into the tray unless we say so.
+                    if (_session.ReconcileYearAfterImport(photosBefore) is { } note)
+                    {
+                        ErrorRaised?.Invoke(note);
+                    }
+
+                    OnPropertyChanged(nameof(HasOneDriveSource));
+                    OnPropertyChanged(nameof(OneDriveSourceLabel));
+                    RefreshChapters();
+                    JumpToFirstMonthWithPhotos();
+                });
+            }).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        await AnalyzeAsync().ConfigureAwait(true);
+        await SaveAsync().ConfigureAwait(true);
     }
 
     [RelayCommand]

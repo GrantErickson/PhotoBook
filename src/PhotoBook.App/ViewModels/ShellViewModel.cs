@@ -36,6 +36,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
         Book.ErrorRaised += message => JobQueue.PostUi(() => ErrorMessage = message);
 
+        // The title carries the book's name and year, and an import can retarget both.
+        _session.Changed += () => JobQueue.PostUi(() => OnPropertyChanged(nameof(WindowTitle)));
+
         LoadRecent();
     }
 

@@ -1,0 +1,185 @@
+<Window x:Class="PhotoBook.App.Views.OneDrivePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        Title="Choose what this book syncs from"
+        Height="640" Width="880" MinHeight="440" MinWidth="620"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ShowInTaskbar="False"
+        Background="{DynamicResource CanvasBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        UseLayoutRounding="True">
+
+    <Border BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+        <DockPanel>
+
+            <!-- header -->
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBarBrush}"
+                    Padding="18,14" MouseLeftButtonDown="OnHeaderDrag">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="Sync from OneDrive" Style="{StaticResource SubtitleTextStyle}" />
+                        <TextBlock Text="{Binding AccountName, StringFormat='Signed in as {0}'}"
+                                   Style="{StaticResource CaptionMutedTextStyle}" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Button Style="{StaticResource SmallIconButtonStyle}" HorizontalAlignment="Right"
+                            VerticalAlignment="Top" Command="{Binding CancelCommand}">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- footer -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                    Padding="18,14">
+                <Grid>
+                    <TextBlock Text="{Binding Status}" Style="{StaticResource CaptionMutedTextStyle}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="470"
+                               HorizontalAlignment="Left" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Cancel"
+                                Command="{Binding CancelCommand}" MinWidth="96" />
+                        <Button Style="{StaticResource PrimaryButtonStyle}" Margin="10,0,0,0" MinWidth="150"
+                                Command="{Binding ChooseCommand}" IsEnabled="{Binding CanChoose}">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Import}" VerticalAlignment="Center" />
+                                <TextBlock Text="Sync these photos" Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- mode switch + search -->
+            <Border DockPanel.Dock="Top" Padding="18,14,18,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource SegmentedGroupStyle}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                          IsChecked="{Binding IsFolderMode, Converter={StaticResource InverseBool}}"
+                                          Command="{Binding ShowAlbumsCommand}" Content="Albums" />
+                            <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                          IsChecked="{Binding IsFolderMode}"
+                                          Command="{Binding ShowFoldersCommand}" Content="Folders" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Pill-shaped, so it needs a sane width: stretched across the dialog the
+                         rounded ends read as an ellipse. -->
+                    <TextBox Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center"
+                             HorizontalAlignment="Left" Width="300"
+                             Style="{StaticResource SearchTextBoxStyle}"
+                             Text="{Binding Search, UpdateSourceTrigger=PropertyChanged, Delay=150}"
+                             Tag="Search albums…"
+                             Visibility="{Binding IsFolderMode, Converter={StaticResource InverseBoolToVisibility}}" />
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="14,0,0,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsFolderMode, Converter={StaticResource BoolToVisibility}}">
+                        <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding GoUpCommand}"
+                                ToolTip="Up one folder" Padding="9,6">
+                            <pb:Icon Data="{StaticResource Icon.ChevronUp}" />
+                        </Button>
+                        <TextBlock Text="{Binding FolderPath}" Style="{StaticResource BodyTextStyle}"
+                                   VerticalAlignment="Center" Margin="10,0,0,0"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- content -->
+            <Grid>
+                <!-- albums -->
+                <ListBox ItemsSource="{Binding Albums}" SelectedItem="{Binding SelectedAlbum}"
+                         Background="Transparent" BorderThickness="0" Padding="10,0,10,10"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Visibility="{Binding IsFolderMode, Converter={StaticResource InverseBoolToVisibility}}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="8,9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Grid}"
+                                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource BodyTextStyle}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding WhenLabel}" Style="{StaticResource MicroTextStyle}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{Binding CountLabel}"
+                                           Style="{StaticResource CaptionMutedTextStyle}"
+                                           VerticalAlignment="Center" Margin="12,0,4,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- folders -->
+                <ListBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}"
+                         Background="Transparent" BorderThickness="0" Padding="10,0,10,10"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Visibility="{Binding IsFolderMode, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="8,9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Folder}"
+                                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="12,0,0,0"
+                                           Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="2" Text="{Binding CountLabel}"
+                                           Style="{StaticResource CaptionMutedTextStyle}"
+                                           VerticalAlignment="Center" Margin="12,0,10,0" />
+                                <Button Grid.Column="3" Style="{StaticResource GhostButtonStyle}" Padding="8,4"
+                                        Content="Open"
+                                        Command="{Binding DataContext.OpenFolderCommand,
+                                                  RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- folder-mode hint -->
+                <Border VerticalAlignment="Bottom" Margin="18,0,18,12" Padding="14,10"
+                        Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="6"
+                        Visibility="{Binding IsFolderMode, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Info}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                 VerticalAlignment="Center" />
+                        <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Style="{StaticResource CaptionMutedTextStyle}"
+                                   Text="“Sync these photos” uses the folder shown above, including its subfolders." />
+                    </StackPanel>
+                </Border>
+
+                <!-- busy -->
+                <Border Background="{DynamicResource ScrimBrush}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="220" Height="4" />
+                        <TextBlock Text="{Binding Status}" Margin="0,14,0,0"
+                                   Style="{StaticResource BodySecondaryTextStyle}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>
