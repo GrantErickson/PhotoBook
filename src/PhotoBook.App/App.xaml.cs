@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PhotoBook.App.Services;
 using PhotoBook.App.ViewModels;
 using PhotoBook.App.ViewModels.Export;
+using PhotoBook.App.ViewModels.Journal;
 using PhotoBook.App.ViewModels.Pages;
 using PhotoBook.App.ViewModels.Photos;
 
@@ -49,6 +50,7 @@ public partial class App : Application
         // Book-wide panels.
         services.AddSingleton<StyleViewModel>();
         services.AddSingleton<ExportViewModel>();
+        services.AddSingleton<JournalReviewViewModel>();
 
         services.AddSingleton<BookViewModel>();
         services.AddSingleton<ShellViewModel>();
@@ -58,6 +60,11 @@ public partial class App : Application
 
         // An unhandled dispatcher exception would otherwise close the app with no explanation.
         DispatcherUnhandledException += OnDispatcherException;
+
+        // Log off / shut down / restart gives no chance to await. FlushOnShutdown blocks for a bounded
+        // time and is safe from the UI thread — nothing in the save path marshals back to the
+        // dispatcher (doc 04 §6).
+        SessionEnding += (_, _) => _services?.GetService<ProjectSession>()?.FlushOnShutdown();
 
         try
         {
@@ -107,11 +114,13 @@ public partial class App : Application
         if (_services is not null)
         {
             var session = _services.GetService<ProjectSession>();
-            if (session is { IsOpen: true, IsDirty: true })
+            if (session is not null)
             {
                 try
                 {
-                    await session.SaveAsync();
+                    // Waits for a save already in flight, then writes what is left, then closes.
+                    // ShutdownAsync never throws for a failed write; the try is for the unexpected.
+                    await session.ShutdownAsync();
                 }
                 catch
                 {

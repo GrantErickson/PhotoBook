@@ -404,13 +404,18 @@ public sealed partial class BinsViewModel : ObservableObject, IDisposable
         var name = item.FileName;
         var page = FindPage(item.PageId);
 
+        // Read the page number BEFORE the edit: executing the batch marks the session dirty, which
+        // refreshes the bins, which re-targets this very tile into Unplaced and clears its page
+        // number — so reading it afterwards produced "an empty slot on page ." with nothing in it.
+        var number = item.PageNumber;
+
         using (_undo.BeginBatch($"Exclude {name} from the book"))
         {
             // An Upcoming photo is still on a later page: vacate that slot first so the exclusion
             // cannot leave a placement pointing at a photo the book no longer contains.
             if (page is not null && item.SlotId is { } slotId &&
                 BinPlacementCommands.RemovePlacement(
-                    _session, page, slotId, $"Remove {name} from page {item.PageNumber}") is { } vacate)
+                    _session, page, slotId, $"Remove {name} from page {number}") is { } vacate)
             {
                 _undo.Execute(vacate);
             }
@@ -418,9 +423,9 @@ public sealed partial class BinsViewModel : ObservableObject, IDisposable
             _undo.Execute(BinPlacementCommands.SetExcluded(_session, item.Photo, true, $"Exclude {name}"));
         }
 
-        Status = page is null
+        Status = page is null || number is null
             ? $"{name} excluded — it stays in originals/ and will not come back on a re-scan. Ctrl+Z undoes this."
-            : $"{name} excluded, leaving an empty slot on page {item.PageNumber}. The original file is untouched.";
+            : $"{name} excluded, leaving an empty slot on page {number}. The original file is untouched.";
 
         Refresh();
     }

@@ -408,7 +408,12 @@ public sealed class ProjectStore
     private static IReadOnlyList<ProjectLoadNotice> Deduplicate(IEnumerable<ProjectLoadNotice> notices) =>
         notices.DistinctBy(n => (n.Kind, n.File, n.Message)).ToList();
 
-    private static ulong NewSeed()
+    /// <summary>
+    /// A fresh engine seed. The seed is the only source of randomness in the layout engine
+    /// (kernel §7), so re-rolling it is how a user asks for a different arrangement of the same
+    /// photos — the shuffle in book settings and a brand-new book draw from the same generator.
+    /// </summary>
+    public static ulong NewSeed()
     {
         Span<byte> bytes = stackalloc byte[8];
         System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);

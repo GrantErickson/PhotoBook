@@ -129,6 +129,10 @@
     <PathGeometry x:Key="Icon.Info"
                   Figures="M12,4 A8,8 0 1 1 12,20 A8,8 0 1 1 12,4 Z M12,10.8 V16.4 M12,7.4 V8.6" />
 
+    <!-- Help: the same ring as Info, with a question mark rather than an i. -->
+    <PathGeometry x:Key="Icon.Help"
+                  Figures="M12,4 A8,8 0 1 1 12,20 A8,8 0 1 1 12,4 Z M9.5,9.7 A2.5,2.5 0 1 1 12,12.6 V13.9 M12,16.3 V17.3" />
+
     <PathGeometry x:Key="Icon.Check"
                   Figures="M5,12.4 L9.8,17.4 L19,6.6" />
 

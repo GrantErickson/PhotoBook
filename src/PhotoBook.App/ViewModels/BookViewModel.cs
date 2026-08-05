@@ -2,13 +2,17 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PhotoBook.App.Services;
 using PhotoBook.App.ViewModels.Export;
+using PhotoBook.App.ViewModels.Journal;
 using PhotoBook.App.ViewModels.Pages;
 using PhotoBook.App.ViewModels.Photos;
+using PhotoBook.Core.Abstractions;
 using PhotoBook.Core.Model;
+using PhotoBook.Core.Persistence;
 using PhotoBook.Rendering;
 
 namespace PhotoBook.App.ViewModels;
@@ -64,8 +68,10 @@ public sealed partial class BookViewModel : ObservableObject
         PageOverrideViewModel pageOverride,
         PhotoInspectorViewModel inspector,
         StyleViewModel style,
-        ExportViewModel export)
+        ExportViewModel export,
+        JournalReviewViewModel journalReview)
     {
+        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(undo);
         ArgumentNullException.ThrowIfNull(pageEditor);
         ArgumentNullException.ThrowIfNull(bins);
@@ -75,6 +81,7 @@ public sealed partial class BookViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(inspector);
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(export);
+        ArgumentNullException.ThrowIfNull(journalReview);
 
         _session = session;
         _jobs = jobs;
@@ -89,6 +96,7 @@ public sealed partial class BookViewModel : ObservableObject
         Inspector = inspector;
         Style = style;
         Export = export;
+        JournalReview = journalReview;
 
         for (var month = 1; month <= 12; month++)
         {
@@ -124,6 +132,9 @@ public sealed partial class BookViewModel : ObservableObject
 
     /// <summary>Preflight and PDF export (doc 12).</summary>
     public ExportViewModel Export { get; }
+
+    /// <summary>The journal import report and day map (doc 11).</summary>
+    public JournalReviewViewModel JournalReview { get; }
 
     // The bin panel is one control that moves between three cells of the Pages grid rather than
     // three controls with three copies of the thumbnails (doc 09 §3.5 — the dock edge is a user
@@ -175,6 +186,24 @@ public sealed partial class BookViewModel : ObservableObject
         };
 
         Bins.Settings.PropertyChanged += OnBinSettingsChanged;
+
+        // The save indicator is driven by the autosave loop rather than by whoever last called Save:
+        // "Saved 14:32" has to mean a write actually completed (doc 04 §6).
+        _session.SaveStatusChanged += _ => RefreshSaveStatus();
+        _session.SaveFailed += ex => ErrorRaised?.Invoke(
+            $"PhotoBook could not save this project: {ex.Message}\n\n" +
+            "Your edits are still here and it will keep trying every 30 seconds. " +
+            "Check the project folder is reachable and not read-only.");
+
+        // Journal review edits dates, which moves text between months; nothing re-runs layout, so the
+        // pages that already carry text just have to redraw.
+        JournalReview.Changed += () =>
+        {
+            PageEditor.Refresh();
+            RefreshChapters();
+            RaiseJournalBadges();
+        };
+        JournalReview.PageActivated += OnJournalPageActivated;
 
         PageEditor.PropertyChanged += OnPageEditorPropertyChanged;
         PageEditor.PagesChanged += (_, _) => OnPagesChanged();
@@ -412,6 +441,11 @@ public sealed partial class BookViewModel : ObservableObject
     {
         Undo.Clear();
         RefreshChapters();
+        RefreshSaveStatus();
+
+        // Reads the journal that came with the project, so the Journal button's badge is honest
+        // before the user has opened anything.
+        RefreshJournal(reload: true);
     }
 
     /// <summary>Drops per-book state when the book closes: the stack is never persisted (doc 09 §4).</summary>
@@ -421,6 +455,8 @@ public sealed partial class BookViewModel : ObservableObject
         IsTemplatePickerOpen = false;
         IsStylePanelOpen = false;
         PageOverride.IsActive = false;
+        CloseQuickPreview();
+        RefreshSaveStatus();
         Photos.Clear();
         Pages.Clear();
         UnplacedBin.Clear();
@@ -501,9 +537,229 @@ public sealed partial class BookViewModel : ObservableObject
     /// </summary>
     public event Action<string>? ErrorRaised;
 
+    /// <summary>
+    /// Raised for something the user should know that is <em>not</em> a failure — the shell shows it
+    /// in the notice banner. Arguments are the headline and the explanation.
+    /// </summary>
+    public event Action<string, string>? NoticeRaised;
+
     public bool HasPhotos => Photos.Count > 0;
 
     public bool HasPages => Pages.Count > 0;
+
+    // ---------------------------------------------------------------- save indicator
+
+    /// <summary>
+    /// What the autosave loop is doing, verbatim from the session. The strip binds to this rather
+    /// than to a bool the shell maintains, so it can never claim a save that did not happen.
+    /// </summary>
+    public AutosaveState SaveState => _session.SaveStatus.State;
+
+    /// <summary>"Saved 14:32" / "Saving…" / "Unsaved changes" / "Not saved — {reason}".</summary>
+    public string SaveStatusLabel => _session.IsOpen ? _session.SaveStatus.Label : string.Empty;
+
+    /// <summary>The longer form for the button's tooltip.</summary>
+    public string SaveStatusTooltip => SaveState switch
+    {
+        AutosaveState.Saving => "Writing the project to disk…",
+        AutosaveState.Dirty => "There are edits not yet on disk. They save automatically within " +
+                               $"{_session.AutosaveInterval.TotalSeconds:0} seconds — or press Ctrl+S now.",
+        AutosaveState.Failed => _session.SaveStatus.Error is { } error
+            ? $"The last save failed: {error}. PhotoBook keeps retrying; Ctrl+S tries again now."
+            : "The last save failed. PhotoBook keeps retrying; Ctrl+S tries again now.",
+        _ => "Everything is on disk. Ctrl+S saves now; autosave runs every " +
+             $"{_session.AutosaveInterval.TotalSeconds:0} seconds anyway.",
+    };
+
+    private void RefreshSaveStatus()
+    {
+        OnPropertyChanged(nameof(SaveState));
+        OnPropertyChanged(nameof(SaveStatusLabel));
+        OnPropertyChanged(nameof(SaveStatusTooltip));
+    }
+
+    // ---------------------------------------------------------------- journal review
+
+    /// <summary>Entries still wanting a date, for the Journal button's amber badge (doc 11).</summary>
+    public int JournalAttentionCount => JournalReview.AttentionCount;
+
+    /// <summary>True when the journal has anything the user should look at.</summary>
+    public bool HasJournalFindings => JournalReview.HasFindings;
+
+    /// <summary>Re-reads the journal and re-raises the button's badge.</summary>
+    /// <param name="reload">
+    /// True when the document or the book's year may have moved under the report — an import, or a
+    /// settings change that redefines which entries fall outside the year.
+    /// </param>
+    private void RefreshJournal(bool reload)
+    {
+        if (reload && _session.IsOpen)
+        {
+            JournalReview.Load(SelectedChapter?.Month ?? 1);
+        }
+
+        RaiseJournalBadges();
+    }
+
+    private void RaiseJournalBadges()
+    {
+        OnPropertyChanged(nameof(JournalAttentionCount));
+        OnPropertyChanged(nameof(HasJournalFindings));
+    }
+
+    /// <summary>
+    /// A page chip in the day map was clicked: go to that chapter and page. The map speaks in page
+    /// ids because a re-layout renumbers pages, and an id survives that.
+    /// </summary>
+    private void OnJournalPageActivated(int month, string pageId)
+    {
+        var target = Chapters.FirstOrDefault(c => c.Month == month);
+        if (target is not null && !ReferenceEquals(target, SelectedChapter))
+        {
+            SelectedChapter = target;
+        }
+
+        IsPagesTab = true;
+
+        if (PageEditor.Pages.FirstOrDefault(p => string.Equals(p.Page.Id, pageId, StringComparison.Ordinal))
+            is { } page)
+        {
+            PageEditor.SelectedPage = page;
+        }
+
+        System.Windows.Application.Current?.MainWindow?.Activate();
+    }
+
+    /// <summary>
+    /// Opens journal review at any time (doc 11: the report is not a modal moment — dating a long
+    /// journal is work the user comes back to).
+    /// </summary>
+    [RelayCommand]
+    private void OpenJournalReview()
+    {
+        if (!_session.IsOpen || System.Windows.Application.Current?.MainWindow is not { } owner)
+        {
+            return;
+        }
+
+        Views.Journal.JournalReviewWindow.ShowReview(owner, JournalReview, SelectedChapter?.Month ?? 1);
+        RaiseJournalBadges();
+    }
+
+    // ---------------------------------------------------------------- book settings
+
+    /// <summary>
+    /// Title, year, page size, print profile and layout seed (R3, R19). A staging form: nothing moves
+    /// until Apply, and Apply is one undo entry including any re-layout it made necessary.
+    /// </summary>
+    [RelayCommand]
+    private void OpenBookSettings()
+    {
+        if (!_session.IsOpen)
+        {
+            return;
+        }
+
+        var model = new BookSettingsViewModel(_session, Undo, _jobs);
+        var touched = new HashSet<int>();
+        model.ChapterChanged += month => touched.Add(month);
+
+        if (!Views.BookSettingsWindow.Show(System.Windows.Application.Current?.MainWindow, model))
+        {
+            return;
+        }
+
+        // A page-size change re-lays out chapters and a year change moves every chapter, so the whole
+        // shell is re-read rather than patched: cheaper to be sure than to be clever.
+        RefreshChapters();
+        if (SelectedChapter is { } chapter)
+        {
+            LoadChapter(chapter.Month);
+        }
+
+        // A year change redefines which journal entries fall outside the book, so the report's
+        // counts — and the badge on the Journal button — are stale until it re-reads.
+        RefreshJournal(reload: true);
+
+        StatusMessage = touched.Count > 0
+            ? $"Book settings applied; {touched.Count} month{(touched.Count == 1 ? "" : "s")} re-laid out. Ctrl+Z undoes all of it."
+            : "Book settings applied. Ctrl+Z undoes it.";
+    }
+
+    /// <summary>Doc 09 §5's keyboard map, where a user can actually find it.</summary>
+    [RelayCommand]
+    private void ShowShortcuts() =>
+        Views.ShortcutsWindow.Show(System.Windows.Application.Current?.MainWindow);
+
+    // ---------------------------------------------------------------- quick preview
+
+    /// <summary>True while <c>Space</c>'s full-size preview is over the grid (doc 09 §2).</summary>
+    [ObservableProperty]
+    private bool _isQuickPreviewOpen;
+
+    /// <summary>The bitmap the quick preview is showing — the grid tile first, then the 1024 px tier.</summary>
+    [ObservableProperty]
+    private BitmapSource? _quickPreviewImage;
+
+    /// <summary>The previewed photo's file name.</summary>
+    [ObservableProperty]
+    private string _quickPreviewTitle = string.Empty;
+
+    /// <summary>When it was taken and what tier it sits in.</summary>
+    [ObservableProperty]
+    private string _quickPreviewSubtitle = string.Empty;
+
+    /// <summary>
+    /// <c>Space</c> on the Photos tab: a look at the photo big, without leaving the grid or opening a
+    /// window. Pressing it again (or <c>Esc</c>, or a click) puts it away.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleQuickPreview()
+    {
+        if (IsQuickPreviewOpen || SelectedPhoto is not { } item)
+        {
+            CloseQuickPreview();
+            return;
+        }
+
+        QuickPreviewTitle = item.FileName;
+        QuickPreviewSubtitle = $"{item.TakenAtDisplay}  ·  tier {item.TierLabel}" +
+                               (item.DateUncertain ? "  ·  date guessed from the file" : string.Empty);
+
+        // Show the grid thumbnail at once so the key feels instant, then swap in the preview tier
+        // when it arrives. The UI thread never decodes (doc 09 §6).
+        QuickPreviewImage = item.Thumbnail;
+        IsQuickPreviewOpen = true;
+        _ = LoadQuickPreviewAsync(item);
+    }
+
+    private async Task LoadQuickPreviewAsync(PhotoItemViewModel item)
+    {
+        BitmapSource? full = null;
+        try
+        {
+            full = await _thumbnails
+                .GetAsync(item.Photo.ContentHash, ThumbnailTier.Preview1024)
+                .ConfigureAwait(true);
+        }
+        catch
+        {
+            // An unreadable original leaves the grid thumbnail on screen, which is still a preview.
+        }
+
+        if (full is not null && IsQuickPreviewOpen && ReferenceEquals(SelectedPhoto, item))
+        {
+            QuickPreviewImage = full;
+        }
+    }
+
+    /// <summary>Puts the quick preview away.</summary>
+    [RelayCommand]
+    private void CloseQuickPreview()
+    {
+        IsQuickPreviewOpen = false;
+        QuickPreviewImage = null;
+    }
 
     // ---------------------------------------------------------------- loading
 
@@ -958,6 +1214,35 @@ public sealed partial class BookViewModel : ObservableObject
         }).ConfigureAwait(true);
 
         await SaveAsync().ConfigureAwait(true);
+
+        // Doc 11: the report opens itself when the import produced anything non-matched, because the
+        // alternative is journal text silently missing from the book. A clean import says nothing.
+        if (System.Windows.Application.Current?.MainWindow is { } owner)
+        {
+            var shown = Views.Journal.JournalReviewWindow
+                .ShowAfterImport(owner, JournalReview, SelectedChapter?.Month ?? 1);
+            if (shown is null)
+            {
+                StatusMessage += " Every entry found a date.";
+            }
+        }
+
+        // Importing a journal does not re-flow pages that already exist, so text can be perfectly
+        // dated and still be printed nowhere. The day map flags it, but only for someone who opens
+        // it; this is too important for the status strip, which trims.
+        if (JournalReview.HomelessDayCount is > 0 and var homeless)
+        {
+            NoticeRaised?.Invoke(
+                $"{homeless} day{(homeless == 1 ? "" : "s")} of journal text " +
+                $"{(homeless == 1 ? "is" : "are")} dated but on no page.",
+                "Importing a journal does not rebuild pages that already exist, so this month's " +
+                "layout does not carry the new text yet. Run “Lay out this month” — or " +
+                "“Auto-layout rest of chapter” to keep the pages you have pinned — and the engine " +
+                "will place each day's text with its photos.");
+        }
+
+        PageEditor.Refresh();
+        RaiseJournalBadges();
     }
 
     /// <summary>Lays out the selected month from scratch (R7).</summary>
@@ -1069,11 +1354,9 @@ public sealed partial class BookViewModel : ObservableObject
             return;
         }
 
-        await _jobs.RunAsync("Saving", async _ =>
-        {
-            await _session.SaveAsync().ConfigureAwait(false);
-            JobQueue.PostUi(() => StatusMessage = "Saved.");
-        }).ConfigureAwait(true);
+        // No "Saved." status line: the save indicator beside this button already says so, with the
+        // time, and overwriting the status would throw away whatever the last operation reported.
+        await _jobs.RunAsync("Saving", _ => _session.SaveAsync()).ConfigureAwait(true);
     }
 
     // ---------------------------------------------------------------- photo edits

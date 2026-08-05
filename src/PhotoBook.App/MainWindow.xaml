@@ -12,12 +12,15 @@
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
 
-    <!-- Doc 09 §5's global keys. Undo/redo are window-wide so they work from any panel. -->
+    <!-- Doc 09 §5's global keys. Undo/redo are window-wide so they work from any panel; the rest of
+         the map is routed by BookView, which can tell a text field from a canvas. F1 is here rather
+         than there because the shortcut list has to be reachable from the dashboard too. -->
     <Window.InputBindings>
         <KeyBinding Modifiers="Control" Key="Z" Command="{Binding Book.Undo.UndoCommand}" />
         <KeyBinding Modifiers="Control" Key="Y" Command="{Binding Book.Undo.RedoCommand}" />
         <KeyBinding Modifiers="Control+Shift" Key="Z" Command="{Binding Book.Undo.RedoCommand}" />
         <KeyBinding Modifiers="Control" Key="S" Command="{Binding Book.SaveCommand}" />
+        <KeyBinding Key="F1" Command="{Binding ShowShortcutsCommand}" />
     </Window.InputBindings>
 
     <DockPanel>
@@ -39,6 +42,14 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- The keyboard map, where a keyboard map has to be: always on screen, one click,
+                         and the same list the router dispatches from. -->
+                    <Button Style="{StaticResource SmallIconButtonStyle}" Margin="0,0,10,0"
+                            VerticalAlignment="Center" Command="{Binding ShowShortcutsCommand}"
+                            ToolTip="Keyboard shortcuts  (F1)">
+                        <pb:Icon Data="{StaticResource Icon.Help}" Width="15" Height="15" />
+                    </Button>
+
                     <Button Style="{StaticResource WindowCaptionButtonStyle}" Click="OnMinimize">
                         <pb:Icon Data="{StaticResource Chrome.Minimize}" Width="11" Height="11" />
                     </Button>
@@ -121,6 +132,45 @@
 
                     <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
                             Command="{Binding DismissErrorCommand}" VerticalAlignment="Top">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- recovery notice -->
+            <!-- Doc 04 §6: opening a project can quietly repair it — a file read from its .bak, an
+                 interrupted write swept away. A repair nobody is told about is indistinguishable from
+                 data loss, so it gets a banner. It is not an error, and does not look like one. -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,76,0,24"
+                    Background="{DynamicResource SurfaceOverlayBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,16" MaxWidth="760"
+                    Effect="{DynamicResource ElevationHigh}"
+                    Visibility="{Binding NoticeMessage, Converter={StaticResource NotNullToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Info}"
+                             Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Top"
+                             Margin="0,2,0,0" />
+
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                        <TextBlock Text="{Binding NoticeTitle}" TextWrapping="Wrap"
+                                   Style="{StaticResource BodyStrongTextStyle}" />
+                        <ScrollViewer MaxHeight="300" Margin="0,6,0,0"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock Text="{Binding NoticeMessage}" TextWrapping="Wrap"
+                                       Style="{StaticResource BodySecondaryTextStyle}" />
+                        </ScrollViewer>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
+                            Command="{Binding DismissNoticeCommand}" VerticalAlignment="Top">
                         <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
                     </Button>
                 </Grid>

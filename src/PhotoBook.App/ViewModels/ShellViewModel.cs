@@ -35,9 +35,22 @@ public sealed partial class ShellViewModel : ObservableObject
             JobQueue.PostUi(() => ErrorMessage = $"{title} failed: {ex.Message}");
 
         Book.ErrorRaised += message => JobQueue.PostUi(() => ErrorMessage = message);
+        Book.NoticeRaised += (title, detail) => JobQueue.PostUi(() =>
+        {
+            NoticeTitle = title;
+            NoticeMessage = detail;
+        });
 
         // The title carries the book's name and year, and an import can retarget both.
         _session.Changed += () => JobQueue.PostUi(() => OnPropertyChanged(nameof(WindowTitle)));
+
+        // Doc 04 §6: an open that had to repair something says so. ProjectStore already recovers
+        // silently; a silent recovery is indistinguishable from data loss, so it surfaces here.
+        _session.Recovered += report => JobQueue.PostUi(() =>
+        {
+            NoticeTitle = report.Headline;
+            NoticeMessage = report.Detail;
+        });
 
         LoadRecent();
     }
@@ -56,12 +69,31 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     private string? _errorMessage;
 
+    /// <summary>The headline of an informational banner — a crash-recovery report, not a failure.</summary>
+    [ObservableProperty]
+    private string _noticeTitle = string.Empty;
+
+    /// <summary>The banner's body; null or empty hides it.</summary>
+    [ObservableProperty]
+    private string? _noticeMessage;
+
     public string WindowTitle => IsBookOpen && _session.Book is not null
         ? $"{_session.Book.Title} — PhotoBook"
         : "PhotoBook";
 
     [RelayCommand]
     private void DismissError() => ErrorMessage = null;
+
+    [RelayCommand]
+    private void DismissNotice() => NoticeMessage = null;
+
+    /// <summary>
+    /// Doc 09 §5's keyboard map. It lives on the shell rather than on the book so <c>F1</c> and the
+    /// title-bar <c>?</c> work on the dashboard as well, where a new user is most likely to look.
+    /// </summary>
+    [RelayCommand]
+    private void ShowShortcuts() =>
+        Views.ShortcutsWindow.Show(System.Windows.Application.Current?.MainWindow);
 
     // ---------------------------------------------------------------- open / create
 
@@ -121,6 +153,9 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>Opens a project folder, or creates one if the folder holds photos but no book.</summary>
     public async Task OpenPathAsync(string folder)
     {
+        // Cleared before the open, not after: OpenAsync raises Recovered while it runs.
+        NoticeMessage = null;
+
         try
         {
             if (!ProjectPaths.IsProjectFolder(folder))
@@ -155,14 +190,13 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private async Task CloseBookAsync()
     {
-        if (_session.IsDirty)
-        {
-            await _session.SaveAsync().ConfigureAwait(true);
-        }
+        // CloseAsync waits for a save already in flight before writing what is left; checking IsDirty
+        // and calling SaveAsync would race a tick that started a moment ago (doc 04 §6).
+        await _session.CloseAsync().ConfigureAwait(true);
 
         Book.OnBookClosed();
-        _session.Close();
         IsBookOpen = false;
+        NoticeMessage = null;
         OnPropertyChanged(nameof(WindowTitle));
     }
 

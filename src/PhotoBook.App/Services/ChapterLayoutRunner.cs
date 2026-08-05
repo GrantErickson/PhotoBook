@@ -451,6 +451,7 @@ public sealed class ChapterLayoutRunner
 
         var photos = _session.Catalog.InChapter(book.Year, month).Where(p => !p.Excluded).ToList();
         var unplaced = UnplacedPhotos(month).Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        var size = _session.PageSize;
 
         return LayoutEngine.LayoutChapter(new LayoutRequest
         {
@@ -463,7 +464,12 @@ public sealed class ChapterLayoutRunner
                 JournalEntries = [.. _session.Journal.EntriesIn(book.Year, month)],
                 ExistingPages = [.. chapter.Pages],
                 UnplacedPhotoIds = unplaced,
+
+                // The size id picks the eligible templates; the trim feeds the physical metrics
+                // (slot inches, effective DPI) the engine scores with (R19, doc 12).
                 PageSize = book.PageSize,
+                TrimWidthIn = size.TrimWidthIn,
+                TrimHeightIn = size.TrimHeightIn,
             },
             Style = StyleResolver.Resolve(book, chapter, null),
             Seed = book.Seed,

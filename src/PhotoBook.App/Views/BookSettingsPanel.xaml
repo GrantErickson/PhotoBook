@@ -1,0 +1,273 @@
+<UserControl x:Class="PhotoBook.App.Views.BookSettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+             Foreground="{DynamicResource TextPrimaryBrush}"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True">
+
+    <UserControl.Resources>
+        <conv:NonEmptyStringToVisibilityConverter x:Key="TextToVisibility" />
+
+        <!-- The note under a field: what this change would actually do, while it is still a draft. -->
+        <Style x:Key="NoticeBorderStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource WellStyle}">
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Margin" Value="0,10,0,0" />
+        </Style>
+
+        <DataTemplate x:Key="PageSizeRowTemplate">
+            <!-- Null on a usable size, so only the rows that need explaining carry a tip. -->
+            <Grid Margin="8,9" ToolTip="{Binding Availability.Blocker}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.SinglePage}"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource AccentBrush}" />
+
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock Text="{Binding DisplayName}" Style="{StaticResource BodyTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <!-- The count carries the warning itself: a trim with no authored layouts turns
+                         amber here rather than being greyed out, because the size is genuinely
+                         printable — it is the library that has nothing for it yet (R19, doc 12). -->
+                    <TextBlock Text="{Binding Summary}" Margin="0,2,0,0"
+                               TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MicroTextStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUsable}" Value="False">
+                                        <Setter Property="Foreground" Value="{DynamicResource AmberFlagBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <Border Grid.Column="2" Style="{StaticResource ChipStyle}" VerticalAlignment="Center"
+                        Margin="12,0,2,0"
+                        Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Current" Style="{StaticResource MicroTextStyle}" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource PanelStyle}" Background="{DynamicResource SurfaceBrush}">
+        <DockPanel>
+
+            <!-- ============================================================ footer -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                    Padding="18,14">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- A star column, not an alignment: a wrapped blocker must push nothing and
+                         must never end up underneath the buttons. -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock Text="{Binding Status}" Style="{StaticResource CaptionMutedTextStyle}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding Status, Converter={StaticResource TextToVisibility}}" />
+                        <TextBlock Text="{Binding Blocker}" Style="{StaticResource CaptionTextStyle}"
+                                   Foreground="{DynamicResource AmberFlagBrush}" TextWrapping="Wrap"
+                                   Visibility="{Binding Blocker, Converter={StaticResource TextToVisibility}}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Cancel" MinWidth="96"
+                                Command="{Binding CancelCommand}" />
+                        <Button Style="{StaticResource PrimaryButtonStyle}" Margin="10,0,0,0" MinWidth="150"
+                                Command="{Binding ApplyCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Check}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ApplyLabel}" Margin="9,0,0,0"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ============================================================== body -->
+            <Grid>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,16,14,20">
+                    <StackPanel>
+
+                        <!-- =============== title -->
+                        <TextBlock Text="Title" Style="{StaticResource SectionLabelTextStyle}"
+                                   Margin="0,0,0,3" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Text="What this book is called, on the shelf and in the shell's title bar." />
+                        <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged, Delay=150}" />
+
+                        <!-- =============== year -->
+                        <TextBlock Text="Year" Style="{StaticResource SectionLabelTextStyle}"
+                                   Margin="0,24,0,3" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Text="A book covers exactly one calendar year (R3). Its twelve chapters move with it." />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource GhostButtonStyle}" Padding="9,6"
+                                    Command="{Binding PreviousYearCommand}" ToolTip="One year earlier">
+                                <pb:Icon Data="{StaticResource Icon.Minus}" />
+                            </Button>
+                            <!-- Committed on leaving the box, not per keystroke: half a year typed
+                                 into a four-digit field is not a year, and flashing "1900-2200" at
+                                 someone mid-word helps nobody. The steppers cover the common case. -->
+                            <TextBox Width="96" Margin="8,0,0,0" TextAlignment="Center"
+                                     FontFamily="{DynamicResource MonoFontFamily}"
+                                     Text="{Binding Year, UpdateSourceTrigger=LostFocus}" />
+                            <Button Style="{StaticResource GhostButtonStyle}" Padding="9,6" Margin="8,0,0,0"
+                                    Command="{Binding NextYearCommand}" ToolTip="One year later">
+                                <pb:Icon Data="{StaticResource Icon.Plus}" />
+                            </Button>
+                        </StackPanel>
+                        <!-- A Grid, not a horizontal StackPanel: a StackPanel measures its children
+                             with infinite width, so TextWrapping never fires and the sentence is
+                             silently cut off at the border. -->
+                        <Border Style="{StaticResource NoticeBorderStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Info}"
+                                         VerticalAlignment="Top" Margin="0,2,0,0"
+                                         Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding YearNotice}" Margin="10,0,0,0"
+                                           TextWrapping="Wrap"
+                                           Style="{StaticResource CaptionMutedTextStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <!-- =============== page size -->
+                        <TextBlock Text="Page size" Style="{StaticResource SectionLabelTextStyle}"
+                                   Margin="0,24,0,3" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Text="The trim this book prints at (R19). Geometry, renderer and export all follow it — layouts do not: a template is authored for one page shape and is never stretched onto another." />
+                        <Border Style="{StaticResource WellStyle}">
+                            <ListBox ItemsSource="{Binding PageSizes}"
+                                     SelectedItem="{Binding SelectedPageSize}"
+                                     ItemTemplate="{StaticResource PageSizeRowTemplate}"
+                                     Background="Transparent" BorderThickness="0" Padding="4"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled" />
+                        </Border>
+                        <Border Style="{StaticResource NoticeBorderStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Warning}"
+                                         VerticalAlignment="Top" Margin="0,2,0,0"
+                                         Foreground="{DynamicResource AmberFlagBrush}"
+                                         Visibility="{Binding PageSizeChanged, Converter={StaticResource BoolToVisibility}}" />
+                                <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Info}"
+                                         VerticalAlignment="Top" Margin="0,2,0,0"
+                                         Foreground="{DynamicResource TextSecondaryBrush}"
+                                         Visibility="{Binding PageSizeChanged, Converter={StaticResource InverseBoolToVisibility}}" />
+                                <TextBlock Grid.Column="1" Text="{Binding PageSizeNotice}" Margin="10,0,0,0"
+                                           TextWrapping="Wrap"
+                                           Style="{StaticResource CaptionMutedTextStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <!-- =============== print profile -->
+                        <TextBlock Text="Print profile" Style="{StaticResource SectionLabelTextStyle}"
+                                   Margin="0,24,0,3" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Text="The print service's specifics — bleed, safe margin, page-count rules, colour intent and image resolution. Same book, different printer, is a re-export rather than a rebuild (doc 12)." />
+                        <!-- An explicit ItemTemplate rather than DisplayMemberPath: the app's
+                             ComboBox template renders the closed box through
+                             SelectionBoxItemTemplate, which a DisplayMemberPath does not fill, so
+                             the box would show the view model's ToString(). -->
+                        <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource BodyTextStyle}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding SelectedProfile.Summary}" Margin="2,7,0,0"
+                                   TextWrapping="Wrap" Style="{StaticResource MicroTextStyle}" />
+
+                        <!-- =============== seed -->
+                        <TextBlock Text="Layout seed" Style="{StaticResource SectionLabelTextStyle}"
+                                   Margin="0,24,0,3" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Text="The engine's only source of randomness. Keep it and the same photos always produce the same book; shuffle it to ask for a different arrangement." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" FontFamily="{DynamicResource MonoFontFamily}"
+                                     Text="{Binding SeedText, UpdateSourceTrigger=LostFocus}"
+                                     ToolTip="Type a seed you have written down to reproduce that book exactly." />
+                            <Button Grid.Column="1" Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="8,0,0,0" Command="{Binding ShuffleSeedCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Shuffle" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}"
+                                    Margin="6,0,0,0" Command="{Binding RestoreSeedCommand}"
+                                    ToolTip="Put the book's own seed back"
+                                    Visibility="{Binding SeedChanged, Converter={StaticResource BoolToVisibility}}">
+                                <pb:Icon Data="{StaticResource Icon.Undo}" Width="13" Height="13" />
+                            </Button>
+                        </Grid>
+                        <TextBlock Text="{Binding SeedNotice}" Margin="2,7,0,0" TextWrapping="Wrap"
+                                   Style="{StaticResource MicroTextStyle}" />
+
+                        <!-- =============== the layout offer -->
+                        <Border Style="{StaticResource CardStyle}" Margin="0,24,0,0"
+                                BorderBrush="{DynamicResource AmberFlagBrush}"
+                                Visibility="{Binding NeedsRelayout, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding RelayoutReason}" TextWrapping="Wrap"
+                                           Style="{StaticResource BodySecondaryTextStyle}" />
+                                <CheckBox Margin="0,12,0,0" IsChecked="{Binding RelayoutAfterApply}"
+                                          Content="Re-lay out every chapter when I apply" />
+                                <CheckBox Margin="22,8,0,0" IsChecked="{Binding RelayoutIncludesPinned}"
+                                          IsEnabled="{Binding RelayoutAfterApply}"
+                                          Content="Include pinned pages" />
+                                <TextBlock Margin="22,6,0,0" TextWrapping="Wrap"
+                                           Style="{StaticResource MicroTextStyle}"
+                                           Text="Hand-built (detached) pages are never re-laid out, whatever this says — their geometry is yours (R15)." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- busy -->
+                <Border Background="{DynamicResource ScrimBrush}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="220" Height="4" />
+                        <TextBlock Text="{Binding Status}" Margin="0,14,0,0"
+                                   Style="{StaticResource BodySecondaryTextStyle}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

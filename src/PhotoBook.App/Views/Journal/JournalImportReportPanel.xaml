@@ -1,0 +1,448 @@
+<UserControl x:Class="PhotoBook.App.Views.Journal.JournalImportReportPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+             Foreground="{DynamicResource TextPrimaryBrush}"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True">
+
+    <!--
+        The Import Report (doc 11).
+
+        Reading order is the whole design: the counts say what the import did, the left column lists
+        the entries that need something in the order they need it, and the right column is the entry
+        itself — its full text, what the matcher read, and the two ways to settle it (a candidate chip,
+        or a day of the book). An entry with no date renders nowhere, so "Needs a date" is first and
+        open, and the settled group is last and closed.
+    -->
+
+    <UserControl.Resources>
+        <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
+
+        <!-- A count chip in the header. Neutral by default; the three attention states colour it. -->
+        <Style x:Key="CountChipStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource ChipStyle}">
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- One entry row: date on the left, a line of its text, and what state it is in. -->
+        <DataTemplate x:Key="EntryRowTemplate">
+            <Button Style="{StaticResource GhostButtonStyle}" Margin="0,0,0,3" Padding="0"
+                    MinWidth="0" MinHeight="0" HorizontalContentAlignment="Stretch"
+                    Command="{Binding DataContext.SelectRowCommand,
+                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}">
+                <Border x:Name="Row" Padding="10,8" CornerRadius="{StaticResource RadiusMedium}"
+                        Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Width="66" Margin="0,0,10,0">
+                            <TextBlock x:Name="DateText" Text="{Binding DateLabel}"
+                                       Style="{StaticResource BodyStrongTextStyle}" />
+                            <TextBlock Text="{Binding YearLabel}" Style="{StaticResource MicroTextStyle}"
+                                       Margin="0,1,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Preview}" Style="{StaticResource TruncatingTextStyle}" />
+                            <TextBlock Text="{Binding StatusLabel}" Style="{StaticResource CaptionMutedTextStyle}"
+                                       Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding NeedsDate}" Value="True">
+                    <Setter TargetName="DateText" Property="Foreground" Value="{StaticResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="Row" Property="Background" Value="{StaticResource SelectionBrush}" />
+                    <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource SelectionBorderBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDiscarded}" Value="True">
+                    <Setter TargetName="Row" Property="Opacity" Value="0.55" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- A group: a clickable header with its count, then its rows. -->
+        <DataTemplate x:Key="GroupTemplate">
+            <StackPanel Margin="0,0,0,14" Visibility="{Binding Count, Converter={StaticResource CountToVisibility}}">
+                <Button Style="{StaticResource GhostButtonStyle}" Padding="6,4" MinWidth="0" MinHeight="0"
+                        HorizontalContentAlignment="Stretch" Command="{Binding ToggleCommand}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <pb:Icon x:Name="Chevron" Grid.Column="0" Data="{StaticResource Icon.ChevronDown}"
+                                 Width="12" Height="12" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+
+                        <TextBlock x:Name="GroupTitle" Grid.Column="1" Text="{Binding Title}" Margin="8,0,0,0"
+                                   Style="{StaticResource SectionLabelTextStyle}" VerticalAlignment="Center" />
+
+                        <Border Grid.Column="2" Style="{StaticResource ChipStyle}" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Count}" Style="{StaticResource MicroTextStyle}" />
+                        </Border>
+                    </Grid>
+                </Button>
+
+                <StackPanel x:Name="Body" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding Hint}" Style="{StaticResource CaptionMutedTextStyle}"
+                               TextWrapping="Wrap" Margin="20,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource EntryRowTemplate}" />
+                </StackPanel>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsExpanded}" Value="False">
+                    <Setter TargetName="Body" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="Chevron" Property="Data" Value="{StaticResource Icon.ChevronRight}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsAttention}" Value="True">
+                    <Setter TargetName="GroupTitle" Property="Foreground" Value="{StaticResource AmberFlagBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- A candidate date the matcher itself considered — one click, no calendar. -->
+        <DataTemplate x:Key="CandidateTemplate">
+            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,8" Padding="12,7"
+                    Command="{Binding DataContext.AssignCandidateCommand,
+                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Check}" Width="11" Height="11" VerticalAlignment="Center"
+                                 Margin="0,0,6,0" Foreground="{DynamicResource SuccessBrush}"
+                                 Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource BodyStrongTextStyle}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Reason}" Style="{StaticResource MicroTextStyle}"
+                               Margin="0,2,0,0" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+
+        <!-- A calendar cell in the assign picker: the day, plus what the book already holds on it. -->
+        <Style x:Key="PickerDayStyle" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Fill" CornerRadius="{StaticResource RadiusSmall}" Background="Transparent" />
+                            <Border x:Name="Hover" Opacity="0" CornerRadius="{StaticResource RadiusSmall}"
+                                    Background="{StaticResource HoverOverlayBrush}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <ContentPresenter x:Name="Content" HorizontalAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Height="4"
+                                            Margin="0,1,0,0">
+                                    <Ellipse x:Name="PhotoDot" Width="3" Height="3" Margin="1,0"
+                                             Fill="{StaticResource TextTertiaryBrush}" Visibility="Collapsed" />
+                                    <Ellipse x:Name="EntryDot" Width="3" Height="3" Margin="1,0"
+                                             Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False">
+                                <Setter TargetName="Content" Property="Opacity" Value="0.3" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasPhotos}" Value="True">
+                                <Setter TargetName="PhotoDot" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasEntry}" Value="True">
+                                <Setter TargetName="EntryDot" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hover" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Fill" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextOnAccentBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource PanelStyle}" Background="{DynamicResource SurfaceBrush}">
+        <DockPanel>
+
+            <!-- ============================================================ header -->
+            <Border DockPanel.Dock="Top" Padding="18,16,18,14"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Journal import" Style="{StaticResource SubtitleTextStyle}"
+                                   VerticalAlignment="Center" Margin="0,0,12,0" />
+
+                        <Border Style="{StaticResource CountChipStyle}" Background="{DynamicResource SuccessWashBrush}"
+                                Visibility="{Binding DatedCount, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Foreground="{DynamicResource SuccessBrush}"
+                                       Text="{Binding DatedCount, StringFormat='{}{0} dated'}" />
+                        </Border>
+
+                        <Border Style="{StaticResource CountChipStyle}" Background="{DynamicResource WarningWashBrush}"
+                                Visibility="{Binding AmbiguousCount, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Foreground="{DynamicResource WarningBrush}"
+                                       Text="{Binding AmbiguousCount, StringFormat='{}{0} unsure'}" />
+                        </Border>
+
+                        <Border Style="{StaticResource CountChipStyle}" Background="{DynamicResource AmberFlagWashBrush}"
+                                Visibility="{Binding UndatedCount, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Foreground="{DynamicResource AmberFlagBrush}"
+                                       Text="{Binding UndatedCount, StringFormat='{}{0} with no date'}" />
+                        </Border>
+
+                        <Border Style="{StaticResource CountChipStyle}" Background="{DynamicResource ErrorWashBrush}"
+                                Visibility="{Binding OutOfYearCount, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Foreground="{DynamicResource ErrorBrush}"
+                                       Text="{Binding OutOfYearCount, StringFormat='{}{0} outside the year'}" />
+                        </Border>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding SummarySentence}" Style="{StaticResource CaptionTextStyle}"
+                               Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SourceLabel}" Style="{StaticResource CaptionMutedTextStyle}"
+                               Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+
+            <!-- ====================================================== empty state -->
+            <StackPanel DockPanel.Dock="Top" Margin="0,60,0,0" HorizontalAlignment="Center"
+                        Visibility="{Binding HasJournal, Converter={StaticResource InverseBoolToVisibility}}">
+                <pb:Icon Data="{StaticResource Icon.Journal}" Width="28" Height="28" HorizontalAlignment="Center"
+                         Foreground="{DynamicResource TextTertiaryBrush}" />
+                <TextBlock Text="No journal yet" Style="{StaticResource SubtitleTextStyle}"
+                           HorizontalAlignment="Center" Margin="0,14,0,0" />
+                <TextBlock Style="{StaticResource ParagraphTextStyle}" TextAlignment="Center" Margin="0,6,0,0"
+                           MaxWidth="360"
+                           Text="Import a Word journal and its dated entries interleave with the photographs. Entries whose date cannot be read will be listed here rather than quietly dropped." />
+            </StackPanel>
+
+            <!-- ============================================================== body -->
+            <Grid Visibility="{Binding HasJournal, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="360" MinWidth="280" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" MinWidth="320" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ==================================================== entry list -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="14,14,10,16">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource GroupTemplate}" />
+
+                        <!-- Orphaned assignments: dates the user set that this import could not place. -->
+                        <StackPanel Visibility="{Binding OrphanCount, Converter={StaticResource CountToVisibility}}"
+                                    Margin="0,6,0,0">
+                            <TextBlock Text="Dates with nowhere to go" Style="{StaticResource SectionLabelTextStyle}"
+                                       Foreground="{DynamicResource WarningBrush}" />
+                            <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                       Margin="0,0,0,8"
+                                       Text="You dated these entries, but the document no longer has text they match. Select an entry on the right, then re-attach — or let them go." />
+
+                            <ItemsControl ItemsSource="{Binding Orphans}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource WellStyle}" Padding="12,10" Margin="0,0,0,8">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TextPreview}" TextWrapping="Wrap"
+                                                           Style="{StaticResource BodyTextStyle}" />
+                                                <TextBlock Text="{Binding DetailLabel}" Margin="0,4,0,0"
+                                                           Style="{StaticResource CaptionMutedTextStyle}"
+                                                           TextWrapping="Wrap" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                            Content="Re-attach to selected"
+                                                            Command="{Binding DataContext.ReattachOrphanCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"
+                                                            Content="Discard"
+                                                            Command="{Binding DataContext.DiscardOrphanCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Column="1" Style="{StaticResource VerticalDividerStyle}" />
+
+                <!-- ======================================================= detail -->
+                <Grid Grid.Column="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,14,14,18"
+                                  Visibility="{Binding SelectedRow, Converter={StaticResource NotNullToVisibility}}">
+                        <StackPanel>
+
+                            <!-- what the entry is -->
+                            <TextBlock Text="{Binding SelectedRow.HeadingLabel}" TextWrapping="Wrap"
+                                       Style="{StaticResource TitleTextStyle}" />
+                            <TextBlock Text="{Binding SelectedRow.MatcherLabel}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Style="{StaticResource CaptionTextStyle}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Border Style="{StaticResource ChipStyle}">
+                                    <TextBlock Text="{Binding SelectedRow.SizeLabel}"
+                                               Style="{StaticResource MicroTextStyle}" />
+                                </Border>
+                                <Border Style="{StaticResource ChipStyle}" Margin="6,0,0,0"
+                                        Visibility="{Binding SelectedRow.IsRange,
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding SelectedRow.RangeLabel}"
+                                               Style="{StaticResource MicroTextStyle}" />
+                                </Border>
+                                <Border Style="{StaticResource AmberBadgeStyle}" Margin="6,0,0,0"
+                                        Visibility="{Binding SelectedRow.NeedsDate,
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="In the book nowhere" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- the text itself: the reason any of this matters -->
+                            <Border Style="{StaticResource WellStyle}" Padding="14,12" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="The entry" Style="{StaticResource SectionLabelTextStyle}" />
+                                    <TextBlock Text="{Binding SelectedRow.BodyText}" TextWrapping="Wrap"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- one-click candidates -->
+                            <StackPanel Margin="0,18,0,0"
+                                        Visibility="{Binding SelectedRow.HasCandidates,
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Dates this text could mean"
+                                           Style="{StaticResource SectionLabelTextStyle}" />
+                                <ItemsControl ItemsSource="{Binding SelectedRow.Candidates}"
+                                              ItemTemplate="{StaticResource CandidateTemplate}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- or pick a day of the book -->
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock Text="Or choose a day" Style="{StaticResource SectionLabelTextStyle}" />
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,4">
+                                    <Button Style="{StaticResource SmallIconButtonStyle}" ToolTip="Previous month"
+                                            Command="{Binding Picker.PreviousMonthCommand}">
+                                        <pb:Icon Data="{StaticResource Icon.ChevronLeft}" Width="13" Height="13" />
+                                    </Button>
+                                    <TextBlock Text="{Binding Picker.DisplayMonthLabel}" MinWidth="150"
+                                               Style="{StaticResource BodyStrongTextStyle}" TextAlignment="Center"
+                                               VerticalAlignment="Center" Margin="6,0,6,0" />
+                                    <Button Style="{StaticResource SmallIconButtonStyle}" ToolTip="Next month"
+                                            Command="{Binding Picker.NextMonthCommand}">
+                                        <pb:Icon Data="{StaticResource Icon.ChevronRight}" Width="13" Height="13" />
+                                    </Button>
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding Picker.WeekdayNames}" Margin="0,4,0,2"
+                                              MaxWidth="330" HorizontalAlignment="Left">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="7" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource MicroTextStyle}"
+                                                       HorizontalAlignment="Center" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <ItemsControl ItemsSource="{Binding Picker.Days}" MaxWidth="330"
+                                              HorizontalAlignment="Left">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="6" Columns="7" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource PickerDayStyle}" Content="{Binding Label}"
+                                                    Command="{Binding DataContext.Picker.SelectDayCommand,
+                                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <Ellipse Width="4" Height="4" VerticalAlignment="Center"
+                                             Fill="{DynamicResource TextTertiaryBrush}" />
+                                    <TextBlock Text="has photos" Style="{StaticResource MicroTextStyle}"
+                                               Margin="5,0,12,0" VerticalAlignment="Center" />
+                                    <Ellipse Width="4" Height="4" VerticalAlignment="Center"
+                                             Fill="{DynamicResource AccentBrush}" />
+                                    <TextBlock Text="already has journal text" Style="{StaticResource MicroTextStyle}"
+                                               Margin="5,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- commit -->
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button Style="{StaticResource PrimaryButtonStyle}" MinWidth="150"
+                                        Command="{Binding AssignPickedDateCommand}"
+                                        Content="{Binding Picker.SelectedDateLabel}"
+                                        ToolTip="Give this entry that date. Ctrl+Z takes it back." />
+                                <Button Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Content="Discard"
+                                        Command="{Binding DiscardCommand}"
+                                        ToolTip="Leave this text out of the book. Nothing is deleted."
+                                        Visibility="{Binding SelectedRow.IsDiscarded,
+                                                     Converter={StaticResource InverseBoolToVisibility}}" />
+                                <Button Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0"
+                                        Content="Put back" Command="{Binding RestoreCommand}"
+                                        Visibility="{Binding SelectedRow.IsDiscarded,
+                                                     Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,10,0,0" TextWrapping="Wrap"
+                                       Text="Dates you set survive a re-import: the document owns the text, you own the dates." />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- nothing selected -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Visibility="{Binding SelectedRow, Converter={StaticResource NullToVisibility}}">
+                        <TextBlock Text="Select an entry" Style="{StaticResource SubtitleTextStyle}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Style="{StaticResource ParagraphTextStyle}" TextAlignment="Center" Margin="0,6,0,0"
+                                   MaxWidth="300"
+                                   Text="Its full text, what the matcher read, and the dates it could take will appear here." />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

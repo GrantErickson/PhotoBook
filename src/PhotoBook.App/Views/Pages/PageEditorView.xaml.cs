@@ -531,12 +531,27 @@ public partial class PageEditorView : UserControl
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnPreviewKeyDown(e);
+        e.Handled = HandleShortcut(e);
+    }
+
+    /// <summary>
+    /// Doc 09 §5's page and crop keys. Public because the shell routes them here from the
+    /// <em>window</em>: as an element handler this only ever fired once keyboard focus had already
+    /// landed on the canvas, so <c>Page Down</c> paged the filmstrip's scroll viewer — or did nothing
+    /// at all — depending on what the user happened to have clicked last. The shell owns focus; the
+    /// surface owns what the keys mean.
+    /// </summary>
+    /// <param name="e">The key event; its <c>Handled</c> flag is left to the caller.</param>
+    /// <returns>True when this surface consumed the key.</returns>
+    public bool HandleShortcut(KeyEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
 
         // Layout override mode owns Esc, Del and Tab while it is open (doc 09 §3.7), and this is a
         // preview handler, so it would otherwise swallow them before the surface ever saw them.
         if (_viewModel is not { } vm || e.OriginalSource is TextBoxBase || IsOverrideActive)
         {
-            return;
+            return false;
         }
 
         var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
@@ -631,10 +646,10 @@ public partial class PageEditorView : UserControl
                 break;
 
             default:
-                return;
+                return false;
         }
 
         UpdateOverlays();
-        e.Handled = true;
+        return true;
     }
 }

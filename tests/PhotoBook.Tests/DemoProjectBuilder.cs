@@ -110,6 +110,26 @@ public sealed class DemoProjectBuilder
         await store.SavePhotosAsync(snapshot.Photos);
         await store.SaveChapterAsync(chapter);
 
+        // A Word journal sitting beside the project, for driving "Import journal…" by hand. It is
+        // deliberately *not* imported here: the interesting surface is the import report, and it only
+        // exists because some entries do not resolve — an undated heading, an unsure date, and one
+        // entry from the wrong year (doc 11).
+        SyntheticJournal.Write(Path.Combine(root, "journal-2024.docx"),
+        [
+            SyntheticJournal.Para.Heading("Saturday, June 1, 2024"),
+            new SyntheticJournal.Para(
+                "First proper weekend of the summer. We took the long way to the lake and nobody complained."),
+            new SyntheticJournal.Para("June 4 — Sports day. Two skinned knees and one ribbon."),
+            new SyntheticJournal.Para("6/7 — Rain all day, so we built the fort in the front room instead."),
+            new SyntheticJournal.Para(
+                "June 10–12 my sister came to stay and the kids barely slept the whole time."),
+            new SyntheticJournal.Para("Monday the 17th we finally got the garden beds in."),
+            SyntheticJournal.Para.Heading("Things I Keep Meaning To Write Down"),
+            new SyntheticJournal.Para(
+                "The way she says 'hopspital'. The way he holds the dog's collar when he is nervous."),
+            new SyntheticJournal.Para("March 3, 2023 — the day we decided to make these books at all."),
+        ]);
+
         // Warm the grid thumbnails so the app paints immediately on open.
         foreach (var photo in photos)
         {

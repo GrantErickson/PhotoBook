@@ -176,6 +176,26 @@ public sealed class TemplateLibrary
     public IReadOnlyList<Template> ByKind(TemplateKind kind) =>
         Templates.Where(t => t.Kind == kind).ToList();
 
+    /// <summary>
+    /// Every template authored for one page size, in library order. A template applies only to pages
+    /// whose size id matches exactly — doc 07 refuses to re-stretch a composition across aspect
+    /// families — so this is the whole of what a book at that size has to lay out with (R19).
+    /// </summary>
+    public IReadOnlyList<Template> ByPageSize(string pageSizeId) =>
+        Templates.Where(t => string.Equals(t.PageSize, pageSizeId, StringComparison.Ordinal)).ToList();
+
+    /// <summary>
+    /// How many templates the library holds for a page size. <b>Zero is a real answer</b>: a size the
+    /// print profile prints but nobody has authored layouts for yet cannot produce pages, and saying
+    /// so is the point (doc 12 "Other page sizes").
+    /// </summary>
+    public int CountForPageSize(string pageSizeId) =>
+        Templates.Count(t => string.Equals(t.PageSize, pageSizeId, StringComparison.Ordinal));
+
+    /// <summary>Every page-size id the library has templates for, ordinal ascending.</summary>
+    public IReadOnlyList<string> PageSizes =>
+        [.. Templates.Select(t => t.PageSize).Distinct(StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal)];
+
     /// <summary>Every template holding exactly <paramref name="photoCount"/> photos, in library order.</summary>
     public IReadOnlyList<Template> ByPhotoCount(int photoCount) =>
         Templates.Where(t => t.PhotoCount == photoCount).ToList();

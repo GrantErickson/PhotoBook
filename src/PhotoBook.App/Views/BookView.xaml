@@ -5,8 +5,46 @@
              xmlns:views="clr-namespace:PhotoBook.App.Views"
              xmlns:pages="clr-namespace:PhotoBook.App.Views.Pages"
              xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos"
+             xmlns:store="clr-namespace:PhotoBook.Core.Persistence;assembly=PhotoBook.Core"
              Focusable="True" FocusVisualStyle="{x:Null}">
     <UserControl.Resources>
+
+        <!--
+            The save indicator (doc 04 §6). It reports the autosave loop's own state, so "Saved 14:32"
+            means a write finished at 14:32 — not that someone called Save. Colour carries the state:
+            muted when everything is on disk, amber the moment an edit is only in memory, red when a
+            write actually failed, because that one is not going to fix itself by being ignored.
+        -->
+        <Style x:Key="SaveStatusTextStyle" TargetType="{x:Type TextBlock}"
+               BasedOn="{StaticResource CaptionMutedTextStyle}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Dirty}">
+                    <Setter Property="Foreground" Value="{DynamicResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Failed}">
+                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SaveStatusDotStyle" TargetType="{x:Type Ellipse}">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Dirty}">
+                    <Setter Property="Fill" Value="{DynamicResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Saving}">
+                    <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Failed}">
+                    <Setter Property="Fill" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
 
         <!-- One photo tile: the picture dominates, badges stay subordinate. -->
         <DataTemplate x:Key="PhotoTileTemplate">
@@ -262,7 +300,7 @@
                                           IsChecked="{Binding IsStylePanelOpen, Mode=OneWay}"
                                           Command="{Binding ToggleStylePanelCommand}"
                                           ToolTip="Borders, type and colours for the whole book">
-                                <pb:Icon Data="{StaticResource Icon.Settings}" Width="16" Height="16" />
+                                <pb:Icon Data="{StaticResource Icon.Adjust}" Width="16" Height="16" />
                             </ToggleButton>
                         </StackPanel>
                     </StackPanel>
@@ -274,11 +312,42 @@
                                ToolTip="{Binding StatusMessage}" />
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveCommand}">
+                        <!-- Save is the indicator: one control that says where the project stands and
+                             writes it now if you press it. Two would let them disagree. -->
+                        <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveCommand}"
+                                ToolTip="{Binding SaveStatusTooltip}">
                             <StackPanel Orientation="Horizontal">
-                                <pb:Icon Data="{StaticResource Icon.Save}" VerticalAlignment="Center" />
-                                <TextBlock Text="Save" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                <Ellipse Style="{StaticResource SaveStatusDotStyle}" />
+                                <TextBlock Text="{Binding SaveStatusLabel}" Margin="9,0,0,0"
+                                           Style="{StaticResource SaveStatusTextStyle}"
+                                           MaxWidth="220" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
+                        </Button>
+
+                        <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,0" />
+
+                        <!-- Journal review (doc 11). The count sits beside the glyph rather than over
+                             it: a badge floated onto a 24 px icon button has nowhere to go but
+                             outside its own bounds. -->
+                        <Button Style="{StaticResource GhostButtonStyle}" Padding="9,5"
+                                Command="{Binding OpenJournalReviewCommand}"
+                                ToolTip="Journal: what got a date, and which pages carry it">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Journal}" Width="16" Height="16"
+                                         VerticalAlignment="Center" />
+                                <Border Style="{StaticResource AmberBadgeStyle}" Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasJournalFindings,
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding JournalAttentionCount}" />
+                                </Border>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource SmallIconButtonStyle}" Margin="4,0,0,0"
+                                Command="{Binding OpenBookSettingsCommand}"
+                                ToolTip="Book settings: title, year, page size, print profile, seed">
+                            <pb:Icon Data="{StaticResource Icon.Settings}" Width="16" Height="16" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -469,7 +538,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- the editing surface -->
-                        <pages:PageEditorView Grid.Column="0"
+                        <pages:PageEditorView Grid.Column="0" x:Name="PageSurface"
                                               DataContext="{Binding PageEditor}"
                                               OverrideModel="{Binding DataContext.PageOverride,
                                                               RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -538,5 +607,33 @@
             </Grid>
             </Grid>
         </DockPanel>
+
+        <!-- ============================================ quick preview (Space) -->
+        <!-- Doc 09 §2's full-size look at the selection. An overlay, not a window: it is a glance,
+             and a glance must not cost a window to open and close. It covers the rail as well as the
+             grid, so there is no half-lit chrome competing with the photograph. -->
+        <Border Grid.ColumnSpan="2" Panel.ZIndex="20"
+                Background="{DynamicResource ScrimHeavyBrush}"
+                Visibility="{Binding IsQuickPreviewOpen, Converter={StaticResource BoolToVisibility}}"
+                MouseLeftButtonDown="OnQuickPreviewClicked">
+            <Grid Margin="48,40,48,32">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Image Grid.Row="0" Source="{Binding QuickPreviewImage}" Stretch="Uniform"
+                       StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality" />
+
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,20,0,0">
+                    <TextBlock Text="{Binding QuickPreviewTitle}" HorizontalAlignment="Center"
+                               Style="{StaticResource BodyStrongTextStyle}" />
+                    <TextBlock Text="{Binding QuickPreviewSubtitle}" HorizontalAlignment="Center"
+                               Style="{StaticResource CaptionMutedTextStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="Space or Esc to close" HorizontalAlignment="Center"
+                               Style="{StaticResource MicroTextStyle}" Margin="0,12,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
