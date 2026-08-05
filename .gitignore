@@ -5,8 +5,9 @@ obj/
 *.suo
 TestResults/
 artifacts/
-# Local ONNX models are downloaded by the user (see SETUP.md), never committed
-models/*.onnx
+# YuNet (MIT) and U2-Netp (Apache-2.0) ARE committed under models/ -- see models/README.md.
+# NIMA is not redistributable in ONNX form, so a user-supplied copy stays out of the repo.
+models/nima-mobilenet.onnx
 # Local secrets: MSAL client id / Azure keys
 appsettings.local.json
 secrets.local.json

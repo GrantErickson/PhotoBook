@@ -136,28 +136,29 @@ scope.
 
 ---
 
-## 3. Better automatic cropping (optional) — three ONNX model files
+## 3. Image analysis — nothing to do
 
-Out of the box, PhotoBook analyses photos with classical computer vision: spectral-residual
-saliency to find the subject, Laplacian variance for sharpness, histogram statistics for exposure,
-and a colourfulness metric. **This works with no downloads** and drives both smart cropping and the
-S/A/B/C quality ranking.
+**The neural models now ship with the repository** and are copied next to the executable at build
+time, so face detection and saliency work the moment you run the app. There is no download step.
 
-Adding the neural models improves it — real face detection instead of inferred subjects, and an
-aesthetic score trained on human ratings. They aren't bundled because of size and licensing.
+| Model | Purpose | Licence |
+|---|---|---|
+| YuNet (`face_detection_yunet_2023mar.onnx`, 227 KB) | Face detection — faces become the highest-priority thing smart-crop keeps in frame | MIT |
+| U²-Netp (`u2netp.onnx`, 4.4 MB) | Salient-object detection — finds the subject when there is no face | Apache-2.0 |
 
-Create a `models` folder next to the app executable
-(`src\PhotoBook.App\bin\Debug\net10.0-windows\models\`) and drop in:
+Both licences permit redistribution, which is why they are committed. Provenance, verified tensor
+shapes and the test that guards them are in [models/README.md](models/README.md).
 
-| File name (exact) | What it does | Size | Where to get it |
-|---|---|---|---|
-| `face_detection_yunet_2023mar.onnx` | Face detection | ~230 KB | [OpenCV Zoo — face_detection_yunet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) |
-| `u2netp.onnx` | Salient-object detection | ~4.5 MB | [U-2-Net releases](https://github.com/xuebinqin/U-2-Net) (the small "u2netp" variant) |
-| `nima-mobilenet.onnx` | Aesthetic scoring | ~13 MB | NIMA/MobileNet trained on AVA — e.g. [idealo/image-quality-assessment](https://github.com/idealo/image-quality-assessment), exported to ONNX |
+**One stage is still classical:** NIMA aesthetic scoring. No maintained ONNX build of it exists —
+every published implementation ships Keras or PyTorch weights, and converting them would add a
+Python toolchain plus unclear terms on the AVA-trained weights. So the aesthetic component of the
+quality score comes from the classical proxy (sharpness, exposure, colourfulness). The app says so
+rather than pretending otherwise: it reports a *partial* ONNX install naming the missing file.
 
-Each file is picked up independently: supply only the face model and you get faces plus classical
-everything-else. Missing files are never an error — the app reports which analyzer it used. Model
-files are git-ignored.
+If you ever obtain a NIMA ONNX, drop it into [models/](models/) as `nima-mobilenet.onnx` and it is
+picked up automatically — the analyzer checks the output is a 10-bin distribution and ignores the
+file if it isn't. That one filename stays git-ignored so a large third-party model is never
+committed by accident.
 
 ---
 
@@ -175,12 +176,13 @@ select the `.ttf` files and *Install for all users*.
 
 ## What I could not do for you
 
-| Thing | Why it needs you |
-|---|---|
-| Azure app registration / client id | Requires signing in as the account that owns the photos. |
-| ONNX model files | Multi-megabyte third-party downloads with their own licences. |
-| The OFL fonts | Installed per machine; trivial but manual. |
-| A real photo set | Everything so far was verified against generated test images. **Point it at a real month of your photos** — that is the only way to judge whether the automatic layout is actually good, which is the whole point of the project. |
+| Thing | Why it needs you | Status |
+|---|---|---|
+| Azure app registration / client id | Requires signing in as the account that owns the photos. | ✅ Done — verified working end to end on 2026-08-04 |
+| The two ONNX models | — | ✅ Now bundled in the repo; no action |
+| A NIMA aesthetic model | No redistributable ONNX build exists (§3). | Not planned; the classical proxy covers it |
+| The OFL fonts | Installed per machine; trivial but manual. | Still yours to do (§4) |
+| A real photo set | Everything so far was verified against generated test images. **Point it at a real month of your photos** — that is the only way to judge whether the automatic layout is actually good, which is the whole point of the project. | Still yours to do |
 
 ---
 
@@ -193,6 +195,7 @@ select the `.ttf` files and *Install for all users*.
 | `src/PhotoBook.Engine` | The auto-layout engine (pure and deterministic) |
 | `src/PhotoBook.Rendering` | One SkiaSharp renderer for both screen and PDF, plus preflight |
 | `src/PhotoBook.App` | The WPF application |
+| [models/](models/) | Bundled YuNet + U²-Netp ONNX models, their licences, and provenance |
 | `%LOCALAPPDATA%\PhotoBook\` | OneDrive config, MSAL token cache, recent-books list |
 
 A project folder holds `book.json`, `photos.json`, `journal.json`, `chapters/YYYY-MM.json`,
