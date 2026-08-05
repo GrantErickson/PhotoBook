@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pb="clr-namespace:PhotoBook.App.Controls"
              xmlns:local="clr-namespace:PhotoBook.App.Views.Pages"
+             xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos"
              Focusable="True"
              FocusVisualStyle="{x:Null}">
 
@@ -160,6 +161,19 @@
                     <TextBlock Text="Detached" Style="{StaticResource MicroTextStyle}" />
                 </Border>
 
+                <!-- Corrections for the selected photo, without leaving the page (R11). Disabled
+                     rather than hidden when nothing is selected, so its place in the bar is stable. -->
+                <!-- IsChecked drives the state directly rather than a Command alongside a one-way
+                     binding: with two sources the button's look and the panel's visibility can
+                     disagree, which is precisely what happened. -->
+                <ToggleButton DockPanel.Dock="Left" Style="{StaticResource IconToggleButtonStyle}"
+                              Margin="12,0,0,0" VerticalAlignment="Center"
+                              IsChecked="{Binding IsAdjustOpen, Mode=TwoWay}"
+                              IsEnabled="{Binding CanAdjustSelectedPhoto}"
+                              ToolTip="Adjust the selected photo — brightness, colour, straighten  (A)">
+                    <pb:Icon Data="{StaticResource Icon.Adjust}" />
+                </ToggleButton>
+
                 <!-- Viewport zoom (doc 09 §3: Ctrl+wheel, Ctrl+=/-, F11 = fit). -->
                 <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButtonStyle}"
                         Command="{Binding ZoomToFitCommand}" ToolTip="Fit page to window  (F11)">
@@ -176,6 +190,42 @@
                         Command="{Binding ZoomOutCommand}" ToolTip="Zoom out  (Ctrl+-)">
                     <pb:Icon Data="{StaticResource Icon.ZoomOut}" Width="16" Height="16" />
                 </Button>
+            </DockPanel>
+        </Border>
+
+        <!-- ==================================================== in-place corrections -->
+        <!-- R11: the photo is fixed where it is being composed, not on another tab. Docked beside the
+             canvas rather than floating over it, because the point is judging the correction against
+             the page it sits on. Its own AdjustmentsViewModel, attached to the selected slot's photo,
+             writing through the same editor and undo stack as the Photos-tab inspector. -->
+        <Border Grid.Row="1" Grid.RowSpan="2" Panel.ZIndex="2"
+                HorizontalAlignment="Right"
+                Width="330"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsAdjustOpen, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Padding="14,12"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Adjust this photo" Style="{StaticResource BodyStrongTextStyle}" />
+                            <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,2,0,0"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding SelectedPhoto.OriginalFileName}" />
+                        </StackPanel>
+                        <Button Style="{StaticResource SmallIconButtonStyle}" HorizontalAlignment="Right"
+                                VerticalAlignment="Top" Command="{Binding ToggleAdjustCommand}"
+                                ToolTip="Close corrections  (A)">
+                            <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="14,12">
+                    <photos:AdjustmentsPanel DataContext="{Binding Adjustments}" />
+                </ScrollViewer>
             </DockPanel>
         </Border>
 

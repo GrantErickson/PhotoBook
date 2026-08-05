@@ -21,6 +21,7 @@
         <KeyBinding Modifiers="Control+Shift" Key="Z" Command="{Binding Book.Undo.RedoCommand}" />
         <KeyBinding Modifiers="Control" Key="S" Command="{Binding Book.SaveCommand}" />
         <KeyBinding Key="F1" Command="{Binding ShowShortcutsCommand}" />
+        <KeyBinding Key="A" Command="{Binding Book.PageEditor.ToggleAdjustCommand}" />
     </Window.InputBindings>
 
     <DockPanel>

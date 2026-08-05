@@ -37,11 +37,17 @@ public partial class App : Application
         services.AddSingleton<PhotoInspectorViewModel>();
 
         // Pages tab: canvas, bins, template gallery, auto-layout commands, override mode.
+        // The page editor gets its OWN adjustments panel rather than sharing the inspector's: the
+        // two are attached to different photos at the same time (the grid's selection and the
+        // selected slot's), and one instance cannot be pointed at both.
         services.AddSingleton(sp => new PageEditorViewModel(
             sp.GetRequiredService<ProjectSession>(),
             sp.GetRequiredService<UndoStack>(),
             sp.GetRequiredService<ThumbnailProvider>(),
-            sp.GetRequiredService<EditorSettingsService>()));
+            sp.GetRequiredService<EditorSettingsService>(),
+            new AdjustmentsViewModel(
+                sp.GetRequiredService<PhotoEditor>(),
+                sp.GetRequiredService<PhotoPreviewService>())));
         services.AddSingleton<BinsViewModel>();
         services.AddSingleton<TemplatePickerViewModel>();
         services.AddSingleton<LayoutCommandsViewModel>();

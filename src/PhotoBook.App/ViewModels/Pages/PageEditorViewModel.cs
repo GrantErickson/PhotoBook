@@ -56,7 +56,8 @@ public sealed partial class PageEditorViewModel : ObservableObject
         ProjectSession session,
         UndoStack undo,
         ThumbnailProvider? thumbnails = null,
-        EditorSettingsService? settings = null)
+        EditorSettingsService? settings = null,
+        ViewModels.Photos.AdjustmentsViewModel? adjustments = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(undo);
@@ -65,6 +66,7 @@ public sealed partial class PageEditorViewModel : ObservableObject
         _undo = undo;
         _thumbnails = thumbnails;
         _settings = settings;
+        Adjustments = adjustments;
         _undo.Changed += OnUndoStackChanged;
         _showGuides = settings?.Settings.PageGuidesVisible ?? false;
 
@@ -355,7 +357,51 @@ public sealed partial class PageEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(HasRightPage));
     }
 
-    partial void OnSelectedSlotIdChanged(string? value) => RefreshCropState();
+    /// <summary>
+    /// Corrections for the selected slot's photo, edited without leaving the page (R11). It is a
+    /// separate instance from the Photos-tab inspector because both can be attached to different
+    /// photos at once, but it writes through the same <see cref="PhotoEditor"/> and undo stack, so an
+    /// edit made here is the same edit made there.
+    /// </summary>
+    public ViewModels.Photos.AdjustmentsViewModel? Adjustments { get; }
+
+    /// <summary>The photo in the selected slot, or null when nothing usable is selected.</summary>
+    public Photo? SelectedPhoto =>
+        CropPlacement is { } placement ? _session.Catalog.Find(placement.PhotoId) : null;
+
+    /// <summary>True when the in-place correction panel has something to work on.</summary>
+    public bool CanAdjustSelectedPhoto => Adjustments is not null && SelectedPhoto is not null;
+
+    [ObservableProperty]
+    private bool _isAdjustOpen;
+
+    /// <summary>Nothing to correct means the panel cannot be open, however it was asked for.</summary>
+    partial void OnIsAdjustOpenChanged(bool value)
+    {
+        if (value && !CanAdjustSelectedPhoto)
+        {
+            IsAdjustOpen = false;
+        }
+    }
+
+    /// <summary>Shows or hides the in-place corrections for the selected photo (the A shortcut).</summary>
+    [RelayCommand]
+    private void ToggleAdjust() => IsAdjustOpen = !IsAdjustOpen;
+
+    partial void OnSelectedSlotIdChanged(string? value)
+    {
+        RefreshCropState();
+
+        // Follow the selection, so opening the panel never shows the previous photo's numbers.
+        Adjustments?.Attach(SelectedPhoto);
+        OnPropertyChanged(nameof(SelectedPhoto));
+        OnPropertyChanged(nameof(CanAdjustSelectedPhoto));
+
+        if (!CanAdjustSelectedPhoto)
+        {
+            IsAdjustOpen = false;
+        }
+    }
 
     partial void OnIsCropModeChanged(bool value)
     {
