@@ -1,0 +1,186 @@
+<UserControl x:Class="PhotoBook.App.Views.StylePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+             xmlns:views="clr-namespace:PhotoBook.App.Views"
+             xmlns:model="clr-namespace:PhotoBook.Core.Model;assembly=PhotoBook.Core"
+             Foreground="{DynamicResource TextPrimaryBrush}"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True">
+
+    <UserControl.Resources>
+        <conv:EnumMatchConverter x:Key="IsBookScope" Match="{x:Static model:StyleLevel.Book}" />
+        <conv:EnumMatchConverter x:Key="IsChapterScope" Match="{x:Static model:StyleLevel.Chapter}" />
+        <conv:EnumMatchConverter x:Key="IsPageScope" Match="{x:Static model:StyleLevel.Page}" />
+        <conv:StyleLevelToTextConverter x:Key="LevelText" />
+        <conv:StyleLevelToBrushConverter x:Key="LevelFill" />
+        <conv:StyleLevelToBrushConverter x:Key="LevelForeground" Foreground="True" />
+        <conv:HexToBrushConverter x:Key="HexToBrush" />
+
+        <!-- The row header every field shares: label, inheritance chip, reset to inherited. -->
+        <DataTemplate x:Key="FieldHeaderTemplate">
+            <Grid Margin="0,0,0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding Label}" VerticalAlignment="Center"
+                           Style="{StaticResource BodyTextStyle}" TextTrimming="CharacterEllipsis" />
+
+                <Border Grid.Column="1" Style="{StaticResource ChipStyle}" VerticalAlignment="Center"
+                        Background="{Binding IsOwned, Converter={StaticResource LevelFill}}"
+                        ToolTip="Which level of the book → chapter → page cascade supplies this value.">
+                    <TextBlock Text="{Binding Level, Converter={StaticResource LevelText}}"
+                               Style="{StaticResource MicroTextStyle}"
+                               Foreground="{Binding IsOwned, Converter={StaticResource LevelForeground}}" />
+                </Border>
+
+                <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="4,0,0,0"
+                        Command="{Binding ResetCommand}" ToolTip="Reset to inherited"
+                        Visibility="{Binding IsOwned, Converter={StaticResource BoolToVisibility}}">
+                    <pb:Icon Data="{StaticResource Icon.Undo}" Width="13" Height="13" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="NumberFieldTemplate">
+            <StackPanel Margin="0,0,0,14">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource FieldHeaderTemplate}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider Grid.Column="0" VerticalAlignment="Center"
+                            Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                            TickFrequency="{Binding Step}" IsSnapToTickEnabled="True"
+                            Value="{Binding NumberValue}" />
+                    <TextBlock Grid.Column="1" Text="{Binding NumberText}" MinWidth="58" Margin="12,0,0,0"
+                               TextAlignment="Right" VerticalAlignment="Center"
+                               Style="{StaticResource NumericTextStyle}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ColorFieldTemplate">
+            <StackPanel Margin="0,0,0,14">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource FieldHeaderTemplate}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="30" Height="30" CornerRadius="{StaticResource RadiusSmall}"
+                            BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+                            Background="{Binding TextValue, Converter={StaticResource HexToBrush}}" />
+                    <TextBox Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+                             Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                             ToolTip="An sRGB colour as #RRGGBB." />
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="FamilyFieldTemplate">
+            <StackPanel Margin="0,0,0,14">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource FieldHeaderTemplate}" />
+                <ComboBox ItemsSource="{Binding Families}" SelectedItem="{Binding TextValue}"
+                          ToolTip="The three OFL families the renderer embeds. Anything else would not travel to the printer." />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- A switch carries its own label, so the shared header would say it twice: the checkbox
+             takes the label's place and only the chip and the reset come from the header. -->
+        <DataTemplate x:Key="ToggleFieldTemplate">
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <CheckBox Grid.Column="0" VerticalAlignment="Center"
+                          IsChecked="{Binding FlagValue}" Content="{Binding Label}" />
+
+                <Border Grid.Column="1" Style="{StaticResource ChipStyle}" VerticalAlignment="Center"
+                        Background="{Binding IsOwned, Converter={StaticResource LevelFill}}"
+                        ToolTip="Which level of the book → chapter → page cascade supplies this value.">
+                    <TextBlock Text="{Binding Level, Converter={StaticResource LevelText}}"
+                               Style="{StaticResource MicroTextStyle}"
+                               Foreground="{Binding IsOwned, Converter={StaticResource LevelForeground}}" />
+                </Border>
+
+                <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="4,0,0,0"
+                        Command="{Binding ResetCommand}" ToolTip="Reset to inherited"
+                        Visibility="{Binding IsOwned, Converter={StaticResource BoolToVisibility}}">
+                    <pb:Icon Data="{StaticResource Icon.Undo}" Width="13" Height="13" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <views:StyleFieldTemplateSelector x:Key="FieldSelector"
+                                          Number="{StaticResource NumberFieldTemplate}"
+                                          Color="{StaticResource ColorFieldTemplate}"
+                                          Family="{StaticResource FamilyFieldTemplate}"
+                                          Toggle="{StaticResource ToggleFieldTemplate}" />
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource PanelStyle}" Background="{DynamicResource SurfaceBrush}">
+        <DockPanel>
+
+            <!-- ============================================================ header -->
+            <Border DockPanel.Dock="Top" Padding="18,16,18,14"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <StackPanel>
+                    <TextBlock Text="Style" Style="{StaticResource SubtitleTextStyle}" />
+
+                    <TextBlock Style="{StaticResource CaptionMutedTextStyle}" Margin="0,4,0,12"
+                               TextWrapping="Wrap"
+                               Text="Change it once and it changes everywhere. Overrides are sparse: only the fields you touch are stored." />
+
+                    <Border Style="{StaticResource SegmentedGroupStyle}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource SegmentedRadioButtonStyle}" GroupName="StyleScope"
+                                         Content="Book"
+                                         IsChecked="{Binding Scope, Converter={StaticResource IsBookScope}}" />
+                            <RadioButton Style="{StaticResource SegmentedRadioButtonStyle}" GroupName="StyleScope"
+                                         Content="Chapter" IsEnabled="{Binding CanScopeToChapter}"
+                                         IsChecked="{Binding Scope, Converter={StaticResource IsChapterScope}}" />
+                            <RadioButton Style="{StaticResource SegmentedRadioButtonStyle}" GroupName="StyleScope"
+                                         Content="Page" IsEnabled="{Binding CanScopeToPage}"
+                                         IsChecked="{Binding Scope, Converter={StaticResource IsPageScope}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{Binding ScopeDescription}" Style="{StaticResource CaptionMutedTextStyle}"
+                               Margin="2,9,0,0" TextWrapping="Wrap" />
+
+                    <Button Style="{StaticResource LinkButtonStyle}" HorizontalAlignment="Left" Margin="0,10,0,0"
+                            Content="{Binding ClearAllLabel}" Command="{Binding ClearAllCommand}"
+                            Visibility="{Binding HasOverrides, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ============================================================== body -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,16,14,20">
+                <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,22">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource SectionLabelTextStyle}"
+                                           Margin="0,0,0,3" />
+                                <TextBlock Text="{Binding Description}" Style="{StaticResource CaptionMutedTextStyle}"
+                                           TextWrapping="Wrap" Margin="0,0,0,12" />
+                                <ItemsControl ItemsSource="{Binding Fields}"
+                                              ItemTemplateSelector="{StaticResource FieldSelector}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

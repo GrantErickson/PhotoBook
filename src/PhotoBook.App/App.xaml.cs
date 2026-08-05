@@ -3,6 +3,9 @@ using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using PhotoBook.App.Services;
 using PhotoBook.App.ViewModels;
+using PhotoBook.App.ViewModels.Export;
+using PhotoBook.App.ViewModels.Pages;
+using PhotoBook.App.ViewModels.Photos;
 
 namespace PhotoBook.App;
 
@@ -19,6 +22,33 @@ public partial class App : Application
         services.AddSingleton<ThumbnailProvider>();
         services.AddSingleton<JobQueue>();
         services.AddSingleton<ProjectSession>();
+
+        // One undo stack per process, cleared whenever a book opens or closes (doc 09 §4).
+        services.AddSingleton<UndoStack>();
+        services.AddSingleton(_ => new EditorSettingsService());
+
+        // Photos tab: the inspector and everything it edits.
+        services.AddSingleton<PhotoEditor>();
+        services.AddSingleton(sp => new PhotoPreviewService(sp.GetRequiredService<ProjectSession>()));
+        services.AddSingleton<AdjustmentsViewModel>();
+        services.AddSingleton<FocusRegionEditorViewModel>();
+        services.AddSingleton<PhotoReorderController>();
+        services.AddSingleton<PhotoInspectorViewModel>();
+
+        // Pages tab: canvas, bins, template gallery, auto-layout commands, override mode.
+        services.AddSingleton(sp => new PageEditorViewModel(
+            sp.GetRequiredService<ProjectSession>(),
+            sp.GetRequiredService<UndoStack>(),
+            sp.GetRequiredService<ThumbnailProvider>()));
+        services.AddSingleton<BinsViewModel>();
+        services.AddSingleton<TemplatePickerViewModel>();
+        services.AddSingleton<LayoutCommandsViewModel>();
+        services.AddSingleton<PageOverrideViewModel>();
+
+        // Book-wide panels.
+        services.AddSingleton<StyleViewModel>();
+        services.AddSingleton<ExportViewModel>();
+
         services.AddSingleton<BookViewModel>();
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<MainWindow>();

@@ -1,0 +1,321 @@
+<UserControl x:Class="PhotoBook.App.Views.Pages.PageEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:local="clr-namespace:PhotoBook.App.Views.Pages"
+             Focusable="True"
+             FocusVisualStyle="{x:Null}">
+
+    <!--
+        The Pages-tab editing surface (doc 09 §3.1–§3.3, §3.6).
+
+        One page or the facing pair, each drawn by PhotoBook.Rendering through PageCanvas, with a
+        non-interactive overlay for crop guides and the gutter caution band. Everything the user
+        changes goes to PageEditorViewModel, which commits it through the undo stack.
+    -->
+
+    <UserControl.Resources>
+
+        <!-- The effective-DPI chip turns amber once a crop drops below print quality (doc 12). -->
+        <Style x:Key="DpiChipStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource ChipStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCropSoft}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource WarningWashBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DpiTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MicroTextStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCropSoft}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- One page in the navigator strip: number, amber empty-slot dot, pin mark. -->
+        <Style x:Key="PageChipStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid>
+                            <Border x:Name="Fill"
+                                    Background="{DynamicResource SurfaceRaisedBrush}"
+                                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource RadiusSmall}"
+                                    SnapsToDevicePixels="True" />
+                            <TextBlock Text="{Binding Number}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}" />
+
+                            <!-- R14 rolls the amber flag up the whole hierarchy; this is the page rung. -->
+                            <Ellipse x:Name="EmptyDot" Width="6" Height="6" Margin="0,3,3,0"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                     Fill="{DynamicResource AmberFlagBrush}"
+                                     Visibility="{Binding HasEmptySlots, Converter={StaticResource BoolToVisibility}}" />
+
+                            <pb:Icon x:Name="PinMark" Data="{StaticResource Icon.Pin}"
+                                     Width="10" Height="10" Margin="3,0,0,3"
+                                     HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                     Foreground="{DynamicResource TextTertiaryBrush}"
+                                     Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SurfaceHighestBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Fill" Property="Background" Value="{DynamicResource AccentDimBrush}" />
+                                <Setter TargetName="Fill" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource CanvasBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ==================================================== toolbar -->
+        <Border Grid.Row="0" Height="{StaticResource CommandBarHeight}"
+                Background="{DynamicResource SurfaceRaisedBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="False" Margin="12,0">
+
+                <!-- Single | Spread (R8, doc 09 §3.1). A spread is a view, never a stored entity. -->
+                <Border DockPanel.Dock="Left" Style="{StaticResource SegmentedGroupStyle}"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="PageViewMode" Style="{StaticResource SegmentedRadioButtonStyle}"
+                                     IsChecked="{Binding IsSpread, Converter={StaticResource InverseBool}}"
+                                     ToolTip="Edit one page  (S)">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.SinglePage}" Width="15" Height="15" Margin="0,0,6,0" />
+                                <TextBlock Text="Single" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton GroupName="PageViewMode" Style="{StaticResource SegmentedRadioButtonStyle}"
+                                     IsChecked="{Binding IsSpread}"
+                                     ToolTip="Edit the facing pair  (S)">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Spread}" Width="15" Height="15" Margin="0,0,6,0" />
+                                <TextBlock Text="Spread" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
+
+                <Border DockPanel.Dock="Left" Style="{StaticResource VerticalDividerStyle}" Margin="12,10" />
+
+                <!-- Page state chips: the user always knows why auto-layout will skip this page. -->
+                <Border DockPanel.Dock="Left" Style="{StaticResource ChipStyle}" VerticalAlignment="Center"
+                        Visibility="{Binding SelectedPage.IsPinned, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Pin}" Width="12" Height="12" Margin="0,0,5,0"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="Pinned" Style="{StaticResource MicroTextStyle}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <Border DockPanel.Dock="Left" Style="{StaticResource ChipStyle}" VerticalAlignment="Center" Margin="6,0,0,0"
+                        Visibility="{Binding SelectedPage.IsDetached, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Detached" Style="{StaticResource MicroTextStyle}" />
+                </Border>
+
+                <!-- Viewport zoom (doc 09 §3: Ctrl+wheel, Ctrl+=/-, F11 = fit). -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButtonStyle}"
+                        Command="{Binding ZoomToFitCommand}" ToolTip="Fit page to window  (F11)">
+                    <pb:Icon Data="{StaticResource Icon.Fit}" Width="16" Height="16" />
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButtonStyle}"
+                        Command="{Binding ZoomInCommand}" ToolTip="Zoom in  (Ctrl+=)">
+                    <pb:Icon Data="{StaticResource Icon.ZoomIn}" Width="16" Height="16" />
+                </Button>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding ViewportZoomLabel}"
+                           Style="{StaticResource NumericTextStyle}" MinWidth="46"
+                           TextAlignment="Center" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButtonStyle}"
+                        Command="{Binding ZoomOutCommand}" ToolTip="Zoom out  (Ctrl+-)">
+                    <pb:Icon Data="{StaticResource Icon.ZoomOut}" Width="16" Height="16" />
+                </Button>
+            </DockPanel>
+        </Border>
+
+        <!-- ==================================================== canvas -->
+        <ScrollViewer x:Name="Viewport" Grid.Row="1"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      Focusable="False" Padding="0">
+            <Grid x:Name="CanvasHost" Margin="24,20,24,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="LeftColumn" Width="*" />
+                    <ColumnDefinition x:Name="SeamColumn" Width="0" />
+                    <ColumnDefinition x:Name="RightColumn" Width="0" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <pb:PageCanvas x:Name="LeftCanvas"
+                                   Renderer="{Binding Renderer}"
+                                   Page="{Binding LeftPage}"
+                                   Background="{DynamicResource CanvasBrush}" />
+                    <local:PageEditorOverlay x:Name="LeftOverlay" />
+
+                    <!-- Layout override mode (doc 09 §3.7) shares the canvas's cell so its handles
+                         land on the very rects the renderer drew. It hides itself when off. -->
+                    <local:LayoutOverrideSurface x:Name="OverrideSurface"
+                                                 Canvas="{Binding ElementName=LeftCanvas}"
+                                                 Model="{Binding OverrideModel,
+                                                         RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
+
+                <Grid x:Name="RightHost" Grid.Column="2" Visibility="Collapsed">
+                    <pb:PageCanvas x:Name="RightCanvas"
+                                   Renderer="{Binding Renderer}"
+                                   Page="{Binding RightPage}"
+                                   Background="{DynamicResource CanvasBrush}" />
+                    <local:PageEditorOverlay x:Name="RightOverlay" />
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Empty state: a chapter with no pages yet. -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Visibility="{Binding HasPages, Converter={StaticResource InverseBoolToVisibility}}">
+            <pb:Icon Data="{StaticResource Icon.Pages}" Width="34" Height="34"
+                     Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" />
+            <TextBlock Text="No pages in this month yet" Style="{StaticResource SubtitleTextStyle}"
+                       Margin="0,12,0,0" HorizontalAlignment="Center" />
+            <TextBlock Text="Lay the month out and its pages appear here, ready to tweak."
+                       Style="{StaticResource CaptionMutedTextStyle}" Margin="0,4,0,0"
+                       HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Crop readout: only while crop mode is open, floating clear of the page (doc 09 §3.3). -->
+        <Border Grid.Row="1" x:Name="CropBar"
+                VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,18"
+                Background="{DynamicResource SurfaceOverlayBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource RadiusLarge}" Padding="14,8"
+                Effect="{StaticResource ElevationLow}"
+                Visibility="{Binding IsCropMode, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <pb:Icon Data="{StaticResource Icon.Crop}" Width="16" Height="16"
+                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding CropPhotoName}" Style="{StaticResource CaptionTextStyle}"
+                           MaxWidth="180" TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,2" />
+
+                <pb:Icon Data="{StaticResource Icon.ZoomOut}" Width="14" Height="14"
+                         Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                <Slider x:Name="ZoomSlider" Width="140" Margin="8,0" VerticalAlignment="Center"
+                        Minimum="0.25" Maximum="4" SmallChange="0.05" LargeChange="0.25"
+                        Value="{Binding CropZoom, Mode=TwoWay}"
+                        ToolTip="Crop zoom — below 1.00 the page background shows through (R9)" />
+                <pb:Icon Data="{StaticResource Icon.ZoomIn}" Width="14" Height="14"
+                         Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+
+                <TextBlock Text="{Binding ZoomReadout}" Style="{StaticResource NumericTextStyle}"
+                           MinWidth="76" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" />
+
+                <!-- Effective DPI (CropMath.EffectiveDpi): amber once a crop goes soft for print. -->
+                <Border Style="{StaticResource DpiChipStyle}" Margin="10,0,0,0" VerticalAlignment="Center"
+                        ToolTip="Effective print resolution of this crop. Below 200 dpi it will look soft in print.">
+                    <TextBlock Text="{Binding DpiReadout}" Style="{StaticResource DpiTextStyle}" />
+                </Border>
+
+                <Border Style="{StaticResource ChipStyle}" Margin="6,0,0,0" VerticalAlignment="Center"
+                        Background="{DynamicResource AmberFlagWashBrush}"
+                        BorderBrush="{DynamicResource AmberFlagBrush}" BorderThickness="1"
+                        Visibility="{Binding IsCropLetterboxed, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Letterboxed" Style="{StaticResource MicroTextStyle}"
+                               Foreground="{DynamicResource AmberFlagBrush}" />
+                </Border>
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,2" />
+
+                <Button Content="Smart crop" Style="{StaticResource GhostButtonStyle}"
+                        Command="{Binding ResetCropCommand}" ToolTip="Reset to the engine's crop  (0)" />
+                <Button Content="Done" Style="{StaticResource SecondaryButtonStyle}" Margin="6,0,0,0"
+                        Command="{Binding ExitCropModeCommand}" ToolTip="Leave crop mode  (Esc)" />
+            </StackPanel>
+        </Border>
+
+        <!-- ==================================================== navigator -->
+        <Border Grid.Row="2" Height="56"
+                Background="{DynamicResource SurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                Visibility="{Binding HasPages, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel Margin="12,0">
+                <Button DockPanel.Dock="Left" Style="{StaticResource SmallIconButtonStyle}"
+                        Command="{Binding PreviousPageCommand}" ToolTip="Previous page  (Page Up)">
+                    <pb:Icon Data="{StaticResource Icon.ChevronLeft}" Width="16" Height="16" />
+                </Button>
+                <Button DockPanel.Dock="Left" Style="{StaticResource SmallIconButtonStyle}" Margin="2,0,8,0"
+                        Command="{Binding NextPageCommand}" ToolTip="Next page  (Page Down)">
+                    <pb:Icon Data="{StaticResource Icon.ChevronRight}" Width="16" Height="16" />
+                </Button>
+
+                <TextBlock DockPanel.Dock="Right" Text="{Binding PageLabel}"
+                           Style="{StaticResource CaptionMutedTextStyle}"
+                           VerticalAlignment="Center" Margin="12,0,0,0" />
+
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                              Focusable="False" VerticalAlignment="Center">
+                    <ItemsControl ItemsSource="{Binding Pages}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource PageChipStyle}"
+                                        Command="{Binding DataContext.SelectNavigatorPageCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- The drag ghost of doc 09 §3.2: 60% opacity, follows the cursor, never hit-tests. -->
+        <Canvas Grid.Row="0" Grid.RowSpan="3" x:Name="GhostLayer" IsHitTestVisible="False" Panel.ZIndex="20">
+            <Border x:Name="DragGhost" Visibility="Collapsed" Opacity="0.6"
+                    Background="{DynamicResource SurfaceOverlayBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusSmall}" Padding="3"
+                    Effect="{StaticResource ElevationLow}">
+                <Grid>
+                    <Image x:Name="GhostImage" Width="96" Height="72" Stretch="UniformToFill" />
+                    <TextBlock x:Name="GhostLabel" Style="{StaticResource MicroTextStyle}"
+                               MaxWidth="96" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Canvas>
+    </Grid>
+</UserControl>

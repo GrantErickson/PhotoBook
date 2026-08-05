@@ -1,0 +1,73 @@
+<Window xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        x:Class="PhotoBook.App.Views.Photos.FocusRegionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos"
+        Title="Focus areas"
+        Height="720" Width="1120" MinHeight="480" MinWidth="760"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ShowInTaskbar="False"
+        shell:WindowChrome.WindowChrome="{StaticResource AppWindowChrome}"
+        Background="{DynamicResource CanvasBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PhotoBook.App;component/Themes/PhotoEditing.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+        <DockPanel>
+
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBarBrush}"
+                    Padding="18,14" MouseLeftButtonDown="OnHeaderDrag">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="Focus areas" Style="{StaticResource SubtitleTextStyle}" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" Margin="0,3,0,0"
+                                   Text="Tell smart crop what must stay in frame. Your areas outrank everything the detectors found." />
+                    </StackPanel>
+                    <Button Style="{StaticResource SmallIconButtonStyle}" HorizontalAlignment="Right"
+                            VerticalAlignment="Top" Click="OnClose" ToolTip="Close">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                    Padding="18,12">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="10" Height="10" CornerRadius="2"
+                                Background="{DynamicResource FocusUserBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Yours" Style="{StaticResource MicroTextStyle}" Margin="6,0,14,0"
+                                   VerticalAlignment="Center" />
+                        <Border Width="10" Height="10" CornerRadius="2"
+                                Background="{DynamicResource FocusPersonBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Person" Style="{StaticResource MicroTextStyle}" Margin="6,0,14,0"
+                                   VerticalAlignment="Center" />
+                        <Border Width="10" Height="10" CornerRadius="2"
+                                Background="{DynamicResource FocusFaceBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Face" Style="{StaticResource MicroTextStyle}" Margin="6,0,14,0"
+                                   VerticalAlignment="Center" />
+                        <Border Width="10" Height="10" CornerRadius="2"
+                                Background="{DynamicResource FocusSaliencyBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Subject" Style="{StaticResource MicroTextStyle}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <Button HorizontalAlignment="Right" Style="{StaticResource PrimaryButtonStyle}"
+                            MinWidth="110" Content="Done" Click="OnClose" />
+                </Grid>
+            </Border>
+
+            <photos:FocusRegionEditor />
+        </DockPanel>
+    </Border>
+</Window>

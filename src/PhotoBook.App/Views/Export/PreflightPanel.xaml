@@ -1,0 +1,197 @@
+<UserControl x:Class="PhotoBook.App.Views.Export.PreflightPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+             Foreground="{DynamicResource TextPrimaryBrush}"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True">
+
+    <UserControl.Resources>
+        <conv:PreflightSeverityToBrushConverter x:Key="SeverityStroke" />
+        <conv:PreflightSeverityToBrushConverter x:Key="SeverityWash" Wash="True" />
+        <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
+        <conv:CountToVisibilityConverter x:Key="ZeroToVisibility" Invert="True" />
+
+        <!-- One finding row. Doc 12: every row is a hyperlink that goes to the offending
+             page, slot or photo — so the whole row is the button, not a link inside it. -->
+        <DataTemplate x:Key="FindingTemplate">
+            <Button Style="{StaticResource GhostButtonStyle}" Margin="0,0,0,6"
+                    HorizontalContentAlignment="Stretch" MinWidth="0" MinHeight="0"
+                    Padding="0" Command="{Binding NavigateCommand}"
+                    ToolTip="Go to this page in the editor">
+                <Border Padding="12,10" CornerRadius="{StaticResource RadiusMedium}"
+                        Background="{Binding Severity, Converter={StaticResource SeverityWash}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="3" CornerRadius="2" VerticalAlignment="Stretch"
+                                Background="{Binding Severity, Converter={StaticResource SeverityStroke}}" />
+
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource BodyStrongTextStyle}"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource CaptionTextStyle}"
+                                       TextWrapping="Wrap" Margin="0,3,0,0" />
+                            <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Left" Margin="0,7,0,0"
+                                    Visibility="{Binding Where.Length, Converter={StaticResource CountToVisibility}}">
+                                <TextBlock Text="{Binding Where}" Style="{StaticResource MicroTextStyle}" />
+                            </Border>
+                        </StackPanel>
+
+                        <pb:Icon Grid.Column="2" Data="{StaticResource Icon.ChevronRight}"
+                                 VerticalAlignment="Center" Margin="10,0,0,0"
+                                 Foreground="{DynamicResource TextTertiaryBrush}"
+                                 Visibility="{Binding HasTarget, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                </Border>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource PanelStyle}" Background="{DynamicResource SurfaceBrush}">
+        <DockPanel>
+
+            <!-- ============================================================ header -->
+            <Border DockPanel.Dock="Top" Padding="18,16,18,14"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Preflight" Style="{StaticResource SubtitleTextStyle}"
+                                       VerticalAlignment="Center" />
+
+                            <Border Style="{StaticResource ChipStyle}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource ErrorWashBrush}"
+                                    Visibility="{Binding ErrorCount, Converter={StaticResource CountToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <pb:Icon Data="{StaticResource Icon.Warning}" Width="11" Height="11"
+                                             VerticalAlignment="Center" Foreground="{DynamicResource ErrorBrush}" />
+                                    <TextBlock Text="{Binding ErrorCount}" Margin="5,0,0,0"
+                                               Style="{StaticResource MicroTextStyle}"
+                                               Foreground="{DynamicResource ErrorBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource ChipStyle}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource WarningWashBrush}"
+                                    Visibility="{Binding WarningCount, Converter={StaticResource CountToVisibility}}">
+                                <TextBlock Text="{Binding WarningCount, StringFormat='{}{0} warning'}"
+                                           Style="{StaticResource MicroTextStyle}"
+                                           Foreground="{DynamicResource WarningBrush}" />
+                            </Border>
+
+                            <Border Style="{StaticResource ChipStyle}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource SuccessWashBrush}"
+                                    Visibility="{Binding IsClean, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <pb:Icon Data="{StaticResource Icon.Check}" Width="11" Height="11"
+                                             VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}" />
+                                    <TextBlock Text="Clean" Margin="5,0,0,0" Style="{StaticResource MicroTextStyle}"
+                                               Foreground="{DynamicResource SuccessBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding Summary}" Style="{StaticResource CaptionMutedTextStyle}"
+                                   Margin="0,4,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1" Style="{StaticResource GhostButtonStyle}" VerticalAlignment="Top"
+                            Command="{Binding RunCommand}" IsEnabled="{Binding IsRunning,
+                                Converter={StaticResource InverseBool}}"
+                            ToolTip="Run the checks again without leaving this panel">
+                        <StackPanel Orientation="Horizontal">
+                            <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                            <TextBlock Text="Re-check" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ============================================= acknowledgement footer -->
+            <Border DockPanel.Dock="Bottom" Padding="18,13"
+                    Background="{DynamicResource SurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                    Visibility="{Binding RequiresAcknowledgement, Converter={StaticResource BoolToVisibility}}">
+                <CheckBox IsChecked="{Binding Acknowledged}"
+                          Content="I understand these warnings, export anyway" />
+            </Border>
+
+            <!-- ============================================================== body -->
+            <Grid>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,14,14,16">
+                    <StackPanel>
+
+                        <!-- blocking findings -->
+                        <StackPanel Visibility="{Binding ErrorCount, Converter={StaticResource CountToVisibility}}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Blocks export" Style="{StaticResource SectionLabelTextStyle}"
+                                           Margin="0" Foreground="{DynamicResource ErrorBrush}" />
+                                <TextBlock Text="no override" Style="{StaticResource MicroTextStyle}"
+                                           Margin="8,0,0,0" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding Errors}"
+                                          ItemTemplate="{StaticResource FindingTemplate}" />
+                        </StackPanel>
+
+                        <!-- acknowledgeable findings -->
+                        <StackPanel Margin="0,14,0,0"
+                                    Visibility="{Binding WarningCount, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Text="Worth a look" Style="{StaticResource SectionLabelTextStyle}"
+                                       Foreground="{DynamicResource WarningBrush}" />
+                            <ItemsControl ItemsSource="{Binding Warnings}"
+                                          ItemTemplate="{StaticResource FindingTemplate}" />
+                        </StackPanel>
+
+                        <!-- clean -->
+                        <StackPanel Margin="0,30,0,0" HorizontalAlignment="Center"
+                                    Visibility="{Binding IsClean, Converter={StaticResource BoolToVisibility}}">
+                            <Border Width="52" Height="52" CornerRadius="26" HorizontalAlignment="Center"
+                                    Background="{DynamicResource SuccessWashBrush}">
+                                <pb:Icon Data="{StaticResource Icon.Check}" Width="24" Height="24"
+                                         Foreground="{DynamicResource SuccessBrush}"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="Nothing to fix" Style="{StaticResource SubtitleTextStyle}"
+                                       HorizontalAlignment="Center" Margin="0,14,0,0" />
+                            <TextBlock Style="{StaticResource ParagraphTextStyle}" TextAlignment="Center"
+                                       Margin="0,6,0,0" MaxWidth="320"
+                                       Text="Every slot is filled, the text fits, and the profile's rules are satisfied." />
+                        </StackPanel>
+
+                        <!-- not run yet -->
+                        <StackPanel Margin="0,30,0,0" HorizontalAlignment="Center"
+                                    Visibility="{Binding HasReport, Converter={StaticResource InverseBoolToVisibility}}">
+                            <pb:Icon Data="{StaticResource Icon.Eye}" Width="26" Height="26"
+                                     HorizontalAlignment="Center"
+                                     Foreground="{DynamicResource TextTertiaryBrush}" />
+                            <TextBlock Style="{StaticResource ParagraphTextStyle}" TextAlignment="Center"
+                                       Margin="0,12,0,0" MaxWidth="320"
+                                       Text="Preflight checks every page in the chosen scope before anything is written." />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- running -->
+                <Border Background="{DynamicResource ScrimBrush}"
+                        Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="160" Height="3" />
+                        <TextBlock Text="Checking pages…" Margin="0,12,0,0" HorizontalAlignment="Center"
+                                   Style="{StaticResource BodySecondaryTextStyle}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

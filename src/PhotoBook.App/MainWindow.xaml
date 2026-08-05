@@ -12,6 +12,14 @@
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
 
+    <!-- Doc 09 §5's global keys. Undo/redo are window-wide so they work from any panel. -->
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="Z" Command="{Binding Book.Undo.UndoCommand}" />
+        <KeyBinding Modifiers="Control" Key="Y" Command="{Binding Book.Undo.RedoCommand}" />
+        <KeyBinding Modifiers="Control+Shift" Key="Z" Command="{Binding Book.Undo.RedoCommand}" />
+        <KeyBinding Modifiers="Control" Key="S" Command="{Binding Book.SaveCommand}" />
+    </Window.InputBindings>
+
     <DockPanel>
         <!-- ============================================ title bar -->
         <Border DockPanel.Dock="Top" Height="{StaticResource TitleBarHeight}"

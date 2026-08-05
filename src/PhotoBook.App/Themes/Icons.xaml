@@ -79,6 +79,10 @@
     <PathGeometry x:Key="Icon.Fit"
                   Figures="M4,9 V4 H9 M15,4 H20 V9 M20,15 V20 H15 M9,20 H4 V15" />
 
+    <!-- Trim/safe guides: a page with its margin rule drawn inside it. -->
+    <PathGeometry x:Key="Icon.Guides"
+                  Figures="M3.6,4.4 H20.4 V19.6 H3.6 Z M7,4.4 V19.6 M17,4.4 V19.6 M3.6,8 H20.4 M3.6,16 H20.4" />
+
     <PathGeometry x:Key="Icon.Grid"
                   Figures="M4,4 H10.6 V10.6 H4 Z M13.4,4 H20 V10.6 H13.4 Z M4,13.4 H10.6 V20 H4 Z M13.4,13.4 H20 V20 H13.4 Z" />
 

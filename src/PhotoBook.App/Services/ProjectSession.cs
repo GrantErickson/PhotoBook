@@ -386,7 +386,14 @@ public sealed class ProjectSession : IDisposable
     public Template? FindTemplate(string id) => TemplateLibrary.Default.Find(id);
 
     /// <summary>Renders one page at the requested pixel size through the same renderer the PDF uses.</summary>
-    public PagePreview RenderPage(Chapter chapter, Page page, int width, int height, bool showFlags = true)
+    /// <param name="chapter">The chapter the page belongs to.</param>
+    /// <param name="page">The page to draw.</param>
+    /// <param name="width">Target width in pixels.</param>
+    /// <param name="height">Target height in pixels.</param>
+    /// <param name="showFlags">Draw the amber empty-slot flags (R14).</param>
+    /// <param name="drawGuides">Draw trim, safe and gutter guides — screen only (the <c>G</c> key).</param>
+    public PagePreview RenderPage(
+        Chapter chapter, Page page, int width, int height, bool showFlags = true, bool drawGuides = false)
     {
         if (Book is null)
         {
@@ -410,6 +417,7 @@ public sealed class ProjectSession : IDisposable
                 Journal = Journal,
                 Target = RenderTarget.Screen,
                 ShowEmptySlotFlags = showFlags,
+                DrawGuides = drawGuides,
             },
             width,
             height,

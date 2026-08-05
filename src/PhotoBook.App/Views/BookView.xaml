@@ -1,7 +1,11 @@
 <UserControl x:Class="PhotoBook.App.Views.BookView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:pb="clr-namespace:PhotoBook.App.Controls">
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:views="clr-namespace:PhotoBook.App.Views"
+             xmlns:pages="clr-namespace:PhotoBook.App.Views.Pages"
+             xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos"
+             Focusable="True" FocusVisualStyle="{x:Null}">
     <UserControl.Resources>
 
         <!-- One photo tile: the picture dominates, badges stay subordinate. -->
@@ -162,8 +166,16 @@
             <Border DockPanel.Dock="Top" Height="{StaticResource CommandBarHeight}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <!-- Three columns, not two overlapping panels: the status line has to be squeezed
+                     and trimmed by the buttons, never drawn on top of them. -->
                 <Grid Margin="16,0">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="0" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Style="{StaticResource SegmentedGroupStyle}">
                             <StackPanel Orientation="Horizontal">
                                 <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
@@ -196,18 +208,72 @@
                         </Button>
 
                         <Button Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0"
-                                Command="{Binding ExportPdfCommand}">
+                                Command="{Binding OpenExportCommand}"
+                                ToolTip="Run preflight and write a print-ready PDF">
                             <StackPanel Orientation="Horizontal">
                                 <pb:Icon Data="{StaticResource Icon.Export}" VerticalAlignment="Center" />
                                 <TextBlock Text="Export PDF" Margin="9,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+
+                        <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                        <!-- Undo / redo. The labels name the edit, so the user knows what will go. -->
+                        <Button Style="{StaticResource SmallIconButtonStyle}"
+                                Command="{Binding Undo.UndoCommand}"
+                                ToolTip="{Binding Undo.UndoLabel}">
+                            <pb:Icon Data="{StaticResource Icon.Undo}" Width="16" Height="16" />
+                        </Button>
+                        <Button Style="{StaticResource SmallIconButtonStyle}" Margin="2,0,0,0"
+                                Command="{Binding Undo.RedoCommand}"
+                                ToolTip="{Binding Undo.RedoLabel}">
+                            <pb:Icon Data="{StaticResource Icon.Redo}" Width="16" Height="16" />
+                        </Button>
+                        <!-- Pages-tab panels. Toggles, so their state is always readable. -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsPagesTab, Converter={StaticResource BoolToVisibility}}">
+                            <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}"
+                                          IsChecked="{Binding IsTemplatePickerOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleTemplatePickerCommand}"
+                                          ToolTip="Template gallery for this page  (T)">
+                                <pb:Icon Data="{StaticResource Icon.Template}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding Bins.IsVisible, Mode=OneWay}"
+                                          Command="{Binding ToggleBinsCommand}"
+                                          ToolTip="Unplaced / Upcoming bins  (B)">
+                                <pb:Icon Data="{StaticResource Icon.Bin}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding PageOverride.IsActive, Mode=OneWay}"
+                                          Command="{Binding PageOverride.ToggleCommand}"
+                                          ToolTip="Edit this page's layout  (L)">
+                                <pb:Icon Data="{StaticResource Icon.Layers}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding PageEditor.ShowGuides, Mode=OneWay}"
+                                          Command="{Binding PageEditor.ToggleGuidesCommand}"
+                                          ToolTip="Trim, safe and gutter guides  (G)">
+                                <pb:Icon Data="{StaticResource Icon.Guides}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding IsStylePanelOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleStylePanelCommand}"
+                                          ToolTip="Borders, type and colours for the whole book">
+                                <pb:Icon Data="{StaticResource Icon.Settings}" Width="16" Height="16" />
+                            </ToggleButton>
+                        </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionMutedTextStyle}"
-                                   VerticalAlignment="Center" Margin="0,0,12,0"
-                                   TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                               Style="{StaticResource CaptionMutedTextStyle}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Margin="16,0,12,0" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding StatusMessage}" />
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <pb:Icon Data="{StaticResource Icon.Save}" VerticalAlignment="Center" />
@@ -217,6 +283,10 @@
                     </StackPanel>
                 </Grid>
             </Border>
+
+            <!-- Both tabs live in one filling cell: a bare child of a DockPanel would dock left and
+                 leave the workspace short of the window's right edge. -->
+            <Grid>
 
             <!-- ======================================== PHOTOS -->
             <Grid Visibility="{Binding IsPagesTab, Converter={StaticResource InverseBoolToVisibility}}">
@@ -242,6 +312,8 @@
 
                 <ListBox Grid.Column="0" ItemsSource="{Binding Photos}"
                          SelectedItem="{Binding SelectedPhoto}"
+                         pb:PhotoGridReorder.Controller="{Binding Inspector.Reorder}"
+                         SelectionMode="Extended"
                          ItemTemplate="{StaticResource PhotoTileTemplate}"
                          Background="Transparent" BorderThickness="0" Padding="12"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -328,6 +400,14 @@
                                 <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,8,0,0"
                                            TextWrapping="Wrap"
                                            Text="Excluding removes the photo from the book only. The original file is never deleted." />
+
+                                <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
+
+                                <!-- Date, focus and adjustments (doc 09 §2.1, §2.2, §2.4). -->
+                                <photos:PhotoInspectorPanel
+                                    Margin="0,20,0,0"
+                                    DataContext="{Binding DataContext.Inspector,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}" />
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
@@ -336,61 +416,104 @@
 
             <!-- ======================================== PAGES -->
             <Grid Visibility="{Binding IsPagesTab, Converter={StaticResource BoolToVisibility}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="210" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-                <!-- page navigator -->
-                <Border Grid.Column="0" Background="{DynamicResource SurfaceSunkenBrush}"
-                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,1,0">
-                    <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
-                             Background="Transparent" BorderThickness="0" Padding="10"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,4">
-                                    <Border CornerRadius="3" Background="Black"
-                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-                                        <Image Source="{Binding Preview}" Stretch="Uniform" Height="112" />
-                                    </Border>
-                                    <StackPanel Orientation="Horizontal" Margin="2,5,0,0">
-                                        <TextBlock Text="{Binding Number, StringFormat='Page {0}'}"
-                                                   Style="{StaticResource MicroTextStyle}" />
-                                        <pb:Icon Data="{StaticResource Icon.Pin}" Width="11" Height="11"
-                                                 Margin="6,0,0,0" Foreground="{DynamicResource AccentBrush}"
-                                                 Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                <!-- auto-layout commands (R16) + the page-state readout -->
+                <Border Grid.Row="0" Background="{DynamicResource SurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                    <pages:LayoutCommandsBar DataContext="{Binding LayoutCommands}" />
                 </Border>
 
-                <!-- page canvas -->
-                <Grid Grid.Column="1" Background="{DynamicResource ShellBackdropBrush}">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                Visibility="{Binding HasPages, Converter={StaticResource InverseBoolToVisibility}}">
-                        <pb:Icon Data="{StaticResource Icon.Pages}" Width="34" Height="34"
-                                 Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" />
-                        <TextBlock Text="This month has no pages yet" Style="{StaticResource SubtitleTextStyle}"
-                                   Margin="0,16,0,0" HorizontalAlignment="Center" />
-                        <TextBlock Style="{StaticResource BodySecondaryTextStyle}" Margin="0,8,0,0"
-                                   HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="400"
-                                   TextWrapping="Wrap"
-                                   Text="Lay out the month and PhotoBook will group the photos by day, pick layouts, and crop each picture around what matters in it." />
-                        <Button Style="{StaticResource PrimaryButtonStyle}" Margin="0,20,0,0"
-                                HorizontalAlignment="Center" Command="{Binding LayoutChapterCommand}"
-                                Content="Lay out this month" />
-                    </StackPanel>
+                <!-- The bin panel docks bottom, left or right; it is one control that moves cell
+                     (doc 09 §3.5), so the choice never costs a second copy of the thumbnails. -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <Viewbox Margin="40" Visibility="{Binding HasPages, Converter={StaticResource BoolToVisibility}}">
-                        <Border Background="Black" Effect="{DynamicResource ElevationHigh}">
-                            <Image Source="{Binding SelectedPage.Preview}" Stretch="Uniform"
-                                   Width="1100" Height="850" />
+                    <Grid Grid.Row="0" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- the editing surface -->
+                        <pages:PageEditorView Grid.Column="0"
+                                              DataContext="{Binding PageEditor}"
+                                              OverrideModel="{Binding DataContext.PageOverride,
+                                                              RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                        <!-- Empty state: a month with photos but no pages yet. Opaque, so it stands
+                             in for the editor's own placeholder rather than colliding with it. -->
+                        <Border Grid.Column="0" Background="{DynamicResource CanvasBrush}"
+                                Visibility="{Binding HasPages, Converter={StaticResource InverseBoolToVisibility}}">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <pb:Icon Data="{StaticResource Icon.Pages}" Width="34" Height="34"
+                                         Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="This month has no pages yet" Style="{StaticResource SubtitleTextStyle}"
+                                           Margin="0,16,0,0" HorizontalAlignment="Center" />
+                                <TextBlock Style="{StaticResource BodySecondaryTextStyle}" Margin="0,8,0,0"
+                                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="400"
+                                           TextWrapping="Wrap"
+                                           Text="Lay out the month and PhotoBook will group the photos by day, pick layouts, and crop each picture around what matters in it." />
+                                <Button Style="{StaticResource PrimaryButtonStyle}" Margin="0,20,0,0"
+                                        HorizontalAlignment="Center" Command="{Binding LayoutChapterCommand}"
+                                        Content="Lay out this month" />
+                            </StackPanel>
                         </Border>
-                    </Viewbox>
+
+                        <!-- the override toolbar floats over the canvas and hides itself when off -->
+                        <!-- Floated at the foot of the canvas, where the crop bar sits: over the
+                             page it would cover the very containers it edits. -->
+                        <pages:PageOverrideToolbar Grid.Column="0"
+                                                   DataContext="{Binding PageOverride}"
+                                                   VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                                                   Margin="0,0,0,80" />
+
+                        <!-- right drawer: template gallery (T) or the style panel, never both -->
+                        <Border Grid.Column="1" Width="330"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
+                                Visibility="{Binding IsTemplatePickerOpen, Converter={StaticResource BoolToVisibility}}">
+                            <pages:TemplatePickerView DataContext="{Binding Templates}" />
+                        </Border>
+
+                        <Border Grid.Column="1" Width="330"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
+                                Visibility="{Binding IsStylePanelOpen, Converter={StaticResource BoolToVisibility}}">
+                            <!-- The panel carries its own title, so the drawer adds only the close
+                                 affordance, floated over the panel's header row. -->
+                            <Grid>
+                                <views:StylePanel DataContext="{Binding Style}" />
+                                <Button Style="{StaticResource SmallIconButtonStyle}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,12,12,0" Panel.ZIndex="2"
+                                        Command="{Binding ToggleStylePanelCommand}" ToolTip="Close  (Esc)">
+                                    <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <pages:BinsPanel DataContext="{Binding Bins}"
+                                     Grid.Column="{Binding DataContext.BinColumn,
+                                                   RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     Grid.Row="{Binding DataContext.BinRow,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     Grid.RowSpan="{Binding DataContext.BinRowSpan,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 </Grid>
+            </Grid>
             </Grid>
         </DockPanel>
     </Grid>

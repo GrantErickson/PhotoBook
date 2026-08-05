@@ -140,7 +140,7 @@ public static class WindowHandles
     /// this from whichever thread is acquiring the token, and <c>Application.MainWindow</c> is a
     /// DispatcherObject, so the lookup marshals to the UI thread rather than throwing.
     /// </summary>
-    public static IntPtr Main()
+    public static IntPtr MainHandle()
     {
         var app = System.Windows.Application.Current;
         if (app is null)

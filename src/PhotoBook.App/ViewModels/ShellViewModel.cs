@@ -144,7 +144,9 @@ public sealed partial class ShellViewModel : ObservableObject
     private void AfterOpen(string folder)
     {
         IsBookOpen = true;
-        Book.RefreshChapters();
+
+        // The undo stack is per open book and never persisted (doc 09 §4).
+        Book.OnBookOpened();
         Book.SelectedChapter = Book.Chapters.FirstOrDefault(c => c.PhotoCount > 0) ?? Book.Chapters[0];
         RememberRecent(folder);
         OnPropertyChanged(nameof(WindowTitle));
@@ -158,6 +160,7 @@ public sealed partial class ShellViewModel : ObservableObject
             await _session.SaveAsync().ConfigureAwait(true);
         }
 
+        Book.OnBookClosed();
         _session.Close();
         IsBookOpen = false;
         OnPropertyChanged(nameof(WindowTitle));

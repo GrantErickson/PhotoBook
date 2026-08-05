@@ -1,0 +1,33 @@
+<Window xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        x:Class="PhotoBook.App.Views.Export.ExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        xmlns:export="clr-namespace:PhotoBook.App.Views.Export"
+        Title="Export"
+        Width="1020" Height="700" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ShowInTaskbar="False"
+        shell:WindowChrome.WindowChrome="{StaticResource AppWindowChrome}"
+        Background="{DynamicResource SurfaceBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        UseLayoutRounding="True">
+
+    <Border BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBarBrush}"
+                    Height="{StaticResource TitleBarHeight}" MouseLeftButtonDown="OnHeaderDrag">
+                <Grid>
+                    <TextBlock Text="Export PDF" Margin="18,0,0,0" VerticalAlignment="Center"
+                               Style="{StaticResource BodyStrongTextStyle}" />
+                    <Button Style="{StaticResource WindowCloseButtonStyle}" HorizontalAlignment="Right"
+                            Click="OnClose">
+                        <pb:Icon Data="{StaticResource Chrome.Close}" Width="10" Height="10" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <export:ExportPanel x:Name="Panel" />
+        </DockPanel>
+    </Border>
+</Window>

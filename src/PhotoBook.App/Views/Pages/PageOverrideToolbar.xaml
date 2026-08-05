@@ -1,0 +1,109 @@
+<UserControl x:Class="PhotoBook.App.Views.Pages.PageOverrideToolbar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             Foreground="{DynamicResource TextPrimaryBrush}"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True"
+             Visibility="{Binding IsActive, Converter={StaticResource BoolToVisibility}}">
+
+    <Border Background="{DynamicResource SurfaceOverlayBrush}"
+            BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+            CornerRadius="{StaticResource RadiusLarge}" Padding="10,8"
+            Effect="{StaticResource ElevationLow}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+
+                <TextBlock Text="Edit layout" Style="{StaticResource SectionLabelTextStyle}"
+                           Margin="4,0,10,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource AccentBrush}" />
+
+                <Border Style="{StaticResource ChipStyle}" VerticalAlignment="Center" Margin="0,0,4,0"
+                        Background="{DynamicResource AccentWashBrush}"
+                        ToolTip="This page owns its layout; the library template is untouched."
+                        Visibility="{Binding IsDetached, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Detached" Style="{StaticResource MicroTextStyle}"
+                               Foreground="{DynamicResource AccentBrush}" />
+                </Border>
+
+                <Border Style="{StaticResource ChipStyle}" VerticalAlignment="Center" Margin="0,0,10,0"
+                        Background="{DynamicResource WarningWashBrush}"
+                        ToolTip="Auto-layout will not regenerate this page."
+                        Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Pin}" Width="11" Height="11" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource WarningBrush}" />
+                        <TextBlock Text="Pinned" Margin="5,0,0,0" Style="{StaticResource MicroTextStyle}"
+                                   Foreground="{DynamicResource WarningBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="0,3,10,3" />
+
+                <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding AddPhotoSlotCommand}"
+                        ToolTip="Add a photo container at the pointer (0.30 × 0.30). It starts empty and amber.">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.PhotoPlus}" VerticalAlignment="Center" />
+                        <TextBlock Text="Photo slot" Margin="7,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource GhostButtonStyle}" Margin="4,0,0,0"
+                        Command="{Binding AddTextSlotCommand}"
+                        ToolTip="Add a text container at the pointer. Its role is editable below.">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Journal}" VerticalAlignment="Center" />
+                        <TextBlock Text="Text slot" Margin="7,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="10,3,10,3" />
+
+                <Button Style="{StaticResource IconButtonStyle}" Command="{Binding SendBackwardCommand}"
+                        ToolTip="Send backward — containers may overlap, and z-order is slot order.">
+                    <pb:Icon Data="{StaticResource Icon.ChevronDown}" />
+                </Button>
+                <Button Style="{StaticResource IconButtonStyle}" Margin="2,0,0,0"
+                        Command="{Binding BringForwardCommand}" ToolTip="Bring forward">
+                    <pb:Icon Data="{StaticResource Icon.ChevronUp}" />
+                </Button>
+
+                <Button Style="{StaticResource IconButtonStyle}" Margin="6,0,0,0"
+                        Command="{Binding DeleteSelectedCommand}"
+                        ToolTip="Delete the selected container (Del). A photo in it goes to the Unplaced bin.">
+                    <pb:Icon Data="{StaticResource Icon.Trash}" />
+                </Button>
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="10,3,10,3" />
+
+                <Border Style="{StaticResource SegmentedGroupStyle}" VerticalAlignment="Center"
+                        IsEnabled="{Binding IsTextSelected}"
+                        ToolTip="What this text container holds. Typography always comes from the style cascade.">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Journal" MinWidth="0"
+                                Padding="10,3,10,4" Command="{Binding MakeJournalCommand}" />
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Caption" MinWidth="0"
+                                Padding="10,3,10,4" Command="{Binding MakeCaptionCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource VerticalDividerStyle}" Margin="10,3,10,3" />
+
+                <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding RevertToTemplateCommand}"
+                        ToolTip="Re-attach the library template this page was detached from. The page stays pinned.">
+                    <StackPanel Orientation="Horizontal">
+                        <pb:Icon Data="{StaticResource Icon.Undo}" VerticalAlignment="Center" />
+                        <TextBlock Text="Revert to template" Margin="7,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource PrimaryButtonStyle}" Margin="10,0,0,0" MinWidth="72"
+                        Command="{Binding ExitCommand}" Content="Done" ToolTip="Leave layout override mode (L or Esc)" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionMutedTextStyle}"
+                       Margin="4,8,4,1" TextTrimming="CharacterEllipsis" MaxWidth="720"
+                       HorizontalAlignment="Left" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -1,11 +1,14 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PhotoBook.App.Services;
+using PhotoBook.App.ViewModels.Export;
+using PhotoBook.App.ViewModels.Pages;
+using PhotoBook.App.ViewModels.Photos;
 using PhotoBook.Core.Model;
-using PhotoBook.Engine;
 using PhotoBook.Rendering;
 
 namespace PhotoBook.App.ViewModels;
@@ -47,16 +50,382 @@ public sealed partial class BookViewModel : ObservableObject
     private readonly JobQueue _jobs;
     private readonly ThumbnailProvider _thumbnails;
 
-    public BookViewModel(ProjectSession session, JobQueue jobs, ThumbnailProvider thumbnails)
+    private bool _syncingPageContext;
+
+    public BookViewModel(
+        ProjectSession session,
+        JobQueue jobs,
+        ThumbnailProvider thumbnails,
+        UndoStack undo,
+        PageEditorViewModel pageEditor,
+        BinsViewModel bins,
+        TemplatePickerViewModel templates,
+        LayoutCommandsViewModel layoutCommands,
+        PageOverrideViewModel pageOverride,
+        PhotoInspectorViewModel inspector,
+        StyleViewModel style,
+        ExportViewModel export)
     {
+        ArgumentNullException.ThrowIfNull(undo);
+        ArgumentNullException.ThrowIfNull(pageEditor);
+        ArgumentNullException.ThrowIfNull(bins);
+        ArgumentNullException.ThrowIfNull(templates);
+        ArgumentNullException.ThrowIfNull(layoutCommands);
+        ArgumentNullException.ThrowIfNull(pageOverride);
+        ArgumentNullException.ThrowIfNull(inspector);
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(export);
+
         _session = session;
         _jobs = jobs;
         _thumbnails = thumbnails;
+
+        Undo = undo;
+        PageEditor = pageEditor;
+        Bins = bins;
+        Templates = templates;
+        LayoutCommands = layoutCommands;
+        PageOverride = pageOverride;
+        Inspector = inspector;
+        Style = style;
+        Export = export;
 
         for (var month = 1; month <= 12; month++)
         {
             Chapters.Add(new ChapterItemViewModel(month));
         }
+
+        WireEditors();
+    }
+
+    /// <summary>The book's undo history — one stack, shared by every edit surface (doc 09 §4).</summary>
+    public UndoStack Undo { get; }
+
+    /// <summary>The Pages tab canvas, navigator and crop model.</summary>
+    public PageEditorViewModel PageEditor { get; }
+
+    /// <summary>Unplaced, Upcoming and the Outside-book tray (doc 09 §3.5).</summary>
+    public BinsViewModel Bins { get; }
+
+    /// <summary>The template gallery for the current page (doc 09 §3.4).</summary>
+    public TemplatePickerViewModel Templates { get; }
+
+    /// <summary>The three R16 auto-layout commands (doc 09 §3.8).</summary>
+    public LayoutCommandsViewModel LayoutCommands { get; }
+
+    /// <summary>Per-page layout override mode (doc 09 §3.7).</summary>
+    public PageOverrideViewModel PageOverride { get; }
+
+    /// <summary>The Photos tab inspector: date, focus, adjustments, reorder (doc 09 §2).</summary>
+    public PhotoInspectorViewModel Inspector { get; }
+
+    /// <summary>Book / chapter / page style overrides (R23).</summary>
+    public StyleViewModel Style { get; }
+
+    /// <summary>Preflight and PDF export (doc 12).</summary>
+    public ExportViewModel Export { get; }
+
+    // The bin panel is one control that moves between three cells of the Pages grid rather than
+    // three controls with three copies of the thumbnails (doc 09 §3.5 — the dock edge is a user
+    // preference, not a different panel).
+
+    /// <summary>Grid column the bin panel occupies for its current dock edge.</summary>
+    public int BinColumn => Bins.IsLeftDock ? 0 : Bins.IsRightDock ? 2 : 1;
+
+    /// <summary>Grid row the bin panel occupies: bottom dock is the second row.</summary>
+    public int BinRow => Bins.IsBottomDock ? 1 : 0;
+
+    /// <summary>A side-docked bin spans the canvas and the bottom row.</summary>
+    public int BinRowSpan => Bins.IsBottomDock ? 1 : 2;
+
+    private void OnBinSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(EditorSettings.BinDock))
+        {
+            OnPropertyChanged(nameof(BinColumn));
+            OnPropertyChanged(nameof(BinRow));
+            OnPropertyChanged(nameof(BinRowSpan));
+        }
+    }
+
+    /// <summary>
+    /// Connects the five editing surfaces to each other. Everything below is a one-way wire from a
+    /// feature's event to the shell's job of keeping the other surfaces truthful; no feature knows
+    /// about any other.
+    /// </summary>
+    private void WireEditors()
+    {
+        // Any undoable edit dirties the project, so autosave and the title bar keep up. Undoing or
+        // redoing can also move a photo in time (a re-date or a grid reorder), and nothing else is
+        // listening on that path, so the grid re-reads itself here.
+        Undo.Changed += (_, e) =>
+        {
+            _session.MarkDirty();
+
+            if (e.Kind is UndoStackChange.Undone or UndoStackChange.Redone)
+            {
+                foreach (var item in Photos)
+                {
+                    item.Refresh();
+                }
+
+                ResortPhotos();
+                RefreshChapters();
+            }
+        };
+
+        Bins.Settings.PropertyChanged += OnBinSettingsChanged;
+
+        PageEditor.PropertyChanged += OnPageEditorPropertyChanged;
+        PageEditor.PagesChanged += (_, _) => OnPagesChanged();
+        PageEditor.StatusRaised += (_, message) => StatusMessage = message;
+        PageEditor.FillSlotRequested += (_, e) => OnFillSlotRequested(e);
+
+        Bins.JumpToPageRequested += JumpToPage;
+        Bins.InspectorRequested += OnBinInspectorRequested;
+
+        Templates.PageInvalidated += () =>
+        {
+            PageEditor.Refresh();
+            RefreshChapters();
+            Bins.Refresh();
+            LayoutCommands.Refresh();
+        };
+        Templates.CloseRequested += () => IsTemplatePickerOpen = false;
+
+        LayoutCommands.ChapterChanged += month =>
+        {
+            if (SelectedChapter?.Month == month)
+            {
+                PageEditor.Refresh();
+            }
+
+            RebuildPages(month);
+            SyncPageContext();
+            RefreshChapters();
+        };
+        LayoutCommands.ErrorRaised += message => ErrorRaised?.Invoke(message);
+
+        PageOverride.Invalidated += () =>
+        {
+            PageEditor.Refresh();
+            Bins.Refresh();
+        };
+
+        Style.StyleChanged += () => PageEditor.Refresh();
+
+        Inspector.StatusRaised += message => StatusMessage = message;
+
+        // A grid reorder re-stamps capture times, so the grid has to re-sort or the tiles show
+        // their new times in their old order (doc 09 §2.5).
+        Inspector.Reorder.Reordered += outcome =>
+        {
+            if (outcome.Applied)
+            {
+                ResortPhotos();
+            }
+
+            StatusMessage = outcome.Message;
+        };
+        Inspector.PhotoMoved += outcome =>
+        {
+            RefreshChapters();
+            if (SelectedChapter is { } chapter)
+            {
+                LoadChapter(chapter.Month);
+            }
+
+            StatusMessage = outcome.Message;
+        };
+    }
+
+    /// <summary>
+    /// Puts the grid back in chronological order in place, so tiles slide rather than the whole
+    /// collection resetting and losing the selection and the loaded thumbnails.
+    /// </summary>
+    private void ResortPhotos()
+    {
+        var ordered = Photos.OrderBy(p => p.TakenAt).ThenBy(p => p.FileName, StringComparer.Ordinal).ToList();
+        for (var target = 0; target < ordered.Count; target++)
+        {
+            var current = Photos.IndexOf(ordered[target]);
+            if (current != target)
+            {
+                Photos.Move(current, target);
+            }
+        }
+    }
+
+    private void OnPageEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(PageEditorViewModel.SelectedPage))
+        {
+            SyncPageContext();
+        }
+    }
+
+    private void OnPagesChanged()
+    {
+        if (SelectedChapter is { } chapter)
+        {
+            RebuildPages(chapter.Month);
+        }
+
+        SyncPageContext();
+        RefreshChapters();
+    }
+
+    /// <summary>
+    /// Points the bins, the template gallery, override mode, the style panel and the auto-layout
+    /// commands at the page the canvas is showing. Called on every page and chapter change.
+    /// </summary>
+    private void SyncPageContext()
+    {
+        if (_syncingPageContext)
+        {
+            return;
+        }
+
+        _syncingPageContext = true;
+        try
+        {
+            var month = SelectedChapter?.Month ?? 1;
+            var chapter = _session.Chapters.FirstOrDefault(c => c.Month == month);
+            var page = PageEditor.CurrentPage;
+            var number = PageEditor.SelectedPage?.Number ?? 0;
+
+            Bins.SetContext(month, page, number);
+            Templates.SetContext(chapter, page, number);
+            PageOverride.Attach(chapter, page);
+            Style.Attach(chapter, page);
+
+            LayoutCommands.Month = month;
+            LayoutCommands.CurrentPage = page;
+            LayoutCommands.CurrentPageNumber = Math.Max(1, number);
+            LayoutCommands.Refresh();
+
+            SelectedPage = Pages.FirstOrDefault(p => ReferenceEquals(p.Page, page));
+        }
+        finally
+        {
+            _syncingPageContext = false;
+        }
+    }
+
+    /// <summary>
+    /// R14: an empty amber slot was clicked. The bin opens on the tab that can actually fill it,
+    /// with the best-fitting photo preselected, so the next gesture is one drag onto the hole.
+    /// </summary>
+    private void OnFillSlotRequested(FillSlotRequestedEventArgs e)
+    {
+        Bins.Settings.BinVisible = true;
+        IsTemplatePickerOpen = false;
+
+        var tab = Bins.UnplacedCount > 0 ? BinTab.Unplaced
+            : Bins.UpcomingCount > 0 ? BinTab.Upcoming
+            : BinTab.Unplaced;
+        Bins.Tab = tab;
+
+        var slot = e.Page.ResolveTemplate(_session.FindTemplate)?.FindSlot(e.SlotId);
+        var best = slot is null ? [] : Bins.BestFitFor(slot, tab);
+        Bins.SelectedItem = best.FirstOrDefault() ?? Bins.Items.FirstOrDefault();
+
+        StatusMessage = Bins.SelectedItem is null
+            ? "Nothing in the bin to fill that slot with yet."
+            : $"Drag a photo from the bin onto the empty slot — “{Bins.SelectedItem.FileName}” fits it best.";
+    }
+
+    private void OnBinInspectorRequested(Photo photo, string section)
+    {
+        var item = Photos.FirstOrDefault(p => ReferenceEquals(p.Photo, photo));
+        if (item is null)
+        {
+            return;
+        }
+
+        IsPagesTab = false;
+        SelectedPhoto = item;
+
+        switch (section)
+        {
+            case "date":
+                Inspector.ChangeDateCommand.Execute(null);
+                break;
+            case "focus":
+                Inspector.EditFocusCommand.Execute(null);
+                break;
+            default:
+                StatusMessage = $"{item.FileName} selected — the inspector is on the right.";
+                break;
+        }
+    }
+
+    /// <summary>Selects a chapter page by its 1-based number, switching to the Pages tab.</summary>
+    public void JumpToPage(int number)
+    {
+        var page = PageEditor.Pages.FirstOrDefault(p => p.Number == number);
+        if (page is null)
+        {
+            return;
+        }
+
+        IsPagesTab = true;
+        PageEditor.SelectedPage = page;
+    }
+
+    /// <summary>
+    /// Doc 12's promise that every preflight row is a link: goes to the chapter, page and slot the
+    /// finding names. Page ids are matched rather than book-wide numbers, because the editor numbers
+    /// pages within a chapter.
+    /// </summary>
+    private void NavigateToFinding(PreflightFinding finding)
+    {
+        var chapter = _session.Chapters.FirstOrDefault(c => c.Pages.Any(p => p.Id == finding.PageId))
+                      ?? _session.Chapters.FirstOrDefault(c => c.Month == finding.ChapterMonth);
+        if (chapter is null)
+        {
+            return;
+        }
+
+        var target = Chapters.FirstOrDefault(c => c.Month == chapter.Month);
+        if (target is not null && !ReferenceEquals(target, SelectedChapter))
+        {
+            SelectedChapter = target;
+        }
+
+        IsPagesTab = true;
+
+        if (PageEditor.Pages.FirstOrDefault(p => p.Page.Id == finding.PageId) is { } page)
+        {
+            PageEditor.SelectedPage = page;
+            if (finding.SlotId is { } slot)
+            {
+                PageEditor.SelectSlot(page.Page, slot);
+            }
+        }
+
+        StatusMessage = finding.Title;
+    }
+
+    /// <summary>Clears the undo history and re-points every editor at the freshly opened book.</summary>
+    public void OnBookOpened()
+    {
+        Undo.Clear();
+        RefreshChapters();
+    }
+
+    /// <summary>Drops per-book state when the book closes: the stack is never persisted (doc 09 §4).</summary>
+    public void OnBookClosed()
+    {
+        Undo.Clear();
+        IsTemplatePickerOpen = false;
+        IsStylePanelOpen = false;
+        PageOverride.IsActive = false;
+        Photos.Clear();
+        Pages.Clear();
+        UnplacedBin.Clear();
+        PageEditor.LoadChapter(null);
+        Inspector.Select(null);
     }
 
     public ProjectSession Session => _session;
@@ -88,6 +457,40 @@ public sealed partial class BookViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isBusy;
+
+    /// <summary>True while the template gallery drawer is open (the <c>T</c> key, doc 09 §3.4).</summary>
+    [ObservableProperty]
+    private bool _isTemplatePickerOpen;
+
+    /// <summary>True while the style drawer is open (R23).</summary>
+    [ObservableProperty]
+    private bool _isStylePanelOpen;
+
+    partial void OnIsTemplatePickerOpenChanged(bool value)
+    {
+        if (value)
+        {
+            IsStylePanelOpen = false;
+        }
+    }
+
+    partial void OnIsStylePanelOpenChanged(bool value)
+    {
+        if (value)
+        {
+            IsTemplatePickerOpen = false;
+        }
+    }
+
+    partial void OnSelectedPhotoChanged(PhotoItemViewModel? value)
+    {
+        foreach (var item in Photos)
+        {
+            item.IsSelected = ReferenceEquals(item, value);
+        }
+
+        Inspector.Select(value);
+    }
 
     /// <summary>Photos of the month that no page uses — the Unplaced bin (R10, R13).</summary>
     public ObservableCollection<PhotoItemViewModel> UnplacedBin { get; } = [];
@@ -158,17 +561,16 @@ public sealed partial class BookViewModel : ObservableObject
         SelectedPhoto = Photos.FirstOrDefault();
         SelectedPage = Pages.FirstOrDefault();
 
+        // The page editor owns its own navigator and renders its own canvas from here on.
+        PageEditor.LoadChapter(month);
+        SyncPageContext();
+
         // A month that is already laid out is more useful opened on its pages than its grid.
         IsPagesTab = Pages.Count > 0;
 
         OnPropertyChanged(nameof(HasPhotos));
         OnPropertyChanged(nameof(HasPages));
         _ = LoadThumbnailsAsync();
-
-        if (IsPagesTab)
-        {
-            _ = RenderVisiblePagesAsync();
-        }
     }
 
     private void RebuildPages(int month)
@@ -237,10 +639,52 @@ public sealed partial class BookViewModel : ObservableObject
     private void ShowPhotos() => IsPagesTab = false;
 
     [RelayCommand]
-    private void ShowPages()
+    private void ShowPages() => IsPagesTab = true;
+
+    /// <summary>Ctrl+Tab: the two halves of the month workspace (doc 09 §1).</summary>
+    [RelayCommand]
+    private void ToggleTab() => IsPagesTab = !IsPagesTab;
+
+    /// <summary>The template gallery (the <c>T</c> key).</summary>
+    [RelayCommand]
+    private void ToggleTemplatePicker()
     {
+        if (!IsTemplatePickerOpen && PageEditor.CurrentPage is null)
+        {
+            StatusMessage = "Lay the month out first — a template applies to a page.";
+            return;
+        }
+
         IsPagesTab = true;
-        _ = RenderVisiblePagesAsync();
+        IsTemplatePickerOpen = !IsTemplatePickerOpen;
+    }
+
+    /// <summary>The style panel (R23).</summary>
+    [RelayCommand]
+    private void ToggleStylePanel() => IsStylePanelOpen = !IsStylePanelOpen;
+
+    /// <summary>The bin panel (the <c>B</c> key).</summary>
+    [RelayCommand]
+    private void ToggleBins() => Bins.ToggleVisibleCommand.Execute(null);
+
+    /// <summary>Preflight + PDF export as a modal (doc 12).</summary>
+    [RelayCommand]
+    private void OpenExport()
+    {
+        if (!_session.IsOpen)
+        {
+            return;
+        }
+
+        var window = new Views.Export.ExportWindow(Export, SelectedChapter?.Month)
+        {
+            Owner = System.Windows.Application.Current?.MainWindow,
+        };
+
+        window.NavigationRequested += NavigateToFinding;
+
+        window.ShowDialog();
+        StatusMessage = Export.ResultMessage.Length > 0 ? Export.ResultMessage : StatusMessage;
     }
 
     [RelayCommand]
@@ -368,7 +812,7 @@ public sealed partial class BookViewModel : ObservableObject
         try
         {
             client = Ingestion.OneDrive.OneDriveClient.CreateFromConfiguration(
-                configurationFilePath: null, parentWindow: WindowHandles.Main);
+                configurationFilePath: null, parentWindow: WindowHandles.MainHandle);
 
             // Sign in first: the picker cannot list anything without a token, and the WAM prompt
             // must not appear from underneath a modal dialog.
@@ -533,13 +977,29 @@ public sealed partial class BookViewModel : ObservableObject
             var result = _session.Layout(month);
             JobQueue.PostUi(() =>
             {
+                // One undo entry for the whole run, as doc 09 §4 requires of an engine command.
+                var chapter = _session.Chapters.First(c => c.Month == month);
+                var before = ChapterPagesSnapshot.Capture(chapter);
                 _session.ApplyLayout(month, result);
+                var after = ChapterPagesSnapshot.Capture(chapter);
+
+                Undo.Push(new ChapterPagesCommand(
+                    $"Lay out {SelectedChapter?.Name ?? "month"}", chapter, before, after,
+                    () => JobQueue.PostUi(() =>
+                    {
+                        RebuildPages(month);
+                        PageEditor.Refresh();
+                        SyncPageContext();
+                        RefreshChapters();
+                    })));
+
                 RebuildPages(month);
+                PageEditor.LoadChapter(month);
+                SyncPageContext();
                 SelectedPage = Pages.FirstOrDefault();
                 RefreshChapters();
                 IsPagesTab = true;
                 StatusMessage = $"Laid out {result.Pages.Count} pages.";
-                _ = RenderVisiblePagesAsync();
             });
         })).ConfigureAwait(true);
 
@@ -601,68 +1061,6 @@ public sealed partial class BookViewModel : ObservableObject
         }
     }
 
-    /// <summary>Renders previews for the chapter's pages.</summary>
-    public async Task RenderVisiblePagesAsync()
-    {
-        var chapterModel = _session.Chapters.FirstOrDefault(c => c.Month == SelectedChapter?.Month);
-        if (chapterModel is null)
-        {
-            return;
-        }
-
-        foreach (var item in Pages.ToList())
-        {
-            var page = item.Page;
-            try
-            {
-                var preview = await Task.Run(() => _session.RenderPage(chapterModel, page, 700, 541))
-                    .ConfigureAwait(false);
-                var bitmap = PixelBridge.ToBitmap(preview.Image);
-                JobQueue.PostUi(() => item.Preview = bitmap);
-            }
-            catch
-            {
-                // A page that cannot render must not take the whole strip down.
-            }
-        }
-    }
-
-    [RelayCommand]
-    private async Task ExportPdfAsync()
-    {
-        if (_session.Book is null || SelectedChapter is null)
-        {
-            return;
-        }
-
-        var scope = ExportScope.Chapter(SelectedChapter.Month);
-        var report = _session.Preflight(scope);
-        if (!report.CanExport)
-        {
-            StatusMessage = "Export blocked: " + string.Join("; ", report.Errors.Take(3).Select(e => e.Title));
-            return;
-        }
-
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Title = "Export PDF",
-            Filter = "PDF (*.pdf)|*.pdf",
-            FileName = $"{_session.Book.Title}-{SelectedChapter.ShortName}.pdf",
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var path = dialog.FileName;
-        await _jobs.RunAsync("Exporting PDF", _ => Task.Run(() =>
-        {
-            var result = _session.Export(path, scope);
-            JobQueue.PostUi(() => StatusMessage = $"Exported {result.PageCount} pages to {Path.GetFileName(path)}.");
-        })).ConfigureAwait(true);
-    }
-
     [RelayCommand]
     private async Task SaveAsync()
     {
@@ -688,49 +1086,84 @@ public sealed partial class BookViewModel : ObservableObject
 
     private void ShiftTier(int delta)
     {
-        if (SelectedPhoto is null)
+        if (SelectedPhoto is not { } item)
         {
             return;
         }
 
         var order = new[] { Core.Model.Tier.S, Core.Model.Tier.A, Core.Model.Tier.B, Core.Model.Tier.C };
-        var current = Array.IndexOf(order, SelectedPhoto.EffectiveTier);
-        var next = Math.Clamp(current + delta, 0, order.Length - 1);
+        var current = Array.IndexOf(order, item.EffectiveTier);
+        var next = order[Math.Clamp(current + delta, 0, order.Length - 1)];
 
-        SelectedPhoto.Photo.UserTierOverride = order[next];
-        SelectedPhoto.Refresh();
-        _session.MarkDirty();
-        StatusMessage = $"{SelectedPhoto.FileName} set to tier {order[next]}.";
+        SetTier(item, next, $"{(delta < 0 ? "Promote" : "Demote")} {item.FileName} to tier {next}");
+        StatusMessage = $"{item.FileName} set to tier {next}.";
     }
 
     [RelayCommand]
     private void ResetTier()
     {
-        if (SelectedPhoto is null)
+        if (SelectedPhoto is { } item)
+        {
+            SetTier(item, null, $"Reset tier of {item.FileName}");
+            StatusMessage = $"{item.FileName} is back to its analyzed tier.";
+        }
+    }
+
+    /// <summary>
+    /// R26's promote/demote, as an undoable edit like everything else. The override is captured by
+    /// value so <c>Ctrl+Z</c> restores "no override" rather than freezing the analyzed tier in place.
+    /// </summary>
+    private void SetTier(PhotoItemViewModel item, Tier? tier, string description)
+    {
+        var photo = item.Photo;
+        var before = photo.UserTierOverride;
+        if (before == tier)
         {
             return;
         }
 
-        SelectedPhoto.Photo.UserTierOverride = null;
-        SelectedPhoto.Refresh();
-        _session.MarkDirty();
+        Undo.ExecuteValue(
+            description,
+            before,
+            tier,
+            value =>
+            {
+                photo.UserTierOverride = value;
+                _session.MarkDirty();
+                item.Refresh();
+            },
+            $"tier:{photo.Id}");
     }
 
-    /// <summary>Excluding removes the photo from the book but never from disk (R17).</summary>
+    /// <summary>Excluding removes the photo from the book but never from disk (R17, doc 09 §3.9).</summary>
     [RelayCommand]
     private void ToggleExclude()
     {
-        if (SelectedPhoto is null)
+        if (SelectedPhoto is not { } item)
         {
             return;
         }
 
-        SelectedPhoto.Photo.Excluded = !SelectedPhoto.Photo.Excluded;
-        SelectedPhoto.Refresh();
-        _session.MarkDirty();
+        var photo = item.Photo;
+        var excluded = !photo.Excluded;
+
+        Undo.Execute(new CompositeCommand(
+            excluded ? $"Exclude {item.FileName}" : $"Restore {item.FileName}",
+            BinPlacementCommands.SetExcluded(_session, photo, excluded, "Exclude"),
+            new EditCommand(
+                "Refresh",
+                () => AfterExcludeChanged(item),
+                () => AfterExcludeChanged(item))));
+
+        StatusMessage = photo.Excluded
+            ? $"{item.FileName} excluded from the book. The original file is untouched."
+            : $"{item.FileName} is back in the book.";
+    }
+
+    private void AfterExcludeChanged(PhotoItemViewModel item)
+    {
+        item.Refresh();
         RefreshChapters();
-        StatusMessage = SelectedPhoto.Excluded
-            ? $"{SelectedPhoto.FileName} excluded from the book. The original file is untouched."
-            : $"{SelectedPhoto.FileName} is back in the book.";
+        Bins.Refresh();
     }
 }

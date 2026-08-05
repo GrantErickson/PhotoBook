@@ -1,0 +1,169 @@
+<UserControl x:Class="PhotoBook.App.Views.Photos.FocusRegionEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PhotoBook.App;component/Themes/PhotoEditing.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <conv:FocusKindToBrushConverter x:Key="FocusKindToBrush" />
+            <conv:StringToVisibilityConverter x:Key="StringToVisibility" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource CanvasBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="288" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============================================ the surface -->
+        <Grid Grid.Column="0">
+            <pb:FocusRegionSurface x:Name="Surface"
+                                   Image="{Binding Preview}"
+                                   Regions="{Binding Regions}"
+                                   SelectedRegion="{Binding SelectedRegion, Mode=TwoWay}" />
+
+            <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                    Margin="0,0,0,16" Background="{DynamicResource ScrimHeavyBrush}" Padding="12,6">
+                <TextBlock Style="{StaticResource CaptionTextStyle}"
+                           Text="Drag on the photo to draw an area · drag its handles to reshape · Del removes it" />
+            </Border>
+
+            <Border Background="{DynamicResource ScrimBrush}"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="180" Height="3" />
+                    <TextBlock Text="Opening the photo…" Margin="0,12,0,0"
+                               Style="{StaticResource BodySecondaryTextStyle}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ============================================ rail -->
+        <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0">
+            <DockPanel>
+
+                <!-- selection details -->
+                <Border DockPanel.Dock="Bottom" Padding="18,16" BorderThickness="0,1,0,0"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectionTitle}" Style="{StaticResource BodyStrongTextStyle}"
+                                   TextTrimming="CharacterEllipsis" />
+
+                        <StackPanel Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Importance" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="{Binding SelectedRegion.Weight, StringFormat={}{0:P0}}"
+                                           Style="{StaticResource NumericTextStyle}" FontSize="11.5"
+                                           HorizontalAlignment="Right" />
+                            </Grid>
+                            <Slider x:Name="WeightSlider" Minimum="0" Maximum="1"
+                                    SmallChange="0.05" LargeChange="0.2" Margin="0,2,0,0"
+                                    Value="{Binding SelectedWeight, Mode=TwoWay}"
+                                    ToolTip="How hard smart crop works to keep this area in frame. 0 keeps the area but ignores it." />
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button Style="{StaticResource SecondaryButtonStyle}" MinWidth="0"
+                                        Command="{Binding ToggleDisabledCommand}"
+                                        ToolTip="Keep the area but tell smart crop to ignore it">
+                                    <StackPanel Orientation="Horizontal">
+                                        <pb:Icon Data="{StaticResource Icon.Exclude}" Width="14" Height="14"
+                                                 VerticalAlignment="Center" />
+                                        <TextBlock Text="Disable" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource DangerButtonStyle}" Margin="6,0,0,0" MinWidth="0"
+                                        Command="{Binding DeleteSelectedCommand}"
+                                        ToolTip="Delete this area (only areas you drew can be deleted)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <pb:Icon Data="{StaticResource Icon.Trash}" Width="14" Height="14"
+                                                 VerticalAlignment="Center" />
+                                        <TextBlock Text="Delete" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,14,0,0" TextWrapping="Wrap"
+                                   Text="Areas you draw outrank every detector, so smart crop keeps them in frame first." />
+                    </StackPanel>
+                </Border>
+
+                <!-- stale-crop notice -->
+                <Border DockPanel.Dock="Bottom" Margin="14,0,14,14" Padding="12,10" CornerRadius="6"
+                        Background="{DynamicResource AmberFlagWashBrush}"
+                        BorderBrush="{DynamicResource AmberFlagBrush}" BorderThickness="1"
+                        Visibility="{Binding HasStaleCrops, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding StaleCropMessage}" Style="{StaticResource CaptionTextStyle}"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,10,0,0"
+                                HorizontalAlignment="Left" Content="Re-crop them too"
+                                Command="{Binding RecropPinnedCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- header + legend -->
+                <StackPanel DockPanel.Dock="Top" Margin="18,18,18,10">
+                    <TextBlock Text="Focus areas" Style="{StaticResource SubtitleTextStyle}" />
+                    <TextBlock Style="{StaticResource CaptionMutedTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap"
+                               Text="What smart crop must keep visible when it fits this photo to a slot." />
+
+                    <Button Style="{StaticResource GhostButtonStyle}" Margin="0,12,0,0" HorizontalAlignment="Left"
+                            Command="{Binding ResetToAutomaticCommand}"
+                            IsEnabled="{Binding HasUserEdits}"
+                            ToolTip="Throw away your areas and go back to what analysis found">
+                        <StackPanel Orientation="Horizontal">
+                            <pb:Icon Data="{StaticResource Icon.Sync}" Width="14" Height="14" VerticalAlignment="Center" />
+                            <TextBlock Text="Reset to automatic" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- region list -->
+                <ListBox ItemsSource="{Binding Regions}" SelectedItem="{Binding SelectedRegion, Mode=TwoWay}"
+                         Background="Transparent" BorderThickness="0" Padding="10,0,10,10"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="6,7">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="4" CornerRadius="2" VerticalAlignment="Stretch"
+                                        Background="{Binding Kind, Converter={StaticResource FocusKindToBrush}}" />
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="{Binding Label}" Style="{StaticResource BodyTextStyle}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding KindLabel}" Style="{StaticResource MicroTextStyle}"
+                                               Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding RectLabel}" Style="{StaticResource MicroTextStyle}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="2" Text="{Binding WeightLabel}"
+                                           Style="{StaticResource NumericTextStyle}" FontSize="11.5"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="8,0,2,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- status -->
+        <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Style="{StaticResource CaptionTextStyle}"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="16"
+                   Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibility}}" />
+    </Grid>
+</UserControl>
