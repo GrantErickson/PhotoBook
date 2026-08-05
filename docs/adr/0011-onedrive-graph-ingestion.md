@@ -9,7 +9,11 @@ Related docs: [05-ingestion-and-photo-sources.md](../05-ingestion-and-photo-sour
 ## Status
 
 Accepted — 2026-08-01; selection model **Album + in-app refine** confirmed by the user
-2026-08-03. People-tag availability remains pending the M1 spike below.
+2026-08-03. The people-tag spike is **resolved (no-go, 2026-08-04)**: Graph exposes no people-tag
+metadata for consumer OneDrive, verified against a real account (47 items, 6 albums). Ingestion
+therefore contributes no `person` Focus Regions; local face detection is the permanent path. The
+rest of this decision — Graph for items, albums and `photo.takenDateTime` — is unaffected and was
+verified working end to end on 2026-08-04, including WAM sign-in and silent refresh.
 
 ## Context
 
@@ -38,8 +42,9 @@ date-range query (dates are exactly what's often wrong pre-cleanup), or **album-
 
 > **Decision:** `PhotoBook.Ingestion` implements `IPhotoSource` with `OneDriveGraphSource`
 > (primary) and `LocalFolderSource` (fallback). Selection is **Album + in-app refine**
-> (confirmed by the user 2026-08-03). People tags, if the spike confirms access,
-> become named `person` Focus Regions. Rationale inline per part.
+> (confirmed by the user 2026-08-03). People tags turned out not to be available (see Status), so
+> `person` Focus Regions come from the user alone and faces come from local detection.
+> Rationale inline per part.
 
 - **Auth.** MSAL `PublicClientApplication` with the Windows WAM broker
   (`Microsoft.Identity.Client.Broker`); delegated scopes `Files.Read`, `User.Read` only (least

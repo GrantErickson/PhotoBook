@@ -208,11 +208,11 @@ Thumbnail tiers are fixed at three: 256 px (grid), 1024 px (layout preview), and
 (export only). All pixels go through Magick.NET, with EXIF orientation applied at decode.
 
 Analysis is pluggable behind `IImageAnalyzer`: `LocalOnnxAnalyzer` is the default and
-`AzureVisionAnalyzer` is optional and opt-in per book. Which people-tag metadata Microsoft Graph
-actually exposes needs an early **spike** — flagged honestly in
-[05-ingestion-and-photo-sources.md](05-ingestion-and-photo-sources.md) and scheduled in M1 of
-[14-roadmap.md](14-roadmap.md). The fallback is local face detection alone, and the engine treats
-people tags as an optional input that it works fine without.
+`AzureVisionAnalyzer` is optional and opt-in per book. **Microsoft Graph exposes no people-tag
+metadata for consumer OneDrive** — measured 2026-08-04 against a real account and recorded in
+[05-ingestion-and-photo-sources.md](05-ingestion-and-photo-sources.md). Local face detection is
+therefore the permanent source of face regions; `person` regions come only from the user. The
+engine always treated people tags as an optional input, so nothing downstream changes.
 
 ## 11. PDF export and preflight
 

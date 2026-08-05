@@ -92,7 +92,15 @@ Where each requirement *fully* lands (earlier milestones may land partial ground
 
 **Risks.** Highest-risk milestone by design. NIMA scores may not match family taste — budget a fusion-weight tuning loop against user-ranked photo sets. DP + Hungarian interplay can produce monotone pacing; the variety penalty needs real-photo iteration. Timebox: if template scoring quality stalls, cut library breadth (not depth) — 30 excellent templates beat 50 mediocre ones.
 
-### Graph people-tag spike (inside M1)
+### Graph people-tag spike (inside M1) — RESOLVED 2026-08-04: no-go
+
+> **Answered ahead of M1.** Run against a real family OneDrive with delegated `Files.Read`:
+> 47 items across 6 albums returned **no** tag, people or face property, and `$select=…,tags`
+> drops the field. Outcome (c) applies — the feature is cut with no redesign, local face
+> detection is the permanent path, and the `FocusRegion` fusion order already anticipated this.
+> `photo.takenDateTime` *is* returned (43 of 47), so the Graph date source stays. Details in
+> [05-ingestion-and-photo-sources.md](05-ingestion-and-photo-sources.md). The original scope is
+> kept below for the record.
 
 Two-week spike, per [ADR-0011](adr/0011-onedrive-graph-ingestion.md) and [05-ingestion-and-photo-sources.md](05-ingestion-and-photo-sources.md): sign in with MSAL, pull a real OneDrive photo set, and answer with evidence: (a) are people tags exposed to third-party apps via Graph at all, (b) at what fidelity (named region rects vs bare names vs nothing), (c) at what throttling cost for ~2,000 items? **Outcome gates scope:** full rects → `FocusRegion { kind: person }` becomes the top-priority focus signal in M2; names-only → tags become search/filter metadata only; nothing → the documented fallback is local YuNet faces only, and the feature is cut without redesign (the `FocusRegion` fusion order already anticipates absence).
 
