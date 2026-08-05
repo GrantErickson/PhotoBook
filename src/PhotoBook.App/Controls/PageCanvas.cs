@@ -905,6 +905,13 @@ public sealed class PageCanvas : FrameworkElement
         }
     }
 
+    /// <summary>
+    /// Hover, drop-target and selection chrome, all three spoken in the editor's one selection
+    /// language (<see cref="SelectionChrome"/>): a crisp accent frame with a dark hairline either
+    /// side of it, and — on the selection alone — small square corner grips. The grips mark the crop
+    /// box the way every image editor marks one; the eight-grip form is reserved for layout override
+    /// mode, where all eight actually resize something.
+    /// </summary>
     private void DrawInteractionLayer(DrawingContext dc)
     {
         if (ShowEmptySlotAffordance)
@@ -915,20 +922,31 @@ public sealed class PageCanvas : FrameworkElement
             }
         }
 
+        var contrast = PaletteBrush("ScrimBrush", "#99000000");
+
         var hovered = HoveredSlotId;
         if (hovered is not null && hovered != SelectedSlotId && hovered != DropTargetSlotId && !_emptySlots.Contains(hovered))
         {
-            DrawSlotOutline(dc, hovered, PaletteBrush("AccentWashStrongBrush", "#4A4C8DF5"), 1.5, contrast: true);
+            SelectionChrome.DrawFrame(
+                dc, SlotRectInControl(hovered), PaletteBrush("AccentWashStrongBrush", "#4A4C8DF5"), contrast, 1.5);
         }
 
         if (DropTargetSlotId is { } dropTarget)
         {
-            DrawSlotOutline(dc, dropTarget, PaletteBrush("FocusRingBrush", "#FF7FB0FF"), 2, contrast: true);
+            SelectionChrome.DrawFrame(
+                dc, SlotRectInControl(dropTarget), PaletteBrush("FocusRingBrush", "#FF7FB0FF"), contrast, 2);
         }
 
         if (SelectedSlotId is { } selected && selected != DropTargetSlotId)
         {
-            DrawSlotOutline(dc, selected, PaletteBrush("SelectionBorderBrush", "#CC4C8DF5"), 2, contrast: true);
+            var rect = SlotRectInControl(selected);
+            SelectionChrome.DrawFrame(dc, rect, PaletteBrush("SelectionBorderBrush", "#CC4C8DF5"), contrast, 2);
+            SelectionChrome.DrawGrips(
+                dc,
+                rect,
+                PaletteBrush("FocusHandleBrush", "#FFECEFF3"),
+                PaletteBrush("FocusHandleBorderBrush", "#CC000000"),
+                cornersOnly: true);
         }
     }
 
@@ -1111,23 +1129,6 @@ public sealed class PageCanvas : FrameworkElement
             dc.DrawText(labels[i], new Point(x, pill.Y + ((pill.Height - labels[i].Height) / 2)));
             x += labels[i].Width + 12;
         }
-    }
-
-    private void DrawSlotOutline(DrawingContext dc, string slotId, Brush brush, double thickness, bool contrast)
-    {
-        var rect = SlotRectInControl(slotId);
-        if (rect.IsEmpty || rect.Width <= 1 || rect.Height <= 1)
-        {
-            return;
-        }
-
-        // A dark hairline outside the ring keeps it legible over a bright photograph.
-        if (contrast)
-        {
-            dc.DrawRectangle(null, new Pen(PaletteBrush("ScrimBrush", "#99000000"), 1), Inset(rect, -0.5 - (thickness / 2)));
-        }
-
-        dc.DrawRectangle(null, new Pen(brush, thickness), Inset(rect, thickness / 2));
     }
 
     private void DrawEmptySlot(DrawingContext dc, string slotId)

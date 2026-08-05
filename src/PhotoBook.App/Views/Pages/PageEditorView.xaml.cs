@@ -554,6 +554,15 @@ public partial class PageEditorView : UserControl
             return false;
         }
 
+        // A focused slider owns the keys that move its thumb. Being a *preview* handler, this method
+        // used to eat the arrow keys and pan the crop instead, so the zoom slider could be clicked
+        // but never nudged — the one thing a slider is supposed to be good at.
+        if (e.OriginalSource is RangeBase && e.Key is Key.Left or Key.Right or Key.Up or Key.Down
+            or Key.Home or Key.End or Key.PageUp or Key.PageDown)
+        {
+            return false;
+        }
+
         var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
         var shift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
 

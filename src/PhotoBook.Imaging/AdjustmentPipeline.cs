@@ -237,13 +237,12 @@ public sealed class AdjustmentPipeline
     /// and lifts the red/blue pair. Doc 05 calls this a "per-channel color matrix"; with no cross-channel
     /// terms it is exactly three multipliers, which is what lets it ride along in the lookup table.
     /// </summary>
-    internal static (double Red, double Green, double Blue) WhiteBalanceGains(ImageAdjustments a)
-    {
-        var red = (1 + 0.20 * a.Temperature) * (1 + 0.05 * a.Tint);
-        var green = 1 - 0.15 * a.Tint;
-        var blue = (1 - 0.20 * a.Temperature) * (1 + 0.05 * a.Tint);
-        return (red, green, blue);
-    }
+    /// <remarks>
+    /// The formula itself lives in <see cref="WhiteBalance.Gains"/> so that the eyedropper, which
+    /// inverts it, cannot drift out of step with the pipeline that applies it.
+    /// </remarks>
+    internal static (double Red, double Green, double Blue) WhiteBalanceGains(ImageAdjustments a) =>
+        WhiteBalance.Gains(a.Temperature, a.Tint);
 
     /// <summary>
     /// Builds the 256-entry tone curve for the exposure stage, or null when the stage is neutral.
@@ -251,7 +250,8 @@ public sealed class AdjustmentPipeline
     /// </summary>
     internal static byte[]? BuildToneCurve(ImageAdjustments a)
     {
-        if (a.ExposureEv == 0 && a.Brightness == 0 && a.Contrast == 0 && a.Highlights == 0 && a.Shadows == 0)
+        if (a.ExposureEv == 0 && a.Brightness == 0 && a.Contrast == 0 && a.Highlights == 0 &&
+            a.Shadows == 0 && a.Whites == 0 && a.Blacks == 0)
             return null;
 
         var exposureGain = Math.Pow(2, a.ExposureEv);
@@ -292,6 +292,22 @@ public sealed class AdjustmentPipeline
             {
                 var weight = y * y;
                 y += a.Highlights * 0.5 * weight * (a.Highlights > 0 ? 1 - y : y);
+            }
+
+            // Black and white points: the endpoints themselves, with a cubic weight so the effect dies
+            // out well before the midtones and the two never overlap. The 0.30 coefficient is the
+            // largest that keeps the curve monotonic at full deflection (slope 1 − 0.9·|k| at the end
+            // it acts on), which is what stops a hard "Blacks −100" from posterizing the shadows.
+            if (a.Blacks != 0)
+            {
+                var weight = (1 - y) * (1 - y) * (1 - y);
+                y += a.Blacks * 0.30 * weight;
+            }
+
+            if (a.Whites != 0)
+            {
+                var weight = y * y * y;
+                y += a.Whites * 0.30 * weight;
             }
 
             curve[i] = (byte)Math.Clamp(Math.Round(y * 255.0), 0, 255);
@@ -360,8 +376,30 @@ public sealed class AdjustmentPipeline
 
     private static void ApplyFinish(MagickImage image, ImageAdjustments a, CancellationToken ct)
     {
-        if (a.Sharpen == 0 && a.Vignette == 0 && !a.BlackAndWhite) return;
+        if (a.Sharpen == 0 && a.Vignette == 0 && a.NoiseReduction == 0 && a.Clarity == 0 && !a.BlackAndWhite)
+            return;
         ct.ThrowIfCancellationRequested();
+
+        // Denoise first, always: sharpening or clarity applied to noise amplifies the noise, and no
+        // ordering the user can choose in the panel changes this — the stage order is the contract.
+        if (a.NoiseReduction > 0)
+        {
+            // Wavelet denoise thresholds in quantum percent. 6% at full strength cleans high-ISO
+            // chroma mush without turning faces to plastic; the softness term feathers the threshold
+            // so the transition into detail is not a hard edge.
+            image.WaveletDenoise(new Percentage(a.NoiseReduction * 6.0), a.NoiseReduction * 0.5);
+            ct.ThrowIfCancellationRequested();
+        }
+
+        if (a.Clarity != 0)
+        {
+            // Local contrast at a radius scaled to the image, so the same parameter gives the same
+            // look at 256 px, 1024 px and export size — the replay guarantee this whole class exists
+            // for. Below ~4 px radius the operator turns into sharpening, hence the floor.
+            var radius = Math.Max(4.0, Math.Max(image.Width, image.Height) / 100.0);
+            image.LocalContrast(radius, new Percentage(a.Clarity * 45.0));
+            ct.ThrowIfCancellationRequested();
+        }
 
         if (a.BlackAndWhite)
         {

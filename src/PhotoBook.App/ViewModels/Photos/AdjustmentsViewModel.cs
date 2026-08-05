@@ -1,10 +1,12 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PhotoBook.App.Services;
 using PhotoBook.Core.Model;
+using PhotoBook.Imaging;
 
 namespace PhotoBook.App.ViewModels.Photos;
 
@@ -190,6 +192,10 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
                     s => s.Highlights, (s, v) => s.Highlights = v),
                 Slider("shadows", "Shadows", "Opens up or deepens the dark end only.", -1, 1,
                     s => s.Shadows, (s, v) => s.Shadows = v),
+                Slider("whites", "Whites", "The white point itself — how close the brightest tones come to clipping.",
+                    -1, 1, s => s.Whites, (s, v) => s.Whites = v),
+                Slider("blacks", "Blacks", "The black point itself — crush for depth, lift for a faded look.",
+                    -1, 1, s => s.Blacks, (s, v) => s.Blacks = v),
             ]),
             new AdjustmentGroupViewModel("Colour",
             [
@@ -204,12 +210,17 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
             ]),
             new AdjustmentGroupViewModel("Detail",
             [
+                Slider("clarity", "Clarity", "Mid-tone local contrast — depth for a flat, hazy frame; soften to flatter skin.",
+                    -1, 1, s => s.Clarity, (s, v) => s.Clarity = v),
+                Slider("noise", "Noise reduction", "Smooths the speckle of an indoor or evening shot. Runs before sharpening.",
+                    0, 1, s => s.NoiseReduction, (s, v) => s.NoiseReduction = v, AdjustmentFormat.Scaled, isBipolar: false),
                 Slider("sharpen", "Sharpen", "Unsharp mask, kept off flat areas so skies stay clean.", 0, 1,
                     s => s.Sharpness, (s, v) => s.Sharpness = v, AdjustmentFormat.Scaled, isBipolar: false),
                 Slider("vignette", "Vignette", "Darkens the corners.", 0, 1,
                     s => s.Vignette, (s, v) => s.Vignette = v, AdjustmentFormat.Scaled, isBipolar: false),
                 Slider("straighten", "Straighten", "Levels a tilted horizon; the rotated wedge is cropped away.",
-                    -15, 15, s => s.Straighten, (s, v) => s.Straighten = v, AdjustmentFormat.Degrees),
+                    -StraightenMath.MaxDegrees, StraightenMath.MaxDegrees,
+                    s => s.Straighten, (s, v) => s.Straighten = v, AdjustmentFormat.Degrees),
             ]),
         ];
 
@@ -247,6 +258,17 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
     [ObservableProperty]
     private bool _showOriginal;
 
+    /// <summary>
+    /// True while the eyedropper is armed: the next click on the preview names a neutral and sets
+    /// temperature and tint from it.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPickingWhiteBalance;
+
+    /// <summary>True when temperature or tint is off neutral.</summary>
+    public bool HasWhiteBalance =>
+        Photo is { } photo && (photo.Adjustments.Temperature != 0 || photo.Adjustments.Tint != 0);
+
     /// <summary>True when the photo carries any edit at all.</summary>
     public bool HasEdits => Photo is not null && !Photo.Adjustments.IsIdentity;
 
@@ -282,6 +304,7 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
         Photo = photo;
         _originalPreview = null;
         ShowOriginal = false;
+        IsPickingWhiteBalance = false;
         StatusMessage = string.Empty;
         RefreshAll();
         _ = RenderAsync();
@@ -355,6 +378,171 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
         _editor.SetAdjustments(
             photo, photo.Adjustments with { FlipHorizontal = !photo.Adjustments.FlipHorizontal }, "Flip");
         AfterEdit();
+    }
+
+    /// <summary>
+    /// Arms or disarms the white-balance eyedropper (doc 05 "temperature/tint"). It is a toggle rather
+    /// than a modal mode so that changing your mind costs the same click that started it.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleWhiteBalancePicker()
+    {
+        if (Photo is null)
+        {
+            return;
+        }
+
+        IsPickingWhiteBalance = !IsPickingWhiteBalance;
+        StatusMessage = IsPickingWhiteBalance
+            ? "Click something that should be neutral — a white wall, grey pavement, the white of an eye."
+            : string.Empty;
+    }
+
+    /// <summary>
+    /// Sets temperature and tint from a point the user says is neutral, as <b>one</b> undo entry.
+    /// <para>
+    /// The sample is read from the preview the user actually clicked, which already carries the current
+    /// white balance; <see cref="WhiteBalance.FromNeutral"/> divides that back out, so the result is an
+    /// absolute setting and clicking the same neutral twice changes nothing the second time. The
+    /// average of a small neighbourhood is used rather than the single pixel under the cursor, because
+    /// one pixel of JPEG noise is not a colour.
+    /// </para>
+    /// </summary>
+    /// <param name="x">Horizontal position in the preview, normalized to <c>[0,1]</c>.</param>
+    /// <param name="y">Vertical position in the preview, normalized to <c>[0,1]</c>.</param>
+    public void PickWhiteBalanceAt(double x, double y)
+    {
+        IsPickingWhiteBalance = false;
+
+        if (Photo is not { } photo || Preview is not { } preview)
+        {
+            return;
+        }
+
+        if (photo.Adjustments.BlackAndWhite)
+        {
+            StatusMessage = "This photo is black and white — turn colour back on before picking a neutral.";
+            return;
+        }
+
+        if (SampleAverage(preview, x, y) is not { } sample)
+        {
+            StatusMessage = "Could not read that point.";
+            return;
+        }
+
+        if (sample.Red < 12 || sample.Green < 12 || sample.Blue < 12 ||
+            sample.Red > 250 || sample.Green > 250 || sample.Blue > 250)
+        {
+            StatusMessage = "That area is too dark or too blown out to read a colour from. Try a mid-grey.";
+            return;
+        }
+
+        // ShowOriginal renders the untouched decode, so the sample carries no current gains to remove.
+        var appliedTemperature = ShowOriginal ? 0 : photo.Adjustments.Temperature;
+        var appliedTint = ShowOriginal ? 0 : photo.Adjustments.Tint;
+
+        var (temperature, tint) = WhiteBalance.FromNeutral(
+            sample.Red, sample.Green, sample.Blue, appliedTemperature, appliedTint);
+
+        _editor.SetAdjustments(
+            photo, photo.Adjustments with { Temperature = temperature, Tint = tint }, "White balance");
+        AfterEdit();
+        StatusMessage =
+            $"White balance set from that point: temperature {temperature * 100:+0;-0;0}, tint {tint * 100:+0;-0;0}.";
+    }
+
+    /// <summary>Returns temperature and tint to neutral in one undoable step.</summary>
+    [RelayCommand]
+    private void ResetWhiteBalance()
+    {
+        if (Photo is not { } photo || !HasWhiteBalance)
+        {
+            return;
+        }
+
+        _editor.SetAdjustments(photo, photo.Adjustments with { Temperature = 0, Tint = 0 }, "Reset white balance");
+        AfterEdit();
+    }
+
+    /// <summary>
+    /// Opens the interactive straightening tool (R6/R11): a large preview where the angle comes from a
+    /// line the user drags along something that should be level, instead of from guessing at a slider.
+    /// The tool writes the same <c>Straighten</c> value the slider does.
+    /// </summary>
+    [RelayCommand]
+    private void OpenStraightenTool()
+    {
+        if (Photo is not { } photo)
+        {
+            return;
+        }
+
+        var model = new StraightenToolViewModel(_editor, _previews);
+        model.Attach(photo);
+
+        var window = new Views.Photos.StraightenToolWindow(model)
+        {
+            Owner = System.Windows.Application.Current?.MainWindow,
+        };
+
+        window.ShowDialog();
+
+        RefreshAll();
+        _ = RenderAsync();
+        if (model.StatusMessage.Length > 0)
+        {
+            StatusMessage = model.StatusMessage;
+        }
+    }
+
+    /// <summary>
+    /// The mean colour of a small neighbourhood of the preview, or null when the point is outside it.
+    /// Channels come back on the 0–255 scale the bitmap stores.
+    /// </summary>
+    private static (double Red, double Green, double Blue)? SampleAverage(BitmapSource preview, double x, double y)
+    {
+        if (preview.PixelWidth <= 0 || preview.PixelHeight <= 0 ||
+            x is < 0 or > 1 || y is < 0 or > 1)
+        {
+            return null;
+        }
+
+        // Normalize the format once: the preview is Bgra32 today, but a converted bitmap makes the
+        // stride arithmetic below true whatever the source turns out to be.
+        var source = preview.Format == PixelFormats.Bgra32
+            ? preview
+            : new FormatConvertedBitmap(preview, PixelFormats.Bgra32, null, 0);
+
+        const int Radius = 2;
+        var centreX = (int)Math.Round(x * (source.PixelWidth - 1));
+        var centreY = (int)Math.Round(y * (source.PixelHeight - 1));
+        var left = Math.Clamp(centreX - Radius, 0, source.PixelWidth - 1);
+        var top = Math.Clamp(centreY - Radius, 0, source.PixelHeight - 1);
+        var width = Math.Min((2 * Radius) + 1, source.PixelWidth - left);
+        var height = Math.Min((2 * Radius) + 1, source.PixelHeight - top);
+
+        var stride = width * 4;
+        var pixels = new byte[stride * height];
+        try
+        {
+            source.CopyPixels(new Int32Rect(left, top, width, height), pixels, stride, 0);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        double red = 0, green = 0, blue = 0;
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            blue += pixels[i];
+            green += pixels[i + 1];
+            red += pixels[i + 2];
+        }
+
+        var count = pixels.Length / 4.0;
+        return (red / count, green / count, blue / count);
     }
 
     private void Rotate(int degrees)
@@ -472,6 +660,7 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
 
             OnPropertyChanged(nameof(Stack));
             OnPropertyChanged(nameof(HasEdits));
+            OnPropertyChanged(nameof(HasWhiteBalance));
             OnPropertyChanged(nameof(IsBlackAndWhite));
             OnPropertyChanged(nameof(IsFlipped));
             OnPropertyChanged(nameof(RotationLabel));

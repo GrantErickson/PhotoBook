@@ -145,8 +145,16 @@ public static class SmartCrop
         var imageH = photo.Height > 0 ? photo.Height : FallbackPixels;
         var imageAspect = imageW / imageH;
 
-        var slotWidthIn = Math.Max(1e-6, slot.Rect.W * trimWidthIn * spanWidthFactor);
-        var slotHeightIn = Math.Max(1e-6, slot.Rect.H * trimHeightIn);
+        // The crop's frame is the rect the renderer draws into, not the nominal slot box: the bleed
+        // extension and the caption band both move its edges, and an offset legal at one aspect is a
+        // gap at another (doc 12, CropMath.PhotoBox).
+        var (slotWidthIn, slotHeightIn) = CropMath.PhotoBox(
+            slot.Rect,
+            trimWidthIn,
+            trimHeightIn,
+            captionBelow: slot.CaptionPolicy == CaptionPolicy.Below && !string.IsNullOrWhiteSpace(photo.Caption),
+            bleedIn: slot.SpanId is null ? PageGeometry.BleedIn : 0.0,
+            spanWidthFactor: spanWidthFactor);
         var slotAspect = slotWidthIn / slotHeightIn;
 
         var (windowW, windowH) = CropMath.MaximalWindow(slotAspect, imageAspect);

@@ -59,10 +59,9 @@ public sealed class LayoutOverrideSurface : FrameworkElement
     /// <summary>Snap tolerance in screen pixels (doc 09 §3.7).</summary>
     public const double SnapTolerancePx = 6;
 
-    private const double HandleSize = 9;
-    private const double HandleHitPad = 5;
-
     private OverrideHandle _handle = OverrideHandle.Body;
+    private OverrideHandle? _hoverHandle;
+    private string? _hoverId;
     private string? _dragId;
     private Point _dragStart;
     private CoreRect _dragRect;
@@ -234,7 +233,20 @@ public sealed class LayoutOverrideSurface : FrameworkElement
 
         if (_dragId is null)
         {
-            Cursor = CursorFor(HitTest(point)?.Handle);
+            // Hovering a grip has to be visible as well as feelable: the cursor turns to the resize
+            // direction and the grip itself lights up, so the user knows which of eight they have.
+            var hit = HitTest(point);
+            Cursor = CursorFor(hit?.Handle);
+
+            var handle = hit is { Handle: not OverrideHandle.Body } ? hit.Value.Handle : (OverrideHandle?)null;
+            var id = hit?.Item.Id;
+            if (handle != _hoverHandle || !string.Equals(id, _hoverId, StringComparison.Ordinal))
+            {
+                _hoverHandle = handle;
+                _hoverId = id;
+                InvalidateVisual();
+            }
+
             return;
         }
 
@@ -262,6 +274,20 @@ public sealed class LayoutOverrideSurface : FrameworkElement
         ReleaseMouseCapture();
         Model?.EndGeometryEdit();
         e.Handled = true;
+        InvalidateVisual();
+    }
+
+    /// <inheritdoc/>
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        base.OnMouseLeave(e);
+        if (_hoverHandle is null && _hoverId is null)
+        {
+            return;
+        }
+
+        _hoverHandle = null;
+        _hoverId = null;
         InvalidateVisual();
     }
 
@@ -335,12 +361,37 @@ public sealed class LayoutOverrideSurface : FrameworkElement
 
     private static Cursor CursorFor(OverrideHandle? handle) => handle switch
     {
-        OverrideHandle.N or OverrideHandle.S => Cursors.SizeNS,
-        OverrideHandle.W or OverrideHandle.E => Cursors.SizeWE,
-        OverrideHandle.NW or OverrideHandle.SE => Cursors.SizeNWSE,
-        OverrideHandle.NE or OverrideHandle.SW => Cursors.SizeNESW,
         OverrideHandle.Body => Cursors.SizeAll,
-        _ => Cursors.Arrow,
+        null => Cursors.Arrow,
+        _ => SelectionChrome.CursorFor(GripFor(handle.Value)),
+    };
+
+    /// <summary>Maps one of the shared language's compass points back onto this surface's grips.</summary>
+    private static OverrideHandle? HandleFor(SelectionGrip grip) => grip switch
+    {
+        SelectionGrip.North => OverrideHandle.N,
+        SelectionGrip.South => OverrideHandle.S,
+        SelectionGrip.West => OverrideHandle.W,
+        SelectionGrip.East => OverrideHandle.E,
+        SelectionGrip.NorthWest => OverrideHandle.NW,
+        SelectionGrip.NorthEast => OverrideHandle.NE,
+        SelectionGrip.SouthWest => OverrideHandle.SW,
+        SelectionGrip.SouthEast => OverrideHandle.SE,
+        _ => null,
+    };
+
+    /// <summary>Maps a grip of this surface onto the shared selection language's compass points.</summary>
+    private static SelectionGrip? GripFor(OverrideHandle handle) => handle switch
+    {
+        OverrideHandle.N => SelectionGrip.North,
+        OverrideHandle.S => SelectionGrip.South,
+        OverrideHandle.W => SelectionGrip.West,
+        OverrideHandle.E => SelectionGrip.East,
+        OverrideHandle.NW => SelectionGrip.NorthWest,
+        OverrideHandle.NE => SelectionGrip.NorthEast,
+        OverrideHandle.SW => SelectionGrip.SouthWest,
+        OverrideHandle.SE => SelectionGrip.SouthEast,
+        _ => null,
     };
 
     private (OverrideItemViewModel Item, OverrideHandle Handle)? HitTest(Point point)
@@ -351,18 +402,13 @@ public sealed class LayoutOverrideSurface : FrameworkElement
         }
 
         // The selected container's handles win, so a grip on top of another container still resizes
-        // the thing that is actually selected.
-        if (model.Selected is { } selected)
+        // the thing that is actually selected. The hit area is SelectionChrome's, which is
+        // deliberately much larger than the 8 px square that is drawn.
+        if (model.Selected is { } selected &&
+            SelectionChrome.HitTest(ToControl(selected.Rect), point) is { } grip &&
+            HandleFor(grip) is { } handle)
         {
-            var rect = ToControl(selected.Rect);
-            foreach (var handle in Handles)
-            {
-                if (HandleRect(rect, handle) is { } grip &&
-                    Inflate(grip, HandleHitPad).Contains(point))
-                {
-                    return (selected, handle);
-                }
-            }
+            return (selected, handle);
         }
 
         // Otherwise the topmost container under the pointer, which is the last one drawn.
@@ -376,35 +422,6 @@ public sealed class LayoutOverrideSurface : FrameworkElement
         }
 
         return null;
-    }
-
-    private static readonly OverrideHandle[] Handles =
-    [
-        OverrideHandle.NW, OverrideHandle.N, OverrideHandle.NE,
-        OverrideHandle.W, OverrideHandle.E,
-        OverrideHandle.SW, OverrideHandle.S, OverrideHandle.SE,
-    ];
-
-    private static Rect Inflate(Rect rect, double by) =>
-        new(rect.X - by, rect.Y - by, rect.Width + (2 * by), rect.Height + (2 * by));
-
-    private static Rect? HandleRect(Rect rect, OverrideHandle handle)
-    {
-        var half = HandleSize / 2;
-        var (x, y) = handle switch
-        {
-            OverrideHandle.NW => (rect.Left, rect.Top),
-            OverrideHandle.N => (rect.Left + (rect.Width / 2), rect.Top),
-            OverrideHandle.NE => (rect.Right, rect.Top),
-            OverrideHandle.W => (rect.Left, rect.Top + (rect.Height / 2)),
-            OverrideHandle.E => (rect.Right, rect.Top + (rect.Height / 2)),
-            OverrideHandle.SW => (rect.Left, rect.Bottom),
-            OverrideHandle.S => (rect.Left + (rect.Width / 2), rect.Bottom),
-            OverrideHandle.SE => (rect.Right, rect.Bottom),
-            _ => (double.NaN, double.NaN),
-        };
-
-        return double.IsNaN(x) ? null : new Rect(x - half, y - half, HandleSize, HandleSize);
     }
 
     private static CoreRect Moved(CoreRect rect, Vector delta) =>
@@ -596,39 +613,55 @@ public sealed class LayoutOverrideSurface : FrameworkElement
             return;
         }
 
+        if (isSelected)
+        {
+            // The selection is drawn in the editor's one selection language: the crisp accent frame
+            // with a dark hairline either side of it, then the square grips.
+            SelectionChrome.DrawFrame(
+                dc, rect, Palette("SelectionBorderBrush"), Palette("ScrimBrush"), 2, Palette("AccentWashBrush"));
+            DrawLabel(dc, item, rect, isSelected: true);
+            DrawGrips(dc, item, rect);
+            return;
+        }
+
         var stroke =
-            isSelected ? Palette("SelectionBorderBrush") :
             item.IsText ? Palette("AccentDimBrush") :
             item.IsEmpty ? Palette("AmberFlagBrush") :
             Palette("BorderStrongBrush");
 
         var fill =
-            isSelected ? Palette("AccentWashBrush") :
             item.IsText ? Palette("SurfaceHighestBrush") :
             item.IsEmpty ? Palette("AmberFlagWashBrush") :
             Palette("TransparentBrush");
 
-        var pen = item.IsText || item.IsEmpty
-            ? DashedPen(stroke, isSelected ? 2 : 1.5)
-            : new Pen(stroke, isSelected ? 2 : 1.5);
+        var pen = item.IsText || item.IsEmpty ? DashedPen(stroke, 1.5) : new Pen(stroke, 1.5);
 
         dc.DrawRectangle(fill, pen, rect);
-        DrawLabel(dc, item, rect, isSelected);
+        DrawLabel(dc, item, rect, isSelected: false);
+    }
 
-        if (!isSelected)
-        {
-            return;
-        }
+    /// <summary>
+    /// The eight square grips, identical to the ones the page canvas draws on a selected slot: a
+    /// light body on a dark ring, and the one being hovered or dragged lit in the accent so the user
+    /// can tell which of eight they have hold of.
+    /// </summary>
+    private void DrawGrips(DrawingContext dc, OverrideItemViewModel item, Rect rect)
+    {
+        var dragging = _dragId is not null && string.Equals(_dragId, item.Id, StringComparison.Ordinal);
+        var hovering = _dragId is null && string.Equals(_hoverId, item.Id, StringComparison.Ordinal);
 
-        var gripFill = Palette("AccentBrush");
-        var gripStroke = new Pen(Palette("TextOnAccentBrush"), 1);
-        foreach (var handle in Handles)
-        {
-            if (HandleRect(rect, handle) is { } grip)
-            {
-                dc.DrawRectangle(gripFill, gripStroke, grip);
-            }
-        }
+        var active =
+            dragging ? GripFor(_handle) :
+            hovering && _hoverHandle is { } hover ? GripFor(hover) :
+            null;
+
+        SelectionChrome.DrawGrips(
+            dc,
+            rect,
+            Palette("FocusHandleBrush"),
+            Palette("FocusHandleBorderBrush"),
+            Palette("AccentBrush"),
+            active);
     }
 
     private void DrawLabel(DrawingContext dc, OverrideItemViewModel item, Rect rect, bool isSelected)

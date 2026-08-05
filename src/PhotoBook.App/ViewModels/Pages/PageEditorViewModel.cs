@@ -1147,14 +1147,18 @@ public sealed partial class PageEditorViewModel : ObservableObject
         var imageW = photo.Width > 0 ? photo.Width : 1000.0;
         var imageH = photo.Height > 0 ? photo.Height : 1000.0;
 
-        return new CropTarget(
-            page,
-            slotId,
-            placement,
-            Math.Max(1e-6, slot.Rect.W * trimW),
-            Math.Max(1e-6, slot.Rect.H * trimH),
-            imageW,
-            imageH);
+        // Pan, zoom, the letterbox badge and the DPI readout all work in the frame the renderer
+        // actually draws into — the bleed-extended, caption-band-shortened box, not the nominal slot.
+        // Clamping against the nominal box let the user pan into a gap the render then showed as page
+        // background (CropMath.PhotoBox).
+        var (boxWidthIn, boxHeightIn) = CropMath.PhotoBox(
+            slot.Rect,
+            trimW,
+            trimH,
+            captionBelow: slot.CaptionPolicy == CaptionPolicy.Below && !string.IsNullOrWhiteSpace(photo.Caption),
+            bleedIn: slot.SpanId is null ? PageGeometry.BleedIn : 0.0);
+
+        return new CropTarget(page, slotId, placement, boxWidthIn, boxHeightIn, imageW, imageH);
     }
 
     private void AfterPageEdit(Page page)

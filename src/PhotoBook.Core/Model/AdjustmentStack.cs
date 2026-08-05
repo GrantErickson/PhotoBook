@@ -68,6 +68,22 @@ public sealed record AdjustmentStack
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double Shadows { get; set; }
 
+    /// <summary>
+    /// White point, <c>-1.0</c> (pull the brightest tones down) .. <c>1.0</c> (push them toward
+    /// clipping). Where <see cref="Highlights"/> recovers a broad bright band, this moves the very top
+    /// of the range only — the other half of doc 05's "highlight/shadow recovery limits".
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Whites { get; set; }
+
+    /// <summary>
+    /// Black point, <c>-1.0</c> (crush to a deeper black) .. <c>1.0</c> (lift, for a faded look). The
+    /// bottom-end counterpart of <see cref="Whites"/>; scanned and phone-flat photos usually want a
+    /// touch of negative here rather than more contrast.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Blacks { get; set; }
+
     // ---- color ------------------------------------------------------------------------------------
 
     /// <summary>White-balance temperature, <c>-1.0</c> (cool/blue) .. <c>1.0</c> (warm/amber).</summary>
@@ -91,6 +107,22 @@ public sealed record AdjustmentStack
 
     // ---- finish -----------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Noise reduction, <c>0.0 .. 1.0</c>: a wavelet denoise applied before sharpening, for the indoor
+    /// and evening frames a phone shot at a high ISO. 0 is off and costs nothing.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double NoiseReduction { get; set; }
+
+    /// <summary>
+    /// Clarity, <c>-1.0</c> (soften) .. <c>1.0</c> (punch up), a mid-tone <em>local</em> contrast
+    /// change. Unlike <see cref="Contrast"/> it does not move the endpoints, and unlike
+    /// <see cref="Sharpness"/> it works at a large radius, so it gives a flat, hazy frame depth
+    /// without haloing edges.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Clarity { get; set; }
+
     /// <summary>Unsharp-mask amount, <c>0.0 .. 1.0</c> (doc 05 <c>sharpen</c>).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double Sharpness { get; set; }
@@ -108,8 +140,9 @@ public sealed record AdjustmentStack
     public bool IsIdentity =>
         Rotate == 0 && Straighten == 0 && !FlipHorizontal &&
         ExposureEv == 0 && Brightness == 0 && Contrast == 0 && Highlights == 0 && Shadows == 0 &&
+        Whites == 0 && Blacks == 0 &&
         Temperature == 0 && Tint == 0 && Saturation == 0 && Vibrance == 0 &&
-        Sharpness == 0 && Vignette == 0 && !BlackAndWhite;
+        NoiseReduction == 0 && Clarity == 0 && Sharpness == 0 && Vignette == 0 && !BlackAndWhite;
 
     /// <summary>
     /// True when the geometry stage moves pixels — the one class of edit that invalidates the analysis

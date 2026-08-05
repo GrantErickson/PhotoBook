@@ -1,0 +1,137 @@
+<Window xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        x:Class="PhotoBook.App.Views.Photos.StraightenToolWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+        xmlns:model="clr-namespace:PhotoBook.Core.Model;assembly=PhotoBook.Core"
+        Title="Straighten"
+        Height="720" Width="980" MinHeight="460" MinWidth="700"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ShowInTaskbar="False"
+        shell:WindowChrome.WindowChrome="{StaticResource AppWindowChrome}"
+        Background="{DynamicResource CanvasBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        UseLayoutRounding="True">
+
+    <!--
+        The interactive straightening tool (R6/R11). The user drags a line along whatever should be
+        level; StraightenMath turns it into the geometry stage's straighten angle, and the imaging
+        pipeline crops the rotated wedge away so no gesture can leave transparent corners.
+    -->
+
+    <Window.Resources>
+        <conv:StringToVisibilityConverter x:Key="StringToVisibility" />
+        <conv:EnumMatchConverter x:Key="IsAuto" Match="{x:Static model:StraightenReference.Auto}" />
+        <conv:EnumMatchConverter x:Key="IsHorizontal" Match="{x:Static model:StraightenReference.Horizontal}" />
+        <conv:EnumMatchConverter x:Key="IsVertical" Match="{x:Static model:StraightenReference.Vertical}" />
+    </Window.Resources>
+
+    <Border BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+        <DockPanel>
+
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBarBrush}"
+                    Padding="18,14" MouseLeftButtonDown="OnHeaderDrag">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="Straighten" Style="{StaticResource SubtitleTextStyle}" />
+                        <TextBlock Style="{StaticResource CaptionMutedTextStyle}" Margin="0,3,0,0"
+                                   Text="Drag a line along something that should be level or plumb. The rotated corners are cropped away for you." />
+                    </StackPanel>
+                    <Button Style="{StaticResource SmallIconButtonStyle}" HorizontalAlignment="Right"
+                            VerticalAlignment="Top" Click="OnClose" ToolTip="Close">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ==================================================== tool bar -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                    Padding="18,12">
+                <DockPanel LastChildFill="False">
+
+                    <!-- Which axis a traced line is levelled against. Auto is right almost always;
+                         the explicit choices exist for the ambiguous 45° case. -->
+                    <Border DockPanel.Dock="Left" Style="{StaticResource SegmentedGroupStyle}"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton GroupName="StraightenReference" Style="{StaticResource SegmentedRadioButtonStyle}"
+                                         Content="Auto" ToolTip="Level or plumb, whichever the line is closer to"
+                                         IsChecked="{Binding Reference, Mode=TwoWay, Converter={StaticResource IsAuto}}" />
+                            <RadioButton GroupName="StraightenReference" Style="{StaticResource SegmentedRadioButtonStyle}"
+                                         Content="Level" ToolTip="The line becomes horizontal"
+                                         IsChecked="{Binding Reference, Mode=TwoWay, Converter={StaticResource IsHorizontal}}" />
+                            <RadioButton GroupName="StraightenReference" Style="{StaticResource SegmentedRadioButtonStyle}"
+                                         Content="Plumb" ToolTip="The line becomes vertical"
+                                         IsChecked="{Binding Reference, Mode=TwoWay, Converter={StaticResource IsVertical}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <ToggleButton DockPanel.Dock="Left" Margin="10,0,0,0" VerticalAlignment="Center"
+                                  Style="{StaticResource IconToggleButtonStyle}"
+                                  IsChecked="{Binding ShowGrid}" ToolTip="Show the rotation grid">
+                        <pb:Icon Data="{StaticResource Icon.Grid}" Width="15" Height="15" />
+                    </ToggleButton>
+
+                    <Border DockPanel.Dock="Left" Style="{StaticResource VerticalDividerStyle}" Margin="14,4" />
+
+                    <!-- The same value as the inspector's Straighten slider, on the same model field. -->
+                    <TextBlock DockPanel.Dock="Left" Text="Angle" Style="{StaticResource CaptionTextStyle}"
+                               VerticalAlignment="Center" />
+                    <Slider x:Name="AngleSlider" DockPanel.Dock="Left" Width="230" Margin="10,0"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource BipolarSliderStyle}"
+                            Minimum="-15" Maximum="15" SmallChange="0.1" LargeChange="1"
+                            Value="{Binding Angle, Mode=TwoWay}"
+                            ToolTip="Straighten angle in degrees" />
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding AngleLabel}"
+                               Style="{StaticResource NumericTextStyle}" MinWidth="52"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextAlignment="Right" VerticalAlignment="Center" />
+
+                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
+                            MinWidth="110" Content="Done" Click="OnClose" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,0"
+                            Content="Reset" Command="{Binding ResetCommand}"
+                            IsEnabled="{Binding IsStraightened}"
+                            ToolTip="Remove straightening" />
+                </DockPanel>
+            </Border>
+
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding StatusMessage}"
+                       Style="{StaticResource CaptionMutedTextStyle}"
+                       Margin="18,0,18,10" TextWrapping="Wrap" />
+
+            <!-- ==================================================== the surface -->
+            <Border Background="{DynamicResource PageBlackBrush}" Margin="18,14,18,10"
+                    CornerRadius="{StaticResource RadiusMedium}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
+                <Grid>
+                    <pb:StraightenSurface x:Name="Surface"
+                                          Source="{Binding Preview}"
+                                          ShowGrid="{Binding ShowGrid}"
+                                          GridAngle="{Binding Angle}"
+                                          Reference="{Binding Reference}"
+                                          LineBrush="{DynamicResource AccentBrush}"
+                                          GridBrush="{DynamicResource TextPrimaryBrush}" />
+
+                    <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="14" Background="{DynamicResource ScrimHeavyBrush}"
+                            Visibility="{Binding PendingLabel, Converter={StaticResource StringToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Release to set" Style="{StaticResource MicroTextStyle}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding PendingLabel}" Style="{StaticResource NumericTextStyle}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <ProgressBar IsIndeterminate="True" Height="2" VerticalAlignment="Bottom" Margin="1"
+                                 Visibility="{Binding IsRendering, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </Border>
+        </DockPanel>
+    </Border>
+</Window>

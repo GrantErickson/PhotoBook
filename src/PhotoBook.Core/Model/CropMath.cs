@@ -12,6 +12,98 @@ namespace PhotoBook.Core.Model;
 public static class CropMath
 {
     /// <summary>
+    /// The caption band the renderer reserves under a <see cref="CaptionPolicy.Below"/> photo that
+    /// actually has a caption, in inches (doc 07). It comes out of the slot's height, so it is part
+    /// of the crop's frame — see <see cref="PhotoBox"/>. Must agree with
+    /// <c>PageRenderer.CaptionBandIn</c>; a test pins the two together.
+    /// </summary>
+    public const double CaptionBandIn = 0.30;
+
+    /// <summary>
+    /// How close to a trim edge a slot edge must lie, in normalized units, for the renderer to snap
+    /// it outward to the bleed edge (doc 12 "Bleed extension"). Must agree with
+    /// <c>PageGeometryMapper.BleedSnapTolerance</c>; a test pins the two together.
+    /// </summary>
+    public const double BleedSnapTolerance = 0.005;
+
+    /// <summary>
+    /// The rect a photo is actually drawn into for a slot, in inches — <b>the frame a
+    /// <see cref="CropState"/> is expressed in</b>.
+    /// <para>
+    /// It is <em>not</em> the nominal <c>slot.Rect × trim</c> box. Two things move the edges before a
+    /// pixel is drawn (doc 12): every edge lying within <see cref="BleedSnapTolerance"/> of a trim
+    /// edge is extended out to the bleed box, and a <see cref="CaptionPolicy.Below"/> slot whose photo
+    /// carries a caption gives up <see cref="CaptionBandIn"/> of its height (capped at half) to the
+    /// caption. Both change the box's <em>aspect</em>, and an offset that is legal at one aspect is
+    /// illegal at another — which is precisely how a photo with plenty of pixels ended up drawn short
+    /// with the page background showing down one side.
+    /// </para>
+    /// <para>
+    /// The engine (doc 08 §8) and the editor (doc 09 §3.3) both author and clamp against this box, so
+    /// what they intend is what the renderer draws.
+    /// </para>
+    /// </summary>
+    /// <param name="slotRect">The slot box in normalized page coordinates.</param>
+    /// <param name="trimWidthIn">Page trim width, inches.</param>
+    /// <param name="trimHeightIn">Page trim height, inches.</param>
+    /// <param name="captionBelow">
+    /// True when a caption will render below this photo — the slot's policy is
+    /// <see cref="CaptionPolicy.Below"/> <em>and</em> the photo has caption text.
+    /// </param>
+    /// <param name="bleedIn">
+    /// Bleed per outer edge, inches; pass <c>0</c> to skip the bleed extension (a gutter-spanning slot
+    /// resolves its own panorama rect, doc 12 "Spreads").
+    /// </param>
+    /// <param name="spanWidthFactor">
+    /// Multiplier on the slot's width for a gutter-spanning photo (R18): the crop is computed once
+    /// over the virtual Spread canvas. Any value other than <c>1</c> suppresses the bleed extension.
+    /// </param>
+    public static (double WidthIn, double HeightIn) PhotoBox(
+        Rect slotRect,
+        double trimWidthIn,
+        double trimHeightIn,
+        bool captionBelow,
+        double bleedIn = PageGeometry.BleedIn,
+        double spanWidthFactor = 1.0)
+    {
+        RequirePositive(trimWidthIn, nameof(trimWidthIn));
+        RequirePositive(trimHeightIn, nameof(trimHeightIn));
+
+        var span = double.IsFinite(spanWidthFactor) && spanWidthFactor > 0 ? spanWidthFactor : 1.0;
+        var bleed = double.IsFinite(bleedIn) && bleedIn > 0 ? bleedIn : 0.0;
+        var pageWidthIn = trimWidthIn * span;
+
+        var left = slotRect.X * pageWidthIn;
+        var right = slotRect.Right * pageWidthIn;
+        var top = slotRect.Y * trimHeightIn;
+        var bottom = slotRect.Bottom * trimHeightIn;
+
+        if (bleed > 0 && span == 1.0)
+        {
+            if (slotRect.X <= BleedSnapTolerance) left = -bleed;
+            if (slotRect.Right >= 1 - BleedSnapTolerance) right = trimWidthIn + bleed;
+            if (slotRect.Y <= BleedSnapTolerance) top = -bleed;
+            if (slotRect.Bottom >= 1 - BleedSnapTolerance) bottom = trimHeightIn + bleed;
+
+            // A rect authored past the trim edge is clamped to the bleed box, never beyond.
+            left = Math.Max(left, -bleed);
+            right = Math.Min(right, trimWidthIn + bleed);
+            top = Math.Max(top, -bleed);
+            bottom = Math.Min(bottom, trimHeightIn + bleed);
+        }
+
+        var widthIn = Math.Max(1e-6, right - left);
+        var heightIn = Math.Max(1e-6, bottom - top);
+
+        if (captionBelow)
+        {
+            heightIn = Math.Max(1e-6, heightIn - Math.Min(CaptionBandIn, heightIn / 2.0));
+        }
+
+        return (widthIn, heightIn);
+    }
+
+    /// <summary>
     /// <c>coverScale = max(slotW/imgW, slotH/imgH)</c> (kernel §4) — the scale, in page units per
     /// image pixel, at which the image exactly covers the slot with the minimal possible crop.
     /// </summary>
@@ -94,18 +186,70 @@ public static class CropMath
     }
 
     /// <summary>
+    /// Re-expresses a crop authored for one slot aspect against another — a swap into a differently
+    /// shaped slot, a template change, a per-page slot resize (R15), or a caption appearing under a
+    /// photo and shortening its box.
+    /// <para>
+    /// The zoom is kept (it is relative to the cover fit, so <c>1</c> stays the minimal crop in the
+    /// new shape) and the offsets are re-scaled so the <em>same point of the image</em> stays at the
+    /// centre of the frame. When the new aspect cannot honour that — the image is tighter on that
+    /// axis there — the result is the nearest position that still covers, never a reset to centre.
+    /// </para>
+    /// </summary>
+    /// <param name="crop">The crop as authored.</param>
+    /// <param name="fromSlotAspect">The slot aspect it was authored for.</param>
+    /// <param name="toSlotAspect">The slot aspect it is being used at.</param>
+    /// <param name="imageAspect">Image width / height, in pixels.</param>
+    public static CropState Rebase(CropState crop, double fromSlotAspect, double toSlotAspect, double imageAspect)
+    {
+        RequirePositive(fromSlotAspect, nameof(fromSlotAspect));
+        RequirePositive(toSlotAspect, nameof(toSlotAspect));
+        RequirePositive(imageAspect, nameof(imageAspect));
+
+        var zoom = ClampZoom(crop.Zoom);
+        var offsetX = double.IsNaN(crop.OffsetX) ? 0 : crop.OffsetX;
+        var offsetY = double.IsNaN(crop.OffsetY) ? 0 : crop.OffsetY;
+
+        // The window centre in normalized image coordinates is 0.5 − offset / ratio, so preserving it
+        // is a straight rescale by the ratio of the two frames. Offsets are in slot units, and the
+        // slot changed shape underneath them.
+        var fromX = Math.Max(1.0, imageAspect / fromSlotAspect);
+        var fromY = Math.Max(1.0, fromSlotAspect / imageAspect);
+        var toX = Math.Max(1.0, imageAspect / toSlotAspect);
+        var toY = Math.Max(1.0, toSlotAspect / imageAspect);
+
+        return Clamp(
+            new CropState(zoom, offsetX / fromX * toX, offsetY / fromY * toY),
+            toSlotAspect,
+            imageAspect);
+    }
+
+    /// <summary>
     /// The rectangle of the source image, <b>in image pixels</b>, that fills the slot — what a
     /// renderer samples.
     /// <para>
-    /// While <c>zoom ≥ 1</c> (after <see cref="Clamp(CropState, double, double)"/>) the result lies
-    /// inside the image. While <c>zoom &lt; 1</c> it is deliberately larger than the image on at
-    /// least one axis: the surplus is the letterbox where the page background shows through (R9).
-    /// Renderers that cannot sample outside the bitmap should use
+    /// While <c>zoom ≥ 1</c> the result lies inside the image. While <c>zoom &lt; 1</c> it is
+    /// deliberately larger than the image on at least one axis: the surplus is the letterbox where the
+    /// page background shows through (R9). Renderers that cannot sample outside the bitmap should use
     /// <see cref="ImageRect(CropState, double, double, Rect)"/> to place the whole image instead.
+    /// </para>
+    /// <para>
+    /// <b>The frame is the arguments.</b> The crop is clamped to the slot given here before it is
+    /// evaluated, so "no gap at <c>zoom ≥ 1</c>" is a property of this function rather than a promise
+    /// every caller has to keep. A crop authored against a different aspect — a stale placement, a
+    /// caption that appeared later, a hand-resized slot, an undo against changed geometry — is drawn
+    /// at the nearest covering position instead of sampling off the edge of the bitmap and drawing
+    /// short. Clamping is idempotent, so a correctly authored crop passes through untouched.
     /// </para>
     /// </summary>
     public static Rect SourceRect(CropState crop, double imageW, double imageH, double slotW, double slotH)
     {
+        RequirePositive(slotW, nameof(slotW));
+        RequirePositive(slotH, nameof(slotH));
+        RequirePositive(imageW, nameof(imageW));
+        RequirePositive(imageH, nameof(imageH));
+
+        crop = Clamp(crop, slotW / slotH, imageW / imageH);
         var scale = EffectiveScale(crop, slotW, slotH, imageW, imageH);
         var visibleW = slotW / scale;                       // source pixels spanned by the slot
         var visibleH = slotH / scale;
@@ -130,6 +274,10 @@ public static class CropMath
     /// aspects match, overflows the slot (and is clipped to it) when the image is cropped, and sits
     /// inside the slot when <c>zoom &lt; 1</c>, leaving the letterbox that shows the page
     /// background (R9).
+    /// <para>
+    /// Like <see cref="SourceRect"/>, the crop is clamped to <paramref name="slot"/> first: the rect
+    /// passed in <em>is</em> the frame, so the returned rect covers it whenever <c>zoom ≥ 1</c>.
+    /// </para>
     /// </summary>
     /// <param name="crop">The placement's crop.</param>
     /// <param name="imageW">Image width in pixels.</param>
@@ -137,6 +285,12 @@ public static class CropMath
     /// <param name="slot">The slot rect in page units.</param>
     public static Rect ImageRect(CropState crop, double imageW, double imageH, Rect slot)
     {
+        RequirePositive(slot.W, nameof(slot));
+        RequirePositive(slot.H, nameof(slot));
+        RequirePositive(imageW, nameof(imageW));
+        RequirePositive(imageH, nameof(imageH));
+
+        crop = Clamp(crop, slot.W / slot.H, imageW / imageH);
         var scale = EffectiveScale(crop, slot.W, slot.H, imageW, imageH);
         var drawnW = imageW * scale;
         var drawnH = imageH * scale;

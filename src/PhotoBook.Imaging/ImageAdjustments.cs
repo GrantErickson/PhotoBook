@@ -52,6 +52,12 @@ public sealed record ImageAdjustments
     /// <summary>Shadow recovery, <c>-1</c> (deepen) .. <c>1</c> (open up), weighted toward dark tones.</summary>
     public double Shadows { get; init; }
 
+    /// <summary>White point, <c>-1</c> (pull the top of the range down) .. <c>1</c> (push it toward clipping).</summary>
+    public double Whites { get; init; }
+
+    /// <summary>Black point, <c>-1</c> (crush) .. <c>1</c> (lift, for a faded look).</summary>
+    public double Blacks { get; init; }
+
     // ---- color --------------------------------------------------------------------------------
 
     /// <summary>White balance, <c>-1</c> (cool/blue) .. <c>1</c> (warm/amber).</summary>
@@ -70,6 +76,12 @@ public sealed record ImageAdjustments
     public double Vibrance { get; init; }
 
     // ---- finish -------------------------------------------------------------------------------
+
+    /// <summary>Wavelet denoise strength, <c>0 .. 1</c>. Runs before sharpening so the two do not fight.</summary>
+    public double NoiseReduction { get; init; }
+
+    /// <summary>Mid-tone local contrast, <c>-1</c> (soften) .. <c>1</c> (punch up), at a large radius.</summary>
+    public double Clarity { get; init; }
 
     /// <summary>Unsharp-mask amount, <c>0 .. 1</c>.</summary>
     public double Sharpen { get; init; }
@@ -90,8 +102,9 @@ public sealed record ImageAdjustments
     public bool IsIdentity =>
         Rotate == 0 && Straighten == 0 && !FlipHorizontal &&
         ExposureEv == 0 && Brightness == 0 && Contrast == 0 && Highlights == 0 && Shadows == 0 &&
+        Whites == 0 && Blacks == 0 &&
         Temperature == 0 && Tint == 0 && Saturation == 0 && Vibrance == 0 &&
-        Sharpen == 0 && Vignette == 0 && !BlackAndWhite;
+        NoiseReduction == 0 && Clarity == 0 && Sharpen == 0 && Vignette == 0 && !BlackAndWhite;
 
     /// <summary>True when the geometry stage moves pixels, which is what forces analysis to re-run (doc 05 matrix).</summary>
     public bool HasGeometry => Rotate != 0 || Straighten != 0 || FlipHorizontal;
@@ -123,10 +136,14 @@ public sealed record ImageAdjustments
             Contrast = stack.Contrast,
             Highlights = stack.Highlights,
             Shadows = stack.Shadows,
+            Whites = stack.Whites,
+            Blacks = stack.Blacks,
             Temperature = stack.Temperature,
             Tint = stack.Tint,
             Saturation = stack.Saturation,
             Vibrance = stack.Vibrance,
+            NoiseReduction = stack.NoiseReduction,
+            Clarity = stack.Clarity,
             Sharpen = stack.Sharpness,
             Vignette = stack.Vignette,
             BlackAndWhite = stack.BlackAndWhite,
@@ -143,10 +160,14 @@ public sealed record ImageAdjustments
         Contrast = Contrast,
         Highlights = Highlights,
         Shadows = Shadows,
+        Whites = Whites,
+        Blacks = Blacks,
         Temperature = Temperature,
         Tint = Tint,
         Saturation = Saturation,
         Vibrance = Vibrance,
+        NoiseReduction = NoiseReduction,
+        Clarity = Clarity,
         Sharpness = Sharpen,
         Vignette = Vignette,
         BlackAndWhite = BlackAndWhite,
@@ -169,10 +190,14 @@ public sealed record ImageAdjustments
         Contrast = Clamp(Contrast, -1, 1),
         Highlights = Clamp(Highlights, -1, 1),
         Shadows = Clamp(Shadows, -1, 1),
+        Whites = Clamp(Whites, -1, 1),
+        Blacks = Clamp(Blacks, -1, 1),
         Temperature = Clamp(Temperature, -1, 1),
         Tint = Clamp(Tint, -1, 1),
         Saturation = Clamp(Saturation, -1, 1),
         Vibrance = Clamp(Vibrance, -1, 1),
+        NoiseReduction = Clamp(NoiseReduction, 0, 1),
+        Clarity = Clamp(Clarity, -1, 1),
         Sharpen = Clamp(Sharpen, 0, 1),
         Vignette = Clamp(Vignette, 0, 1),
     };

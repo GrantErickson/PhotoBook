@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using PhotoBook.App.Controls;
 using PageSide = PhotoBook.Core.Model.PageSide;
 
 namespace PhotoBook.App.Views.Pages;
@@ -177,18 +178,11 @@ public sealed class PageEditorOverlay : FrameworkElement
 
         dc.Pop();
 
-        var border = new Pen(Palette("AccentBrush", "#FF4C8DF5"), 2);
-        border.Freeze();
-        dc.DrawRectangle(null, border, Inset(slot, 1));
-    }
-
-    private static Rect Inset(Rect rect, double amount)
-    {
-        var width = rect.Width - (amount * 2);
-        var height = rect.Height - (amount * 2);
-        return width <= 0 || height <= 0
-            ? rect
-            : new Rect(rect.X + amount, rect.Y + amount, width, height);
+        // The crop frame lands on exactly the rect PageCanvas already outlined for the selection, in
+        // exactly the same language (SelectionChrome) — one frame on screen, drawn brighter because
+        // crop mode is the stronger state. The square corner grips underneath show through it.
+        SelectionChrome.DrawFrame(
+            dc, slot, Palette("AccentBrush", "#FF4C8DF5"), Palette("ScrimBrush", "#99000000"), 2);
     }
 
     /// <summary>

@@ -33,6 +33,23 @@
             </Style.Triggers>
         </Style>
 
+        <!--
+            The R9 letterbox flag. Hidden, never Collapsed: it appears the moment a drag takes the
+            zoom below 1.00, and a Collapsed chip would resize the centred crop bar mid-gesture and
+            slide the zoom slider out from under the pointer. Hidden keeps its space reserved.
+        -->
+        <Style x:Key="LetterboxChipStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource ChipStyle}">
+            <Setter Property="Visibility" Value="Hidden" />
+            <Setter Property="Background" Value="{DynamicResource AmberFlagWashBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AmberFlagBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCropLetterboxed}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- One page in the navigator strip: number, amber empty-slot dot, pin mark. -->
         <Style x:Key="PageChipStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="38" />
@@ -215,55 +232,128 @@
                        HorizontalAlignment="Center" />
         </StackPanel>
 
-        <!-- Crop readout: only while crop mode is open, floating clear of the page (doc 09 §3.3). -->
+        <!--
+            Crop readout: only while crop mode is open, floating clear of the page (doc 09 §3.3).
+
+            THE BAR'S GEOMETRY IS FIXED, AND THAT IS THE POINT. It is centred over the canvas, so
+            anything that can change width moves the slider sideways under the pointer: a longer file
+            name when you pick a different photo, a fourth digit of dpi, and worst of all the
+            Letterboxed chip appearing the instant a drag crosses zoom 1.00 — the thumb jumped out
+            from under the cursor exactly when the user was trying to be precise.
+
+            So every column below is an absolute width, which makes the bar's own width — and
+            therefore the slider's screen position — independent of everything in it. Content that
+            comes and goes is Hidden rather than Collapsed, because Hidden still reserves its space,
+            and content that grows is trimmed inside its column. Nothing here may use Auto.
+        -->
         <Border Grid.Row="1" x:Name="CropBar"
                 VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,18"
                 Background="{DynamicResource SurfaceOverlayBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                CornerRadius="{StaticResource RadiusLarge}" Padding="14,8"
+                CornerRadius="{StaticResource RadiusLarge}" Padding="14,7"
                 Effect="{StaticResource ElevationLow}"
                 Visibility="{Binding IsCropMode, Converter={StaticResource BoolToVisibility}}">
-            <StackPanel Orientation="Horizontal">
-                <pb:Icon Data="{StaticResource Icon.Crop}" Width="16" Height="16"
-                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding CropPhotoName}" Style="{StaticResource CaptionTextStyle}"
-                           MaxWidth="180" TextTrimming="CharacterEllipsis"
-                           VerticalAlignment="Center" Margin="8,0,0,0" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150" />  <!-- which photo -->
+                    <ColumnDefinition Width="21" />   <!-- divider -->
+                    <ColumnDefinition Width="214" />  <!-- zoom: fixed position, fixed width -->
+                    <ColumnDefinition Width="78" />   <!-- zoom readout -->
+                    <ColumnDefinition Width="76" />   <!-- effective dpi -->
+                    <ColumnDefinition Width="94" />   <!-- letterbox flag; space always reserved -->
+                    <ColumnDefinition Width="21" />   <!-- divider -->
+                    <ColumnDefinition Width="92" />   <!-- smart crop -->
+                    <ColumnDefinition Width="74" />   <!-- done -->
+                </Grid.ColumnDefinitions>
 
-                <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,2" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <pb:Icon Data="{StaticResource Icon.Crop}" Width="16" Height="16"
+                             Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding CropPhotoName}" Style="{StaticResource CaptionTextStyle}"
+                               MaxWidth="126" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                </StackPanel>
 
-                <pb:Icon Data="{StaticResource Icon.ZoomOut}" Width="14" Height="14"
-                         Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
-                <Slider x:Name="ZoomSlider" Width="140" Margin="8,0" VerticalAlignment="Center"
-                        Minimum="0.25" Maximum="4" SmallChange="0.05" LargeChange="0.25"
-                        Value="{Binding CropZoom, Mode=TwoWay}"
-                        ToolTip="Crop zoom — below 1.00 the page background shows through (R9)" />
-                <pb:Icon Data="{StaticResource Icon.ZoomIn}" Width="14" Height="14"
-                         Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Style="{StaticResource VerticalDividerStyle}" Margin="10,3" />
 
-                <TextBlock Text="{Binding ZoomReadout}" Style="{StaticResource NumericTextStyle}"
-                           MinWidth="76" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" />
+                <!-- The zoom control: a 30 px-tall hit strip, a click-anywhere track
+                     (IsMoveToPointEnabled), and arrow keys that step it 0.05 at a time. -->
+                <Grid Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="14" />
+                    </Grid.ColumnDefinitions>
+
+                    <pb:Icon Grid.Column="0" Data="{StaticResource Icon.ZoomOut}" Width="14" Height="14"
+                             Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                    <Slider Grid.Column="1" x:Name="ZoomSlider" Margin="9,0" Height="30"
+                            VerticalAlignment="Center"
+                            Minimum="0.25" Maximum="4" SmallChange="0.05" LargeChange="0.25"
+                            Value="{Binding CropZoom, Mode=TwoWay}"
+                            AutomationProperties.Name="Crop zoom"
+                            ToolTip="Crop zoom — drag, click the track, or use the arrow keys. Below 1.00 the page background shows through (R9)." />
+                    <pb:Icon Grid.Column="2" Data="{StaticResource Icon.ZoomIn}" Width="14" Height="14"
+                             Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                </Grid>
+
+                <TextBlock Grid.Column="3" Text="{Binding ZoomReadout}" Style="{StaticResource NumericTextStyle}"
+                           TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
 
                 <!-- Effective DPI (CropMath.EffectiveDpi): amber once a crop goes soft for print. -->
-                <Border Style="{StaticResource DpiChipStyle}" Margin="10,0,0,0" VerticalAlignment="Center"
+                <Border Grid.Column="4" Style="{StaticResource DpiChipStyle}" Margin="8,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Center"
                         ToolTip="Effective print resolution of this crop. Below 200 dpi it will look soft in print.">
-                    <TextBlock Text="{Binding DpiReadout}" Style="{StaticResource DpiTextStyle}" />
+                    <TextBlock Text="{Binding DpiReadout}" Style="{StaticResource DpiTextStyle}"
+                               TextAlignment="Center" MinWidth="46" />
                 </Border>
 
-                <Border Style="{StaticResource ChipStyle}" Margin="6,0,0,0" VerticalAlignment="Center"
-                        Background="{DynamicResource AmberFlagWashBrush}"
-                        BorderBrush="{DynamicResource AmberFlagBrush}" BorderThickness="1"
-                        Visibility="{Binding IsCropLetterboxed, Converter={StaticResource BoolToVisibility}}">
+                <Border Grid.Column="5" Style="{StaticResource LetterboxChipStyle}"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0"
+                        ToolTip="The photo no longer fills its frame, so the page background shows through (R9).">
                     <TextBlock Text="Letterboxed" Style="{StaticResource MicroTextStyle}"
                                Foreground="{DynamicResource AmberFlagBrush}" />
                 </Border>
 
-                <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,2" />
+                <Border Grid.Column="6" Style="{StaticResource VerticalDividerStyle}" Margin="10,3" />
 
-                <Button Content="Smart crop" Style="{StaticResource GhostButtonStyle}"
+                <Button Grid.Column="7" Content="Smart crop" Style="{StaticResource GhostButtonStyle}"
+                        VerticalAlignment="Center"
                         Command="{Binding ResetCropCommand}" ToolTip="Reset to the engine's crop  (0)" />
-                <Button Content="Done" Style="{StaticResource SecondaryButtonStyle}" Margin="6,0,0,0"
+                <Button Grid.Column="8" Content="Done" Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="6,0,0,0" VerticalAlignment="Center" MinWidth="0"
                         Command="{Binding ExitCropModeCommand}" ToolTip="Leave crop mode  (Esc)" />
+            </Grid>
+        </Border>
+
+        <!--
+            Layout override mode is a *mode*, and the editor says so twice: an accent frame round the
+            whole page surface, and a banner naming the mode with the way out. The toolbar's Done and
+            Esc are the exit; this is what makes it obvious there is one to look for.
+        -->
+        <Border Grid.Row="1" IsHitTestVisible="False"
+                BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2"
+                Visibility="{Binding OverrideModel.IsActive,
+                                     RelativeSource={RelativeSource AncestorType=UserControl},
+                                     Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+
+        <Border Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,14,0,0"
+                IsHitTestVisible="False"
+                Background="{DynamicResource AccentBrush}" CornerRadius="{StaticResource RadiusPill}"
+                Padding="14,5,14,6" Effect="{StaticResource ElevationLow}"
+                Visibility="{Binding OverrideModel.IsActive,
+                                     RelativeSource={RelativeSource AncestorType=UserControl},
+                                     Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+            <StackPanel Orientation="Horizontal">
+                <pb:Icon Data="{StaticResource Icon.Layers}" Width="14" Height="14" VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextOnAccentBrush}" />
+                <TextBlock Text="Editing page layout" Margin="8,0,0,0" VerticalAlignment="Center"
+                           Style="{StaticResource CaptionTextStyle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextOnAccentBrush}" />
+                <Border Width="1" Margin="10,2" Background="{DynamicResource TextOnAccentBrush}" Opacity="0.35" />
+                <TextBlock Text="Esc or Done to finish" VerticalAlignment="Center"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource TextOnAccentBrush}" Opacity="0.85" />
             </StackPanel>
         </Border>
 

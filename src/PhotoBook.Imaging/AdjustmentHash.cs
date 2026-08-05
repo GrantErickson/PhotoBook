@@ -56,8 +56,14 @@ public static class AdjustmentHash
     {
         ArgumentNullException.ThrowIfNull(adjustments);
         var a = adjustments.Normalized();
-        var sb = new StringBuilder(160);
-        sb.Append("v1;");
+        // The leading tag versions the canonical text, not the project file. Widening the parameter
+        // set changes what every non-identity stack hashes to, so it is bumped deliberately: the old
+        // cache entries simply stop being named by any live key and CollectOrphansAsync sweeps them on
+        // the next open. Nothing under cache/ is user intent (kernel §5), so this costs decode time
+        // once and nothing else. The identity key stays the empty string, so an unedited photo's
+        // thumbnails are untouched.
+        var sb = new StringBuilder(200);
+        sb.Append("v2;");
         Append(sb, "rot", a.Rotate);
         Append(sb, "str", a.Straighten);
         Append(sb, "flh", a.FlipHorizontal ? 1 : 0);
@@ -66,10 +72,14 @@ public static class AdjustmentHash
         Append(sb, "con", a.Contrast);
         Append(sb, "hig", a.Highlights);
         Append(sb, "sha", a.Shadows);
+        Append(sb, "whi", a.Whites);
+        Append(sb, "blk", a.Blacks);
         Append(sb, "tem", a.Temperature);
         Append(sb, "tin", a.Tint);
         Append(sb, "sat", a.Saturation);
         Append(sb, "vib", a.Vibrance);
+        Append(sb, "nr", a.NoiseReduction);
+        Append(sb, "cla", a.Clarity);
         Append(sb, "shp", a.Sharpen);
         Append(sb, "vig", a.Vignette);
         Append(sb, "bw", a.BlackAndWhite ? 1 : 0);
