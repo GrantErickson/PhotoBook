@@ -41,9 +41,15 @@ date-range query (dates are exactly what's often wrong pre-cleanup), or **album-
 > (confirmed by the user 2026-08-03). People tags, if the spike confirms access,
 > become named `person` Focus Regions. Rationale inline per part.
 
-- **Auth.** MSAL `PublicClientApplication` with the Windows WAM broker; delegated scopes
-  `Files.Read`, `User.Read` only (least privilege — we never write to OneDrive). Token cache
-  encrypted at rest via MSAL extensions (DPAPI). Sign-in is per app, not per book.
+- **Auth.** MSAL `PublicClientApplication` with the Windows WAM broker
+  (`Microsoft.Identity.Client.Broker`); delegated scopes `Files.Read`, `User.Read` only (least
+  privilege — we never write to OneDrive). Token cache encrypted at rest via MSAL extensions
+  (DPAPI). Sign-in is per app, not per book. The registration carries both the broker redirect
+  (`ms-appx-web://microsoft.aad.brokerplugin/{client-id}`) and `http://localhost` for the browser
+  fallback; the app pins neither, so MSAL selects whichever path is available. Rejected: the
+  legacy `nativeclient` redirect, which only suits an embedded webview — an embedded browser gets
+  no OS single sign-on, degrades passkey and device-compliance flows, and puts the app between the
+  user and the sign-in page.
 - **Album + in-app refine.** The curator adds photos to a per-book OneDrive album ("Book 2024")
   from phone or web over the year. The app lists albums (Graph bundles:
   `GET /me/drive/bundles?$filter=bundle/album ne null`), the user picks one, and sync pulls its

@@ -89,6 +89,14 @@
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding SyncOneDriveCommand}" HorizontalContentAlignment="Left"
+                                ToolTip="Sign in with your Windows account and sync a OneDrive album">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                                <TextBlock Text="OneDrive…" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
                                 Command="{Binding ImportJournalCommand}" HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Horizontal">
                                 <pb:Icon Data="{StaticResource Icon.Journal}" VerticalAlignment="Center" />

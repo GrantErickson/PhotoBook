@@ -83,21 +83,35 @@
                                          Converter={StaticResource BoolToVisibility}}" />
 
             <!-- error toast -->
-            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,20,0,0"
-                    Background="{DynamicResource ErrorWashBrush}"
+            <!-- Opaque, not a wash: setup instructions must stay readable over a photo page. -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,76,0,24"
+                    Background="{DynamicResource SurfaceOverlayBrush}"
                     BorderBrush="{DynamicResource ErrorBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="16,12" MaxWidth="620"
+                    CornerRadius="8" Padding="18,16" MaxWidth="760"
+                    Effect="{DynamicResource ElevationHigh}"
                     Visibility="{Binding ErrorMessage, Converter={StaticResource NotNullToVisibility}}">
-                <StackPanel Orientation="Horizontal">
-                    <pb:Icon Data="{StaticResource Icon.Warning}" Foreground="{DynamicResource ErrorBrush}"
-                             VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding ErrorMessage}" Margin="12,0,0,0" TextWrapping="Wrap"
-                               VerticalAlignment="Center" Style="{StaticResource BodyTextStyle}" />
-                    <Button Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
-                            Command="{Binding DismissErrorCommand}" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Warning}"
+                             Foreground="{DynamicResource ErrorBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+
+                    <!-- Long messages (the OneDrive setup steps) scroll rather than clip. -->
+                    <ScrollViewer Grid.Column="1" Margin="14,0,0,0" MaxHeight="420"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap"
+                                   Style="{StaticResource BodyTextStyle}" />
+                    </ScrollViewer>
+
+                    <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
+                            Command="{Binding DismissErrorCommand}" VerticalAlignment="Top">
                         <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
                     </Button>
-                </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </DockPanel>

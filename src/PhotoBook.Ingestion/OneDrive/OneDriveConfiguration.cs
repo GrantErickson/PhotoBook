@@ -36,8 +36,10 @@ public sealed record OneDriveConfiguration
     public string Authority { get; init; } = ConsumersAuthority;
 
     /// <summary>
-    /// Redirect URI of the app registration. Null uses MSAL's default for desktop public clients
-    /// (<c>http://localhost</c>), which is what the setup document tells the user to register.
+    /// Redirect URI of the app registration. Leave this null: sign-in goes through the WAM broker,
+    /// which uses its own <c>ms-appx-web://microsoft.aad.brokerplugin/{client-id}</c> redirect, and
+    /// MSAL's desktop default (<c>http://localhost</c>) covers the browser fallback. Setting it
+    /// explicitly only matters if the registration deviates from what SETUP.md describes.
     /// </summary>
     public string? RedirectUri { get; init; }
 
@@ -67,13 +69,24 @@ public sealed record OneDriveConfiguration
         if (!IsConfigured) throw new OneDriveNotConfiguredException(this);
     }
 
+    /// <summary>
+    /// Every placeholder client id that has appeared in setup instructions. Copying the sample file
+    /// without editing it is the single most likely setup mistake, and it must produce the friendly
+    /// "not set up yet" message rather than an opaque MSAL rejection at sign-in.
+    /// </summary>
+    private static readonly HashSet<Guid> PlaceholderClientIds =
+    [
+        Guid.Empty,
+        new("11111111-2222-3333-4444-555555555555"),
+    ];
+
     /// <summary>True for a value that is a GUID and not one of the documented placeholders.</summary>
     public static bool IsUsableClientId(string? clientId)
     {
         if (string.IsNullOrWhiteSpace(clientId)) return false;
         var trimmed = clientId.Trim().Trim('<', '>', '"', '{', '}');
         if (!Guid.TryParse(trimmed, out var guid)) return false;
-        return guid != Guid.Empty;
+        return !PlaceholderClientIds.Contains(guid);
     }
 
     /// <summary>The sample <c>onedrive.json</c> quoted in setup instructions and in the error message.</summary>

@@ -34,6 +34,8 @@ public sealed partial class ShellViewModel : ObservableObject
         _jobs.JobFailed += (title, ex) =>
             JobQueue.PostUi(() => ErrorMessage = $"{title} failed: {ex.Message}");
 
+        Book.ErrorRaised += message => JobQueue.PostUi(() => ErrorMessage = message);
+
         LoadRecent();
     }
 

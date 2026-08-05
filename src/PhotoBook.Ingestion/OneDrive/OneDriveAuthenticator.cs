@@ -1,4 +1,5 @@
 using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Broker;
 
 namespace PhotoBook.Ingestion.OneDrive;
 
@@ -42,15 +43,21 @@ public sealed class OneDriveSignInException : Exception
 }
 
 /// <summary>
-/// The MSAL implementation (doc 05 "Authentication"): a public client application against the
-/// consumers authority, delegated <c>User.Read</c> + <c>Files.Read</c> only, a DPAPI-encrypted token
-/// cache under <c>%LOCALAPPDATA%</c>, silent refresh on every sync and an interactive system-browser
-/// prompt only when the refresh token is dead.
+/// The MSAL implementation (doc 05 "Authentication", ADR-0011): a public client application against
+/// the consumers authority, delegated <c>User.Read</c> + <c>Files.Read</c> only, a DPAPI-encrypted
+/// token cache under <c>%LOCALAPPDATA%</c>, silent refresh on every sync, and an interactive prompt
+/// only when the refresh token is dead.
 /// <para>
-/// The WAM broker is deliberately not wired up here: it needs the extra
-/// <c>Microsoft.Identity.Client.Broker</c> package, and the system-browser flow works on any Windows
-/// box today. Adding the broker later is a one-line <c>WithBroker</c> call on the builder below and
-/// changes nothing else.
+/// Interactive sign-in goes through the <b>Windows WAM broker</b>: the native Windows account
+/// picker rather than a browser window. That gives single sign-on from the account the user is
+/// already signed into Windows with, keeps refresh tokens in the OS rather than in a file we
+/// manage, and supports Windows Hello and passkeys the way the platform intends. MSAL falls back
+/// to the system browser by itself when the broker is unavailable, which is why the loopback
+/// redirect URI stays registered (see SETUP.md).
+/// </para>
+/// <para>
+/// WAM parents its window to the caller's, so a host with a window must supply the handle —
+/// otherwise the account picker can appear behind the app or, on some Windows builds, not at all.
 /// </para>
 /// </summary>
 public sealed class MsalOneDriveAuthenticator : IOneDriveAuthenticator
@@ -58,6 +65,7 @@ public sealed class MsalOneDriveAuthenticator : IOneDriveAuthenticator
     private readonly OneDriveConfiguration _configuration;
     private readonly Lazy<IPublicClientApplication> _application;
     private readonly DpapiTokenCacheStorage? _cache;
+    private readonly Func<IntPtr>? _parentWindow;
 
     /// <summary>Creates an authenticator over a configuration.</summary>
     /// <param name="configuration">
@@ -65,12 +73,18 @@ public sealed class MsalOneDriveAuthenticator : IOneDriveAuthenticator
     /// <see cref="OneDriveConfigurationLoader.LoadRequired"/> or
     /// <see cref="OneDriveConfiguration.EnsureConfigured"/> first.
     /// </param>
+    /// <param name="parentWindow">
+    /// Returns the HWND the WAM account picker should be parented to. A UI host should pass its main
+    /// window handle; headless callers may omit it, in which case MSAL parents to the console or
+    /// desktop window.
+    /// </param>
     /// <exception cref="OneDriveNotConfiguredException">No client id has been configured (see SETUP.md).</exception>
-    public MsalOneDriveAuthenticator(OneDriveConfiguration configuration)
+    public MsalOneDriveAuthenticator(OneDriveConfiguration configuration, Func<IntPtr>? parentWindow = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         configuration.EnsureConfigured();
         _configuration = configuration;
+        _parentWindow = parentWindow;
 
         if (OperatingSystem.IsWindows()) _cache = new DpapiTokenCacheStorage(configuration.EffectiveTokenCachePath);
         _application = new Lazy<IPublicClientApplication>(Build, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -144,6 +158,21 @@ public sealed class MsalOneDriveAuthenticator : IOneDriveAuthenticator
             .WithClientName("PhotoBook")
             .WithClientVersion(typeof(MsalOneDriveAuthenticator).Assembly.GetName().Version?.ToString() ?? "1.0.0");
 
+        // WAM first (ADR-0011). MSAL falls back to the system browser on its own when the broker
+        // cannot run, so the loopback redirect below still matters.
+        if (OperatingSystem.IsWindows())
+        {
+            builder = builder.WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows)
+            {
+                Title = "PhotoBook",
+            });
+
+            if (_parentWindow is not null)
+            {
+                builder = builder.WithParentActivityOrWindow(_parentWindow);
+            }
+        }
+
         builder = string.IsNullOrWhiteSpace(_configuration.RedirectUri)
             ? builder.WithDefaultRedirectUri()
             : builder.WithRedirectUri(_configuration.RedirectUri);
@@ -164,6 +193,13 @@ public sealed class MsalOneDriveAuthenticator : IOneDriveAuthenticator
             "The app registration is not allowed to sign in personal Microsoft accounts. In the Entra portal set " +
             "\"Supported account types\" to personal Microsoft accounts, as described in " +
             $"{OneDriveNotConfiguredException.SetupDocument}.",
+
+        // WAM reports a missing broker redirect URI as a plain invalid-request, which is otherwise
+        // an impossible error to act on.
+        MsalServiceException { ErrorCode: "invalid_request" } when ex.Message.Contains("redirect", StringComparison.OrdinalIgnoreCase) =>
+            "The app registration is missing the broker redirect URI. Add " +
+            "ms-appx-web://microsoft.aad.brokerplugin/<your-client-id> under \"Mobile and desktop " +
+            $"applications\", as described in {OneDriveNotConfiguredException.SetupDocument}.",
         _ => $"OneDrive sign-in failed: {ex.Message}",
     };
 }

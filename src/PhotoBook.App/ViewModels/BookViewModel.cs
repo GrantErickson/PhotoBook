@@ -92,6 +92,12 @@ public sealed partial class BookViewModel : ObservableObject
     /// <summary>Photos of the month that no page uses — the Unplaced bin (R10, R13).</summary>
     public ObservableCollection<PhotoItemViewModel> UnplacedBin { get; } = [];
 
+    /// <summary>
+    /// Raised for messages too long or too important for the status line — setup instructions and
+    /// sign-in failures. The shell shows these in the dismissible toast, which wraps.
+    /// </summary>
+    public event Action<string>? ErrorRaised;
+
     public bool HasPhotos => Photos.Count > 0;
 
     public bool HasPages => Pages.Count > 0;
@@ -327,6 +333,39 @@ public sealed partial class BookViewModel : ObservableObject
         }).ConfigureAwait(true);
 
         IsBusy = false;
+    }
+
+    /// <summary>
+    /// Signs in to OneDrive through the WAM broker and lists the albums available as a book source.
+    /// Until the user has created an app registration this fails with the actionable setup message
+    /// rather than an exception dialog.
+    /// </summary>
+    [RelayCommand]
+    private async Task SyncOneDriveAsync()
+    {
+        try
+        {
+            using var client = Ingestion.OneDrive.OneDriveClient.CreateFromConfiguration(
+                configurationFilePath: null, parentWindow: WindowHandles.Main);
+
+            await _jobs.RunAsync("Signing in to OneDrive", async job =>
+            {
+                job.Status = "Waiting for the Windows account picker…";
+                var albums = await client.ListAlbumsAsync(job.Cancellation.Token).ConfigureAwait(false);
+
+                JobQueue.PostUi(() => StatusMessage = albums.Count == 0
+                    ? $"Signed in as {client.Authenticator.SignedInAccount}. No albums found in OneDrive."
+                    : $"Signed in as {client.Authenticator.SignedInAccount}. {albums.Count} album(s) available.");
+            }).ConfigureAwait(true);
+        }
+        catch (Ingestion.OneDrive.OneDriveNotConfiguredException ex)
+        {
+            ErrorRaised?.Invoke(ex.Message);
+        }
+        catch (Ingestion.OneDrive.OneDriveSignInException ex)
+        {
+            ErrorRaised?.Invoke(ex.Message);
+        }
     }
 
     [RelayCommand]

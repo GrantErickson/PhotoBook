@@ -49,11 +49,16 @@ public sealed class OneDriveClient : IOneDriveClient, IDisposable
     /// client id exists yet (see <c>SETUP.md</c>).
     /// </summary>
     /// <param name="configurationFilePath">An explicit configuration file; null uses the documented search order.</param>
+    /// <param name="parentWindow">
+    /// Returns the HWND the WAM account picker parents to. A UI host should pass its main window
+    /// handle so the picker cannot open behind the app.
+    /// </param>
     /// <exception cref="OneDriveNotConfiguredException">OneDrive has not been set up on this machine.</exception>
-    public static OneDriveClient CreateFromConfiguration(string? configurationFilePath = null)
+    public static OneDriveClient CreateFromConfiguration(
+        string? configurationFilePath = null, Func<IntPtr>? parentWindow = null)
     {
         var configuration = OneDriveConfigurationLoader.LoadRequired(configurationFilePath);
-        return new OneDriveClient(new MsalOneDriveAuthenticator(configuration));
+        return new OneDriveClient(new MsalOneDriveAuthenticator(configuration, parentWindow));
     }
 
     /// <summary>The authenticator in use, exposed so the UI can show the account and offer sign-out.</summary>

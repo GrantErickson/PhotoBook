@@ -37,6 +37,12 @@ Only you can create this; it takes about five minutes and costs nothing. Until i
 OneDrive button explains that setup is needed and does nothing else. **Local folder import doesn't
 need any of this.**
 
+Sign-in uses the **Windows account broker (WAM)**: you get the native Windows account picker rather
+than a browser window, single sign-on from the account you already use on this PC, Windows Hello and
+passkeys working the way the OS intends, and refresh tokens held by Windows instead of by a file we
+manage. If the broker can't run, MSAL falls back to the system browser on its own — which is why you
+register two redirect URIs below.
+
 ### Create the registration
 
 1. Go to <https://entra.microsoft.com> and sign in with the Microsoft account that owns the photos.
@@ -44,35 +50,47 @@ need any of this.**
 3. Name: `PhotoBook` (only you ever see it).
 4. **Supported account types:** choose
    *"Personal Microsoft accounts only"* — a consumer OneDrive is where your photos live.
-5. **Redirect URI:** select platform **Mobile and desktop applications**, and tick the entry
-   `https://login.microsoftonline.com/common/oauth2/nativeclient`.
-   *(If you'd rather use the loopback flow, add `http://localhost` instead and put that same value
-   in `redirectUri` below.)*
-6. **Register**.
-7. On the app's **Overview** page, copy the **Application (client) ID** — a GUID like
-   `11111111-2222-3333-4444-555555555555`.
+5. **Register** (leave the redirect URI blank here; it's easier to add both in one place next).
+
+### Add the redirect URIs
+
+6. Open **Authentication → Add a platform → Mobile and desktop applications**.
+   The platform matters: it is what marks the app as a *public client*. Adding these under **Web**
+   instead will fail at sign-in with a confusing error.
+7. In **Custom redirect URIs**, add both of these, replacing `<client-id>` with the GUID from the
+   app's **Overview** page:
+
+   | Redirect URI | Why |
+   |---|---|
+   | `ms-appx-web://microsoft.aad.brokerplugin/<client-id>` | The WAM broker — the normal path |
+   | `http://localhost` | Browser fallback when the broker is unavailable |
+
+8. Save. Then copy the **Application (client) ID** from **Overview**.
 
 ### Grant the permissions
 
-8. **API permissions → Add a permission → Microsoft Graph → Delegated permissions**.
-9. Add **`Files.Read`** and **`User.Read`**. Nothing more — PhotoBook never writes to OneDrive.
-10. No admin consent is needed for a personal account; you'll consent yourself at first sign-in.
+9. **API permissions → Add a permission → Microsoft Graph → Delegated permissions**.
+10. Add **`Files.Read`** and **`User.Read`**. Nothing more — PhotoBook never writes to OneDrive.
+11. No admin consent is needed for a personal account; you'll consent yourself at first sign-in.
 
 ### Tell PhotoBook the client id
 
-Create `%LOCALAPPDATA%\PhotoBook\onedrive.json`:
+Create `%LOCALAPPDATA%\PhotoBook\onedrive.json` with **your** client id:
 
 ```json
 {
   "schemaVersion": 1,
-  "clientId": "11111111-2222-3333-4444-555555555555",
+  "clientId": "00000000-0000-0000-0000-000000000000",
   "authority": "https://login.microsoftonline.com/consumers",
-  "redirectUri": "https://login.microsoftonline.com/common/oauth2/nativeclient",
   "scopes": ["User.Read", "Files.Read"]
 }
 ```
 
-Only `clientId` is required; the rest have those values as defaults.
+`clientId` is the only field you need; the others are already the defaults.
+
+> **Do not set `redirectUri` here.** Leave it out and MSAL uses the broker's own redirect, falling
+> back to `http://localhost` for the browser path. Pinning a value overrides both and is the fastest
+> way to break sign-in. The field exists only for a registration that deviates from the above.
 
 ```powershell
 $dir = "$env:LOCALAPPDATA\PhotoBook"
@@ -83,9 +101,21 @@ New-Item -ItemType Directory -Force $dir | Out-Null
 Alternatively set the environment variable `PHOTOBOOK_ONEDRIVE_CLIENT_ID`, which wins over the file.
 `PHOTOBOOK_ONEDRIVE_CONFIG` points at a different config file if you want one.
 
+The placeholder GUIDs above are rejected on purpose: copying the sample without editing it gives you
+the friendly "not set up yet" message rather than an opaque sign-in failure.
+
 **The client id is not a secret** — it identifies the app, not you — but it deliberately lives
-outside the project folder so `book.json` stays shareable. Sign-in tokens are cached encrypted under
-your Windows account (DPAPI) and never enter the project.
+outside the project folder so `book.json` stays shareable. Tokens live in the Windows broker, with a
+DPAPI-encrypted MSAL cache under your Windows account as backup; neither ever enters the project.
+
+### If sign-in fails
+
+| What you see | What it means |
+|---|---|
+| "…missing the broker redirect URI" | Step 7's `ms-appx-web://…` entry is absent or has the wrong client id. |
+| "…not allowed to sign in personal Microsoft accounts" | Step 4 was set to an organizational option; change it to personal accounts. |
+| "OneDrive rejected the application id" | The GUID in `onedrive.json` doesn't match the registration. |
+| The account picker never appears | Usually the broker redirect URI; check step 7 before anything else. |
 
 ### How the picking workflow goes
 

@@ -44,9 +44,12 @@ public sealed class OneDriveNotConfiguredException : InvalidOperationException
         foreach (var line in OneDriveConfiguration.SampleJson.Split('\n'))
             message.AppendLine("     " + line.TrimEnd('\r'));
         message.AppendLine();
-        message.AppendLine("The app registration must be a public client with the redirect URI http://localhost,");
-        message.AppendLine("support personal Microsoft accounts, and request the delegated scopes User.Read and");
-        message.AppendLine("Files.Read (read-only — PhotoBook never writes to OneDrive).");
+        message.AppendLine("The registration must support personal Microsoft accounts, request the delegated");
+        message.AppendLine("scopes User.Read and Files.Read (read-only — PhotoBook never writes to OneDrive),");
+        message.AppendLine("and carry both redirect URIs under \"Mobile and desktop applications\":");
+        message.AppendLine();
+        message.AppendLine("     ms-appx-web://microsoft.aad.brokerplugin/<your-client-id>   (Windows sign-in)");
+        message.AppendLine("     http://localhost                                            (browser fallback)");
         message.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(configuration.SourceDescription))

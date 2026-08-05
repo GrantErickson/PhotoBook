@@ -129,6 +129,34 @@ public sealed class ThumbnailProvider
     }
 }
 
+/// <summary>
+/// The shell's main-window handle. The WAM account picker parents to it, so without this the
+/// Windows sign-in dialog can open behind the app.
+/// </summary>
+public static class WindowHandles
+{
+    /// <summary>
+    /// Returns the main window's HWND, or <see cref="IntPtr.Zero"/> before it exists. MSAL invokes
+    /// this from whichever thread is acquiring the token, and <c>Application.MainWindow</c> is a
+    /// DispatcherObject, so the lookup marshals to the UI thread rather than throwing.
+    /// </summary>
+    public static IntPtr Main()
+    {
+        var app = System.Windows.Application.Current;
+        if (app is null)
+        {
+            return IntPtr.Zero;
+        }
+
+        return app.Dispatcher.CheckAccess() ? Handle(app) : app.Dispatcher.Invoke(() => Handle(app));
+    }
+
+    private static IntPtr Handle(System.Windows.Application app) =>
+        app.MainWindow is { } window
+            ? new System.Windows.Interop.WindowInteropHelper(window).Handle
+            : IntPtr.Zero;
+}
+
 /// <summary>Converts the renderer's BGRA8888 output into a WPF bitmap without an extra copy pass.</summary>
 public static class PixelBridge
 {

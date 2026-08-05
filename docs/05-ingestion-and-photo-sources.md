@@ -58,7 +58,18 @@ they land, current month first.
   OneDrive, so no write scope is ever requested.
 - **Flow:** WAM broker (`WithBroker`) first for silent Windows SSO; interactive system-browser
   fallback. `AcquireTokenSilent` on every sync; interactive prompt only when the refresh token is
-  dead.
+  dead. The broker needs the `Microsoft.Identity.Client.Broker` package, which ships the native
+  `msalruntime` used by the Windows account picker.
+- **Redirect URIs:** the registration carries **both**
+  `ms-appx-web://microsoft.aad.brokerplugin/{client-id}` (broker) and `http://localhost` (browser
+  fallback), registered under the portal's *Mobile and desktop applications* platform — that
+  platform is what marks the app a public client. `redirectUri` is deliberately left unset in
+  `onedrive.json`: MSAL then picks the broker's own redirect and falls back to loopback by itself,
+  whereas pinning either value breaks the other path. The legacy `nativeclient` redirect is **not**
+  used; it belongs to embedded-webview flows, which this app does not host.
+- **Parent window:** WAM parents its account picker to a caller-supplied HWND, so the app passes
+  the shell's main window handle. Without it the picker can open behind the app. The lookup must
+  marshal to the UI thread — MSAL calls the provider from whichever thread acquires the token.
 - **Token cache:** MSAL cache serialized to `%LOCALAPPDATA%\PhotoBook\msal.cache`, encrypted with
   DPAPI (current user). Tokens and client secrets never enter the project folder — `book.json`
   and friends must stay shareable and human-diffable.
