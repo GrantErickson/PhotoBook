@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-04-text-c",
-  "name": "Filmstrip of four over journal",
+  "name": "Filmstrip over a full journal band",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 4,
@@ -10,26 +10,26 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.412
       },
-      "aspect": 0.9937,
+      "aspect": 0.7287,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.275,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.28
+        "x": 0.262,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.412
       },
-      "aspect": 0.9937,
+      "aspect": 0.7287,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.51,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.28
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.412
       },
-      "aspect": 0.9937,
+      "aspect": 0.7287,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.745,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.28
+        "x": 0.75,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.412
       },
-      "aspect": 0.9937,
+      "aspect": 0.7287,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -68,10 +68,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.06,
-        "y": 0.42,
-        "w": 0.88,
-        "h": 0.5
+        "x": 0.055,
+        "y": 0.47,
+        "w": 0.91,
+        "h": 0.475
       },
       "role": "journal",
       "align": "left"

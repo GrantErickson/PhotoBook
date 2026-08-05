@@ -40,6 +40,7 @@ public sealed partial class PageEditorViewModel : ObservableObject
     private readonly ProjectSession _session;
     private readonly UndoStack _undo;
     private readonly ThumbnailProvider? _thumbnails;
+    private readonly EditorSettingsService? _settings;
 
     private Chapter? _chapter;
     private IDisposable? _gesture;
@@ -50,7 +51,12 @@ public sealed partial class PageEditorViewModel : ObservableObject
     /// <param name="session">The open project — the single writer.</param>
     /// <param name="undo">The book's undo stack.</param>
     /// <param name="thumbnails">Cached thumbnails, for the drag ghost; optional.</param>
-    public PageEditorViewModel(ProjectSession session, UndoStack undo, ThumbnailProvider? thumbnails = null)
+    /// <param name="settings">Per-user editor preferences, so the guides toggle survives a restart; optional.</param>
+    public PageEditorViewModel(
+        ProjectSession session,
+        UndoStack undo,
+        ThumbnailProvider? thumbnails = null,
+        EditorSettingsService? settings = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(undo);
@@ -58,8 +64,12 @@ public sealed partial class PageEditorViewModel : ObservableObject
         _session = session;
         _undo = undo;
         _thumbnails = thumbnails;
+        _settings = settings;
         _undo.Changed += OnUndoStackChanged;
+        _showGuides = settings?.Settings.PageGuidesVisible ?? false;
 
+        // Guides are an editor overlay drawn by PageCanvas from this very geometry, never baked into
+        // the page bitmap: what the renderer produces here is exactly what the PDF gets (ADR-0003).
         Renderer = context =>
         {
             var chapter = _chapter;
@@ -67,7 +77,7 @@ public sealed partial class PageEditorViewModel : ObservableObject
                 ? null
                 : _session.RenderPage(
                     chapter, context.Page, context.PixelWidth, context.PixelHeight,
-                    showFlags: false, drawGuides: ShowGuides);
+                    showFlags: false, drawGuides: false);
         };
     }
 
@@ -120,11 +130,22 @@ public sealed partial class PageEditorViewModel : ObservableObject
     [ObservableProperty]
     private double _viewportZoom = 1.0;
 
-    /// <summary>Trim, safe and gutter guides over the page (the <c>G</c> key, doc 09 §5).</summary>
+    /// <summary>
+    /// Bleed, trim, safe and gutter guides over the page (the <c>G</c> key, doc 09 §5). Off by
+    /// default and remembered per user, like every other editor preference (doc 09 §3.5).
+    /// </summary>
     [ObservableProperty]
     private bool _showGuides;
 
-    partial void OnShowGuidesChanged(bool value) => Refresh();
+    partial void OnShowGuidesChanged(bool value)
+    {
+        if (_settings is not null)
+        {
+            _settings.Settings.PageGuidesVisible = value;
+        }
+
+        Refresh();
+    }
 
     /// <summary>Turns the trim/safe/gutter guides on or off.</summary>
     [RelayCommand]

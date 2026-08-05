@@ -1,79 +1,80 @@
 {
   "schemaVersion": 1,
   "id": "t-05-text-a",
-  "name": "Hero over a 2x2 grid, journal rail",
+  "name": "Hero with a four-up grid, journal on a scrim",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 5,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.34,
-        "y": 0.06,
-        "w": 0.62,
-        "h": 0.44
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.498,
+        "h": 0.917
       },
-      "aspect": 1.8235,
+      "aspect": 0.7028,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.34,
-        "y": 0.52,
-        "w": 0.3,
-        "h": 0.2
+        "x": 0.534,
+        "y": 0.024,
+        "w": 0.218,
+        "h": 0.4525
       },
-      "aspect": 1.9412,
+      "aspect": 0.6235,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.66,
-        "y": 0.52,
-        "w": 0.3,
-        "h": 0.2
+        "x": 0.764,
+        "y": 0.024,
+        "w": 0.218,
+        "h": 0.4525
       },
-      "aspect": 1.9412,
+      "aspect": 0.6235,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.34,
-        "y": 0.74,
-        "w": 0.3,
-        "h": 0.2
+        "x": 0.534,
+        "y": 0.4925,
+        "w": 0.218,
+        "h": 0.4525
       },
-      "aspect": 1.9412,
+      "aspect": 0.6235,
       "aspectTolerance": 0.35,
-      "tierAffinity": "C",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s5",
       "rect": {
-        "x": 0.66,
-        "y": 0.74,
-        "w": 0.3,
-        "h": 0.2
+        "x": 0.764,
+        "y": 0.4925,
+        "w": 0.218,
+        "h": 0.4525
       },
-      "aspect": 1.9412,
+      "aspect": 0.6235,
       "aspectTolerance": 0.35,
-      "tierAffinity": "C",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     }
@@ -82,13 +83,14 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.06,
-        "w": 0.24,
-        "h": 0.86
+        "x": 0.06,
+        "y": 0.58,
+        "w": 0.42,
+        "h": 0.33
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

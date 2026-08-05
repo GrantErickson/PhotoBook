@@ -214,14 +214,70 @@ public sealed class TemplateCatalog
     }
 
     /// <summary>
-    /// Total slot coverage as a fraction of the trim box, clipped to the page — the input to
-    /// <c>S_pacing</c>'s "coverage within ±10% of page demand" term (doc 08 §6).
+    /// Slot coverage as a fraction of the trim box: the area of the <b>union</b> of the template's
+    /// image slots, clipped to the page. This is the input to <c>S_coverage</c> (doc 08 §6) and it
+    /// answers the only question that term cares about — how much of the page is picture rather than
+    /// background. The union, not the sum, is what makes that true once templates overlap slots
+    /// deliberately (doc 07): two slots sharing a corner cover the page once, not twice, and a summed
+    /// figure would score an overlapping layout as fuller than it looks.
+    /// <para>
+    /// Computed by coordinate compression over the slots' own edges — exact, allocation-light at
+    /// n ≤ 8, and free of any floating-point ordering surprises, so it stays bit-reproducible (§9).
+    /// </para>
     /// </summary>
     public static double SlotCoverage(Template template)
     {
         ArgumentNullException.ThrowIfNull(template);
-        var total = 0.0;
-        foreach (var slot in template.Slots) total += Rect.Unit.IntersectionArea(slot.Rect);
-        return total;
+
+        var rects = new List<Rect>(8);
+        foreach (var slot in template.Slots)
+        {
+            var left = Math.Max(0.0, slot.Rect.X);
+            var top = Math.Max(0.0, slot.Rect.Y);
+            var right = Math.Min(1.0, slot.Rect.Right);
+            var bottom = Math.Min(1.0, slot.Rect.Bottom);
+            if (right > left && bottom > top) rects.Add(Rect.FromEdges(left, top, right, bottom));
+        }
+
+        if (rects.Count == 0) return 0;
+        if (rects.Count == 1) return rects[0].Area;
+
+        var xs = new List<double>(rects.Count * 2);
+        var ys = new List<double>(rects.Count * 2);
+        foreach (var rect in rects)
+        {
+            xs.Add(rect.X);
+            xs.Add(rect.Right);
+            ys.Add(rect.Y);
+            ys.Add(rect.Bottom);
+        }
+
+        xs.Sort();
+        ys.Sort();
+
+        var area = 0.0;
+        for (var i = 0; i < xs.Count - 1; i++)
+        {
+            var width = xs[i + 1] - xs[i];
+            if (width <= 0) continue;
+
+            for (var j = 0; j < ys.Count - 1; j++)
+            {
+                var height = ys[j + 1] - ys[j];
+                if (height <= 0) continue;
+
+                foreach (var rect in rects)
+                {
+                    if (rect.X <= xs[i] && rect.Right >= xs[i + 1] &&
+                        rect.Y <= ys[j] && rect.Bottom >= ys[j + 1])
+                    {
+                        area += width * height;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return area;
     }
 }

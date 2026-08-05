@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-05-text-b",
-  "name": "Three over two, journal at the corner",
+  "name": "Three above two, journal beside",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 5,
@@ -10,40 +10,40 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.2933,
-        "h": 0.32
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.492
       },
-      "aspect": 1.1861,
-      "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
-      "bleed": false
-    },
-    {
-      "id": "s2",
-      "rect": {
-        "x": 0.3533,
-        "y": 0.05,
-        "w": 0.2933,
-        "h": 0.32
-      },
-      "aspect": 1.1861,
+      "aspect": 0.8242,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
+      "id": "s2",
+      "rect": {
+        "x": 0.3433,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.492
+      },
+      "aspect": 0.8242,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
       "id": "s3",
       "rect": {
-        "x": 0.6667,
-        "y": 0.05,
-        "w": 0.2933,
-        "h": 0.32
+        "x": 0.6687,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.492
       },
-      "aspect": 1.1861,
+      "aspect": 0.8242,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.41,
-        "w": 0.2933,
-        "h": 0.3
+        "x": 0.018,
+        "y": 0.54,
+        "w": 0.23,
+        "h": 0.405
       },
-      "aspect": 1.2652,
+      "aspect": 0.7349,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,12 +66,12 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.3533,
-        "y": 0.41,
-        "w": 0.2933,
-        "h": 0.3
+        "x": 0.26,
+        "y": 0.54,
+        "w": 0.23,
+        "h": 0.405
       },
-      "aspect": 1.2652,
+      "aspect": 0.7349,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -82,10 +82,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.6667,
-        "y": 0.41,
-        "w": 0.2933,
-        "h": 0.5
+        "x": 0.51,
+        "y": 0.56,
+        "w": 0.455,
+        "h": 0.38
       },
       "role": "journal",
       "align": "left"

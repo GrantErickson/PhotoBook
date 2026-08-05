@@ -20,6 +20,13 @@ public sealed record PageSegment
     /// <summary>True when the segment is a merged <c>multiDay</c> page (R28).</summary>
     public required bool IsMerge { get; init; }
 
+    /// <summary>
+    /// True when the segment <b>absorbed</b> weak straggler days into a neighbour's ordinary page
+    /// (doc 08 §5): the covered days are flattened into one chronological photo stream and laid out
+    /// exactly like a single day. Never set together with <see cref="IsMerge"/>.
+    /// </summary>
+    public bool IsAbsorb { get; init; }
+
     /// <summary>The side the segment's first page falls on.</summary>
     public required PageSide StartSide { get; init; }
 
@@ -37,11 +44,18 @@ public sealed record PageSegment
 /// Phase 3 of doc 08 — exact dynamic-programming page partitioning over the day sequence.
 /// <para>
 /// The state is <c>dp[i][par]</c>: the minimal cost of laying out days <c>1..i</c> when the
-/// <em>next</em> page to be emitted has parity <c>par</c>. Two transitions relax it — merging
-/// <c>1 &lt; m ≤ MAX_DAYS_PER_PAGE</c> sparse days onto one page (R28) and splitting one day across
-/// <c>k</c> pages — with the cost function of §5. The state space is ≤ 31 days × 2 parities, so
-/// exactness costs nothing and, unlike greedy packing, small input changes produce small output
-/// changes, which is what keeps relayout churn low.
+/// <em>next</em> page to be emitted has parity <c>par</c>. Three transitions relax it — merging
+/// <c>1 &lt; m ≤ MAX_DAYS_PER_PAGE</c> sparse days onto one <c>multiDay</c> page (R28), splitting one
+/// day across <c>k</c> pages, and absorbing weak straggler days into a neighbour's ordinary page —
+/// with the cost function of §5. The state space is ≤ 31 days × 2 parities, so exactness costs
+/// nothing and, unlike greedy packing, small input changes produce small output changes, which is
+/// what keeps relayout churn low.
+/// </para>
+/// <para>
+/// The solo-page rule of §4b lives in the same objective: every transition pays
+/// <see cref="DemandModel.SoloPageCost"/> for the single-photo pages its shape forces, so "a lame
+/// photo must not get a page to itself" is a term in the cost, not a filter bolted on afterwards, and
+/// it trades off against merging and splitting like everything else.
 /// </para>
 /// </summary>
 public static class PagePartitioner
@@ -60,11 +74,16 @@ public static class PagePartitioner
     /// exact shape exists and can hold each day's text, so phase 4 can never be handed an
     /// unsatisfiable merge.
     /// </param>
+    /// <param name="absorbAllowed">
+    /// Structural gate on a candidate absorb, called as <c>(firstDayIndex, dayCount)</c>. Null
+    /// disables the transition entirely, which restores the doc's original two-transition DP.
+    /// </param>
     public static IReadOnlyList<PageSegment> Partition(
         IReadOnlyList<LayoutDay> days,
         PageSide startParity,
         LayoutWeights weights,
-        Func<int, int, bool> mergeAllowed)
+        Func<int, int, bool> mergeAllowed,
+        Func<int, int, bool>? absorbAllowed = null)
     {
         ArgumentNullException.ThrowIfNull(days);
         ArgumentNullException.ThrowIfNull(weights);
@@ -75,10 +94,27 @@ public static class PagePartitioner
 
         var demand = new double[n];
         var textDemand = new double[n];
+
+        // Prefix sums over the day sequence, so an absorb run's combined photo count and its share of
+        // photos that have not earned a solo page (doc 08 §4b) are O(1) per candidate.
+        var photosBefore = new int[n + 1];
+        var unearnedBefore = new int[n + 1];
+
         for (var i = 0; i < n; i++)
         {
             demand[i] = DemandModel.Demand(days[i], weights);
             textDemand[i] = DemandModel.TextDemand(days[i], weights);
+
+            var unearned = 0;
+            foreach (var photo in days[i].Photos)
+            {
+                // An absorbed run always holds ≥ 2 photos, so the "genuinely the day's only photo"
+                // clause of §4b can never apply inside one: only S/A photos earn a page there.
+                if (!DemandModel.EarnsSoloPage(photo, 2, weights)) unearned++;
+            }
+
+            photosBefore[i + 1] = photosBefore[i] + days[i].Photos.Count;
+            unearnedBefore[i + 1] = unearnedBefore[i] + unearned;
         }
 
         // dp[i, par] = best cost for days 1..i with the next page on side `par`.
@@ -113,7 +149,54 @@ public static class PagePartitioner
                                + weights.MergeCost * (merged - 1);
 
                     Relax(dp, back, i, Flip(par), cost,
-                        new Step(j, par, PageCount: 1, DayCount: merged, IsMerge: true, ParityViolated: false, Demand: d));
+                        new Step(j, par, PageCount: 1, DayCount: merged, IsMerge: true, IsAbsorb: false,
+                            ParityViolated: false, Demand: d));
+                }
+
+                // ── Absorb endings: days j+1..i flattened onto one day's pages (doc 08 §5). ───
+                if (weights.EnableStragglerAbsorb && absorbAllowed is not null)
+                {
+                    for (var j = earliest; j <= i - 1; j++)
+                    {
+                        var merged = i - j;
+                        if (merged < 2) continue;
+                        if (double.IsPositiveInfinity(dp[j, par])) continue;
+                        if (!absorbAllowed(j, merged)) continue;
+
+                        var combinedPhotos = photosBefore[i] - photosBefore[j];
+                        if (combinedPhotos == 0) continue;
+
+                        var combinedUnearned = unearnedBefore[i] - unearnedBefore[j];
+                        var combinedDemand = 0.0;
+                        var combinedText = 0.0;
+                        for (var d = j; d < i; d++)
+                        {
+                            combinedDemand += demand[d];
+                            combinedText += textDemand[d];
+                        }
+
+                        var absorbMin = Math.Max(1, CeilDiv(combinedPhotos, weights.MaxSlotsPerPage));
+                        var absorbMax = Math.Max(absorbMin, (int)Math.Ceiling(weights.SplitPageFactor * combinedDemand));
+                        absorbMax = Math.Max(absorbMin, Math.Min(absorbMax, combinedPhotos));
+
+                        var absorbSpread = combinedText > weights.MaxTextPerPage;
+                        if (absorbSpread && combinedPhotos >= 2) absorbMin = Math.Max(absorbMin, 2);
+                        if (absorbMax < absorbMin) absorbMax = absorbMin;
+
+                        for (var k = absorbMin; k <= absorbMax; k++)
+                        {
+                            var violated = absorbSpread && (PageSide)par == PageSide.Right;
+                            var cost = dp[j, par]
+                                       + weights.FitWeight * DemandModel.FitCost(k, combinedDemand)
+                                       + weights.AbsorbCost * (merged - 1)
+                                       + SoloCost(combinedPhotos, combinedUnearned, k, weights)
+                                       + (violated ? weights.ParityPenalty : 0);
+
+                            Relax(dp, back, i, ParityAfter(par, k), cost,
+                                new Step(j, par, PageCount: k, DayCount: merged, IsMerge: false, IsAbsorb: true,
+                                    ParityViolated: violated, Demand: combinedDemand));
+                        }
+                    }
                 }
 
                 // ── Split endings: day i alone over k pages. ──────────────────────────────────
@@ -141,10 +224,11 @@ public static class PagePartitioner
                     var parityViolated = needsSpread && (PageSide)par == PageSide.Right;
                     var cost = dp[i - 1, par]
                                + weights.FitWeight * DemandModel.FitCost(k, d1)
+                               + DemandModel.SoloPageCost(day.Photos, k, weights)
                                + (parityViolated ? weights.ParityPenalty : 0);
 
                     Relax(dp, back, i, ParityAfter(par, k), cost,
-                        new Step(i - 1, par, PageCount: k, DayCount: 1, IsMerge: false,
+                        new Step(i - 1, par, PageCount: k, DayCount: 1, IsMerge: false, IsAbsorb: false,
                             ParityViolated: parityViolated, Demand: d1));
                 }
             }
@@ -165,14 +249,21 @@ public static class PagePartitioner
             var step = back[index, parity];
             if (step is null) return Fallback(days, startParity, weights, demand);
 
+            var spread = 0.0;
+            if (!step.IsMerge)
+            {
+                for (var d = step.PreviousDay; d < index; d++) spread += textDemand[d];
+            }
+
             segments.Add(new PageSegment
             {
                 FirstDayIndex = step.PreviousDay,
                 DayCount = step.DayCount,
                 PageCount = step.PageCount,
                 IsMerge = step.IsMerge,
+                IsAbsorb = step.IsAbsorb,
                 StartSide = (PageSide)step.PreviousParity,
-                TextNeedsSpread = !step.IsMerge && textDemand[index - 1] > weights.MaxTextPerPage,
+                TextNeedsSpread = !step.IsMerge && spread > weights.MaxTextPerPage,
                 ParityViolated = step.ParityViolated,
                 Demand = step.Demand,
             });
@@ -189,7 +280,9 @@ public static class PagePartitioner
     /// Splits a day's photos across <paramref name="pages"/> pages at the largest time gaps, so
     /// breakfast / park / dinner clusters fall out naturally (doc 08 §5). Every page gets between 1
     /// and <see cref="LayoutWeights.MaxSlotsPerPage"/> photos; equal gaps are broken by the seeded
-    /// content hash, never by position.
+    /// content hash, never by position. A part is cut down to a single photo only when that photo has
+    /// earned a page to itself (§4b) — otherwise the cut pays
+    /// <see cref="LayoutWeights.SoloPartPenalty"/> and the boundary moves.
     /// </summary>
     /// <param name="photos">The day's photos in chronological order.</param>
     /// <param name="pages">How many pages to cut into.</param>
@@ -241,6 +334,17 @@ public static class PagePartitioner
             return balance * delta * delta;
         }
 
+        // The solo-page rule of §4b applied to the cut itself: a part of exactly one photo is a page
+        // holding one photo, and it is only allowed when that photo earned it. The penalty is larger
+        // than the largest possible normalized gap, so not even a day boundary — the biggest gap there
+        // is, and exactly what an absorbed straggler sits behind — can strand a weak frame alone.
+        var soloPenalty = Math.Max(0, weights.SoloPartPenalty);
+
+        double PartCost(int start, int size) =>
+            size == 1 && soloPenalty > 0 && !DemandModel.EarnsSoloPage(photos[start], n, weights)
+                ? soloPenalty
+                : 0;
+
         // best[i, j] = maximal total cut weight using j cuts among the first i photos, where the
         // last part ends at photo i-1. Parts have 1..maxPer photos (1..firstMax for the first).
         var best = new double[n + 1, pages + 1];
@@ -264,7 +368,8 @@ public static class PagePartitioner
                 for (var p = lower; p <= i - 1; p++)
                 {
                     if (double.IsNegativeInfinity(best[p, j - 1])) continue;
-                    var value = best[p, j - 1] + (p == 0 ? 0 : gap[p] / scale) - Penalty(i - p);
+                    var value = best[p, j - 1] + (p == 0 ? 0 : gap[p] / scale)
+                                - Penalty(i - p) - PartCost(p, i - p);
                     if (value > best[i, j])
                     {
                         best[i, j] = value;
@@ -367,6 +472,19 @@ public static class PagePartitioner
 
     private static int CeilDiv(int a, int b) => b <= 0 ? a : (a + b - 1) / b;
 
+    /// <summary>
+    /// <c>SOLO_PAGE_COST × forcedSoloPages × unearnedShare</c> from counts alone — the prefix-sum form
+    /// of <see cref="DemandModel.SoloPageCost"/> used by the absorb transition (doc 08 §4b).
+    /// </summary>
+    private static double SoloCost(int photoCount, int unearned, int pages, LayoutWeights weights)
+    {
+        if (photoCount <= 0 || unearned <= 0) return 0;
+        var forced = DemandModel.ForcedSoloPages(photoCount, pages);
+        if (forced == 0) return 0;
+        return weights.SoloPageCost * forced * ((double)unearned / photoCount);
+    }
+
     private sealed record Step(
-        int PreviousDay, int PreviousParity, int PageCount, int DayCount, bool IsMerge, bool ParityViolated, double Demand);
+        int PreviousDay, int PreviousParity, int PageCount, int DayCount, bool IsMerge, bool IsAbsorb,
+        bool ParityViolated, double Demand);
 }

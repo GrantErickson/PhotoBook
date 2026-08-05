@@ -128,6 +128,54 @@ Worked examples (calibration targets, also used as unit-test fixtures):
 - One day, 8 B photos, no journal → 0.93 → **one full page**.
 - Birthday, 40 photos (6 S, 12 A, 22 B) + 1900-char entry → 6.78 → **6–7 pages**.
 
+These three are regression anchors, asserted by `Doc08CalibrationTests`. The §4b solo-page rule and
+the §6 coverage retune below leave all three page counts unchanged: none of the three examples
+contains a day whose photo count is one, so no solo-page cost is ever charged, and coverage is a
+phase-4 term that cannot move a page count.
+
+### 4b. The solo-page rule
+
+> **Decision:** A page may hold a **single photo only when that photo has earned it.** Rationale
+> (inline): the user's words after the first real month were *"When there is only a single picture
+> for a page, it should be large. However, if the picture is lame include it on another page."* A
+> lone photo on a page is the most emphatic gesture the book has; spending it on a weak frame is
+> worse than spending it on nothing. The rule belongs in the demand model rather than in a
+> post-filter because "this photo does not deserve a page" is a statement about *how much room the
+> day deserves*, and expressing it as a cost is what lets it trade off against the merge and split
+> transitions of §5 instead of fighting them.
+
+```
+earnsSoloPage(p, streamCount) =
+      rank(tierEff(p)) ≤ rank(SOLO_TIER)                    // S or A: always
+   or (streamCount ≤ 1 and rank(tierEff(p)) ≤ rank(LONE_DAY_TIER))   // the day's only photo, and not bottom-tier
+
+weakStraggler(d) = d.photos.Count == 1 and not earnsSoloPage(d.photos[0], 1)
+```
+
+`streamCount` is the number of photos in the run being cut into pages — the Day Group, or the
+absorbed run of days of §5. Tier is the **effective** tier, so promoting a photo (R26) is also how
+the user says "yes, this one *does* deserve its own page".
+
+Every page-producing transition of §5 pays for the single-photo pages its shape forces:
+
+```
+forcedSoloPages(n, k) = max(0, 2k − n)     // every part holds ≥ 1 photo, so once the parts of
+                                           // two or more run out, 2k − n parts are forced to one
+unearnedShare(photos)  = |{p : not earnsSoloPage(p, n)}| / n
+soloCost(photos, k)    = SOLO_PAGE_COST · forcedSoloPages(n, k) · unearnedShare(photos)
+```
+
+| Constant | Default | Meaning / tuning note |
+|---|---|---|
+| `SOLO_TIER` | A | worst tier that earns a solo page unconditionally |
+| `LONE_DAY_TIER` | B | worst tier that earns a solo page when it is genuinely the day's only photo |
+| `SOLO_PAGE_COST` | 0.45 | charged per forced, unearned single-photo page; same order as `PARITY_PENALTY`, so the DP will accept a whole page of misfit rather than strand a weak frame |
+| `SOLO_PART_PENALTY` | 1.25 | the same rule inside one day's photo cut (§5), in normalized time-gap units — above the largest possible normalized gap (1.0), so not even a day boundary can shed one weak frame onto its own page |
+
+The rule is deliberately *narrow*: it removes stragglers, not single-photo pages. A day with one
+B-tier photo still gets its page, and an S or A photo anywhere gets one whenever the partitioner
+finds it cheap — where §6's `S_coverage` then makes sure it renders large.
+
 ## 5. Phase 3 — DP page partitioning
 
 > **Decision:** Page partitioning is exact dynamic programming over the day sequence, not a
@@ -137,10 +185,10 @@ Worked examples (calibration targets, also used as unit-test fixtures):
 > input perturbations — which keeps relayout churn low.
 
 The DP chooses, for the ordered sequence `d[1..n]` of Day Groups, a segmentation into **page
-runs**: either several consecutive sparse days merged onto one `multiDay` page (R28) or one day
-split across `k ≥ 1` pages. It tracks Spread parity so that (a) a day whose text needs two pages
-lands on a left page, and (b) `spreadPair` and full-Spread templates (R18, R22) are only offered
-to left-parity pages.
+runs**: several consecutive sparse days merged onto one `multiDay` page (R28), one day split across
+`k ≥ 1` pages, or a weak straggler day absorbed into a neighbour's ordinary page (§4b). It tracks
+Spread parity so that (a) a day whose text needs two pages lands on a left page, and (b)
+`spreadPair` and full-Spread templates (R18, R22) are only offered to left-parity pages.
 
 **State.** `dp[i][par]` = minimal cost to lay out days `1..i`, where `par ∈ {Left, Right}` is the
 parity of the *next* page to be emitted. `dp[0][startParity] = 0`.
@@ -156,20 +204,36 @@ parity of the *next* page to be emitted. `dp[0][startParity] = 0`.
    Spread for its text: require `k ≥ 2` and `par == Left`; from `par == Right` this transition
    instead carries `PARITY_PENALTY` and raises a `TextNeedsSpread` diagnostic (surfaced by
    preflight, [12-pdf-export.md](12-pdf-export.md)).
+3. **Absorb** days `j+1..i` (with `2 ≤ i−j ≤ MAX_DAYS_PER_PAGE`) into **one flattened photo
+   stream**, laid out over `k` pages exactly like a single day. This is the escape hatch §4b needs:
+   R28's merge caps (≤ 3 photos per merged day, plus a `multiDay` template of that exact shape) mean
+   a lone straggler next to a *busy* day cannot merge, and without this transition the DP had no
+   choice but to give it a page of its own. Allowed iff the run is **one host day plus adjacent weak
+   stragglers** — at least one `weakStraggler(d)`, and at most one day that is not one — a
+   single-page template of the resulting photo count exists, and at most one day brings journal text
+   and that text still fits somewhere (two days' entries on a `standard` page would render as one
+   undated block, which is a `multiDay` page's job). Emits `k` pages; `par` flips `k` times.
 
 **Cost function.**
 
 ```
 fitCost(k, D)   = ((k − D) / max(k, D))²                   // 0 = perfect fill, →1 = badly off
 segCost(merge)  = W_FIT·fitCost(1, D) + MERGE_COST·(daysMerged − 1)
-segCost(split)  = W_FIT·fitCost(k, D)
+segCost(split)  = W_FIT·fitCost(k, D) + soloCost(d.photos, k)
+                + (PARITY_PENALTY if spread-text rule violated)
+segCost(absorb) = W_FIT·fitCost(k, D) + ABSORB_COST·(daysAbsorbed − 1) + soloCost(runPhotos, k)
                 + (PARITY_PENALTY if spread-text rule violated)
 ```
+
+`soloCost` is §4b's. A `multiDay` merge keeps each day its own section and heading, so
+`ABSORB_COST > MERGE_COST` makes merging win wherever both apply; absorbing is strictly the
+fallback.
 
 | Constant | Default | Effect when raised |
 |---|---|---|
 | `W_FIT` | 1.0 | pages hug demand more tightly |
 | `MERGE_COST` | 0.08 | fewer multi-day pages; days keep their own page longer |
+| `ABSORB_COST` | 0.12 | stragglers keep their own page longer; must stay above `MERGE_COST` |
 | `PARITY_PENALTY` | 0.50 | engine tries harder to spread-align long-text days |
 | `MAX_DAYS_PER_PAGE` | 3 | matches `multiDay` template sections (kernel §6) |
 
@@ -182,6 +246,12 @@ function PartitionChapter(days, startParity) -> Segment[]
         for j in max(0, i−MAX_DAYS_PER_PAGE)..i−1:
             if MergeAllowed(days[j+1..i]):
                 relax(dp[i][flip(par)], dp[j][par] + segCost(merge j+1..i))
+        // absorb endings
+        for j in max(0, i−MAX_DAYS_PER_PAGE)..i−2:
+            if AbsorbAllowed(days[j+1..i]):
+                run = flatten(days[j+1..i])
+                for k in kMin(run)..kMax(run):
+                    relax(dp[i][parityAfter(par, k)], dp[j][par] + segCost(absorb j+1..i, k))
         // split endings
         d = days[i]
         for k in kMin(d)..kMax(d):
@@ -191,8 +261,12 @@ function PartitionChapter(days, startParity) -> Segment[]
 
 **Distributing a split day's photos.** A day split over `k` pages is cut at the `k−1` largest
 time gaps between consecutive photos (breakfast/park/dinner clusters fall out naturally), subject
-to every page getting 1..8 photos; ties broken by the seeded hash (§9). The journal entry rides
-on the day's first page (or spans the first Spread when `TextNeedsSpread`).
+to every page getting 1..8 photos; ties broken by the seeded hash (§9). A part is cut down to a
+*single* photo only when that photo earned a solo page — otherwise the cut pays `SOLO_PART_PENALTY`
+(§4b) and the boundary moves, which is what stops the enormous day-boundary gap inside an absorbed
+run from simply re-isolating the straggler. The journal entry rides on the day's first page (or
+spans the first Spread when `TextNeedsSpread`). An absorbed run is cut by the same code over its
+flattened photo stream, and its entries ride its first page in date order.
 
 **Pinned pages partition the DP.** Pinned and Detached pages (see §10) are immovable anchors:
 their photos and days are removed from the input sequence, and the DP runs independently on each
@@ -217,17 +291,31 @@ the engine ranks the Template library ([07-layout-template-system.md](07-layout-
 **Soft score** — higher is better, weights sum to 1.0:
 
 ```
-score(t, page) = 0.30·S_aspect + 0.20·S_tier + 0.15·S_text + 0.20·S_variety + 0.15·S_pacing
+score(t, page) = 0.26·S_aspect + 0.17·S_tier + 0.13·S_text + 0.17·S_variety + 0.10·S_pacing
+               + 0.17·S_coverage
                + jitter(t, page)                       // seeded, |jitter| ≤ 0.02, see §9
 ```
 
 | Component | Weight | Definition |
 |---|---|---|
-| `S_aspect` | 0.30 | `1 − meanAssignmentCost` from actually running phase 5's Hungarian on this candidate (n ≤ 8 ⇒ O(8³) is trivial, so scoring uses the *real* assignment, not an estimate) |
-| `S_tier` | 0.20 | mean over slots of `1 − tierDist(photo, slot)` from the same assignment |
-| `S_text` | 0.15 | fill = `chars / capacity`; score = 1.0 for fill ∈ [0.50, 0.85], falling linearly to 0.3 at fill 0.10 (cavernous slot) and to 0 at fill 1.0 |
-| `S_variety` | 0.20 | pacing memory over the already-laid-out chapter prefix: 0 if same template id as previous page; 0.5 if used within last 3 pages; 0.75 if same template *family* (doc 07) within last 2; else 1.0 |
-| `S_pacing` | 0.15 | full-bleed rhythm (R18): `fullBleed` gets 1.0 iff page has an S-tier photo **and** no `fullBleed` in the last 4 pages, else 0.2; non-fullBleed templates get 0.7 baseline + 0.3 if their total slot coverage is within ±10% of `min(1.0, pageDemand)` |
+| `S_aspect` | 0.26 | `1 − meanAssignmentCost` from actually running phase 5's Hungarian on this candidate (n ≤ 8 ⇒ O(8³) is trivial, so scoring uses the *real* assignment, not an estimate) |
+| `S_tier` | 0.17 | mean over slots of `1 − tierDist(photo, slot)` from the same assignment |
+| `S_text` | 0.13 | fill = `chars / capacity`; score = 1.0 for fill ∈ [0.50, 0.85], falling linearly to 0.3 at fill 0.10 (cavernous slot) and to 0 at fill 1.0 |
+| `S_variety` | 0.17 | pacing memory over the already-laid-out chapter prefix: 0 if same template id as previous page; 0.5 if used within last 3 pages; 0.75 if same template *family* (doc 07) within last 2; else 1.0 |
+| `S_pacing` | 0.10 | **rhythm only.** `fullBleed` gets 1.0 iff the page has an S-tier photo **and** no `fullBleed` in the last 4 pages, else 0.2. An **airy** template (coverage < `AIRY_COVERAGE_MAX = 0.55` — deliberate negative space, R20) gets 1.0 when no airy page appeared in the last `AIRY_COOLDOWN = 5` pages and 0.25 when one did. Everything else takes the flat 0.80 baseline: a well-filled page is always in rhythm |
+| `S_coverage` | 0.17 | `min(1, coverage(t) / target)`, where `coverage(t)` is the **union** area of the template's image slots as a fraction of the trim box and `target = SOLO_COVERAGE_TARGET (0.92)` for a page holding one photo, `COVERAGE_TARGET (0.82)` otherwise |
+
+> **Decision:** Coverage is its own, **monotone** score term, and `S_pacing` no longer mentions it.
+> Rationale (inline): the original `S_pacing` gave its coverage bonus for landing within ±10% of the
+> page's *demand*, which meant a page carrying one weak photo (demand ≈ 0.15) scored best on the
+> emptiest template in the library. Measured over the shipped set, mean slot coverage was 0.562 and a
+> lone photo rendered at 0.15–0.46 of the page — exactly the user's *"lots of white/black space. It
+> should be more full."* Making fuller monotonically better fixes that at every demand, and raises
+> the solo-page bar higher still (0.92), so a photo that earned a page under §4b actually renders
+> large. Airiness does not disappear — it is bought back deliberately, and rationed by a cooldown,
+> in `S_pacing`. Coverage is the union rather than the sum of slot rects because templates now
+> overlap slots on purpose (doc 07); a summed figure would score an overlapping layout as fuller than
+> it looks.
 
 The winner is `argmax score`, ties broken by seeded hash of `(templateId, pageIndex)` (§9). The
 winning candidate's Hungarian assignment is kept — phase 5 is not re-run.
@@ -396,7 +484,9 @@ The engine is designed so the R25/R26 review passes in the Photos tab
 - **Tier promote/demote (R26)** sets `userTierOverride` absolutely — never re-derived (kernel
   §4). Effects: demand (§4) rises/falls ⇒ the day may gain/lose a page; `tierDist` (§7) steers
   the photo into bigger/smaller slots; an S promotion makes the photo eligible for `fullBleed`
-  pacing (§6). Applied on the next engine run over any scope containing the photo.
+  pacing (§6); and promoting to A or S is exactly how the user says "this one *has* earned a page to
+  itself" under §4b, while demoting to C sends a straggler onto a neighbour's page. Applied on the
+  next engine run over any scope containing the photo.
 - **Focus Region edits (R25)** add/modify `kind: user` regions — top fusion priority, so a single
   user rectangle beats every detector. Two application paths:
   - *Immediate re-crop:* on saving a focus edit, the app recomputes phase 6 only, for every
@@ -417,6 +507,7 @@ The engine is designed so the R25/R26 review passes in the Photos tab
 | **Text too big for any template** | §6's text hard filter escalates: (1) roomiest journal template of the needed photo count; (2) shed photos to the *next page of the same day* (repartition with `k+1`); (3) span the Spread (`TextNeedsSpread`, §5); (4) still too big ⇒ place with `TextOverflow` diagnostic — preflight blocks export until the user splits the entry or accepts an edit ([12-pdf-export.md](12-pdf-export.md)). Never auto-shrink the font (kernel §9). |
 | **Empty chapter** (no photos, no journal, or all excluded) | Month title page only; dashboard shows the chapter as "empty" — not an error. |
 | **Photo not yet analyzed** (first-import race) | Analysis-independent fallbacks: `tier = B`, focus = centered half-image rect (§8 step 1). The M0 walking skeleton runs entirely on these. When analysis lands, affected unpinned placements re-crop as in §11. |
+| **A lone bottom-tier photo** on a day of its own | §4b's `weakStraggler`. It merges (R28) when its neighbours are sparse, otherwise the §5 absorb transition puts it on a neighbouring day's page and raises a `StragglerAbsorbed` info diagnostic. Only when *nothing* adjacent can hold it — a Chapter of exactly one C-tier photo, or a straggler walled in by Pinned anchors — does it keep a page, because a placed photo beats a lost one. |
 | **All pages pinned** in scope | `affectedPages = []`; the command reports "nothing to do" instead of showing an empty warning. |
 | **One photo, panorama (aspect > 3)** | `aspectCrop` saturates for every standard slot; full-bleed/spread templates win if parity allows; otherwise the placement keeps `zoom = 1.0` and `FocusClipped` marks it for the user — the engine does not letterbox (§8 Decision). |
 | **Day count > 31 / duplicate dates** | Impossible by construction (phase 1 groups by calendar date within one month). |
@@ -434,7 +525,7 @@ Engine-side budget for one ~170-photo Chapter (measured targets, enforced by ben
 |---|---|---|
 | Day grouping | O(P log P) | < 1 ms |
 | Demand Model | O(D) | < 1 ms |
-| DP partitioning | O(D · (MAX_DAYS_PER_PAGE + kMax) · 2) ≈ 31 × 10 × 2 | < 1 ms |
+| DP partitioning | O(D · MAX_DAYS_PER_PAGE · kMax · 2) ≈ 31 × 3 × 10 × 2 | < 1 ms |
 | Template scoring + Hungarian | ~25 pages × ~12 surviving candidates × O(8³) | < 15 ms |
 | Smart crop | O(placements) | < 5 ms |
 | **Chapter total (CPU)** | | **< 150 ms** |
@@ -469,9 +560,14 @@ future hook, not v1 scope):
 | `CHARS_PER_FULL_PAGE` | §4 | 4800 |
 | `W_PHOTO` / `W_TEXT` / `W_BASE` | §4 | 1.0 / 1.0 / 0.05 |
 | `MIN_DAY_DEMAND` | §4 | 0.15 |
-| `W_FIT` / `MERGE_COST` / `PARITY_PENALTY` | §5 | 1.0 / 0.08 / 0.50 |
+| `SOLO_TIER` / `LONE_DAY_TIER` | §4b | A / B |
+| `SOLO_PAGE_COST` / `SOLO_PART_PENALTY` | §4b | 0.45 / 1.25 |
+| `W_FIT` / `MERGE_COST` / `ABSORB_COST` / `PARITY_PENALTY` | §5 | 1.0 / 0.08 / 0.12 / 0.50 |
 | `MAX_DAYS_PER_PAGE` / `MAX_TEXT_PER_PAGE` | §5 | 3 / 0.55 |
-| Template score weights (aspect/tier/text/variety/pacing) | §6 | 0.30 / 0.20 / 0.15 / 0.20 / 0.15 |
+| Template score weights (aspect/tier/text/variety/pacing/coverage) | §6 | 0.26 / 0.17 / 0.13 / 0.17 / 0.10 / 0.17 |
+| `COVERAGE_TARGET` / `SOLO_COVERAGE_TARGET` | §6 | 0.82 / 0.92 |
+| `AIRY_COVERAGE_MAX` / `AIRY_COOLDOWN` | §6 | 0.55 / 5 pages |
+| `S_pacing` baseline / airy-out-of-rhythm / full-bleed-out-of-rhythm | §6 | 0.80 / 0.25 / 0.20 |
 | Score jitter bound | §6, §9 | ±0.02 |
 | Hungarian weights (aspect/focus/tier/chrono) + caption adj | §7 | 0.45 / 0.20 / 0.20 / 0.15 + 0.15 |
 | Engine zoom range emitted | §8 | exactly 1.0 (ceiling 1.25 reserved) |

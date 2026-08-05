@@ -39,7 +39,8 @@ public partial class App : Application
         services.AddSingleton(sp => new PageEditorViewModel(
             sp.GetRequiredService<ProjectSession>(),
             sp.GetRequiredService<UndoStack>(),
-            sp.GetRequiredService<ThumbnailProvider>()));
+            sp.GetRequiredService<ThumbnailProvider>(),
+            sp.GetRequiredService<EditorSettingsService>()));
         services.AddSingleton<BinsViewModel>();
         services.AddSingleton<TemplatePickerViewModel>();
         services.AddSingleton<LayoutCommandsViewModel>();

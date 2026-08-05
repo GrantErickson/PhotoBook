@@ -36,6 +36,13 @@ public sealed record Template
     /// </summary>
     public bool Mirrorable { get; set; }
 
+    /// <summary>
+    /// The template's opt-in to deliberate overlap (doc 07 "Deliberate overlap"): image slots that
+    /// intersect each other, or text placed on a photo. Overlap in a template that does not declare
+    /// this is an authoring accident and a linter error (L2, L3).
+    /// </summary>
+    public bool Overlaps { get; set; }
+
     /// <summary>The image slots, in reading order.</summary>
     public IList<ImageSlot> Slots { get; set; } = new List<ImageSlot>();
 
@@ -50,6 +57,15 @@ public sealed record Template
 
     /// <summary>True when this instance is an inline page snapshot rather than a library template (R15).</summary>
     public bool IsDetachedSnapshot => Id is null && BasedOn is not null;
+
+    /// <summary>
+    /// The image slots in paint order — ascending <see cref="ImageSlot.Layer"/>, ties in authored
+    /// order (<see cref="Enumerable.OrderBy{T,TKey}(IEnumerable{T}, Func{T,TKey})"/> is stable). The
+    /// renderer draws in this order, so a slot on a higher layer sits on top of the ones below it;
+    /// <see cref="Slots"/> itself stays in reading order because that is what slot assignment, the
+    /// Unplaced-bin fill order and the empty-slot flags follow (doc 07).
+    /// </summary>
+    public IEnumerable<ImageSlot> SlotsInPaintOrder => Slots.OrderBy(s => s.Layer);
 
     /// <summary>The journal-role text slots in authored order — the chain a day's atomic text flows into (doc 11).</summary>
     public IEnumerable<TextSlot> JournalSlots => TextSlots.Where(t => t.Role == TextRole.Journal);

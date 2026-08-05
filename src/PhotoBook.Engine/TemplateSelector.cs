@@ -12,6 +12,7 @@ public sealed class PacingMemory
 {
     private readonly List<string> _templateIds = [];
     private readonly List<TemplateKind> _kinds = [];
+    private readonly List<double> _coverages = [];
 
     /// <summary>How many pages the memory has seen.</summary>
     public int PageCount => _templateIds.Count;
@@ -19,10 +20,16 @@ public sealed class PacingMemory
     /// <summary>Records an emitted page.</summary>
     /// <param name="templateId">The library template id, or null for a detached snapshot.</param>
     /// <param name="kind">The template kind.</param>
-    public void Record(string? templateId, TemplateKind kind)
+    /// <param name="coverage">
+    /// The page's slot coverage (<see cref="TemplateCatalog.SlotCoverage"/>), which is what the airy
+    /// half of <c>S_pacing</c> rations. Pages whose coverage is unknown count as well-filled, so an
+    /// unresolvable anchor never hands out a free airy slot.
+    /// </param>
+    public void Record(string? templateId, TemplateKind kind, double coverage = 1.0)
     {
         _templateIds.Add(templateId ?? string.Empty);
         _kinds.Add(kind);
+        _coverages.Add(coverage);
     }
 
     /// <summary>
@@ -71,10 +78,34 @@ public sealed class PacingMemory
         return int.MaxValue;
     }
 
+    /// <summary>Pages emitted since the last airy page; <see cref="int.MaxValue"/> if never.</summary>
+    /// <param name="weights">Supplies <see cref="LayoutWeights.AiryCoverageMax"/>.</param>
+    public int PagesSinceAiry(LayoutWeights weights)
+    {
+        ArgumentNullException.ThrowIfNull(weights);
+        for (var back = 1; back <= _coverages.Count; back++)
+        {
+            if (_coverages[^back] < weights.AiryCoverageMax) return back - 1;
+        }
+
+        return int.MaxValue;
+    }
+
     /// <summary>
-    /// <c>S_pacing</c>: a <c>fullBleed</c> page scores 1.0 only when it holds an S-tier photo and no
-    /// full bleed appeared in the last 4 pages (R18's "not the norm"); everything else takes a 0.7
-    /// baseline plus 0.3 when its slot coverage matches the page's demand within ±10%.
+    /// <c>S_pacing</c> — <b>rhythm only</b> (doc 08 §6). It answers "is this the right page for a
+    /// gesture?", never "is this template full enough?"; that second question is <c>S_coverage</c>'s,
+    /// and conflating the two is what used to make sparse templates win.
+    /// <list type="bullet">
+    /// <item><description>A <c>fullBleed</c> page scores 1.0 only when it holds an S-tier photo and no
+    /// full bleed appeared in the last 4 pages (R18's "not the norm").</description></item>
+    /// <item><description>An <b>airy</b> template — coverage below
+    /// <see cref="LayoutWeights.AiryCoverageMax"/>, deliberate negative space per R20 — scores 1.0
+    /// when its cooldown has elapsed and <see cref="LayoutWeights.PacingAiryOutOfRhythm"/> when it
+    /// has not. Airy pages are rationed, not banned: they still have to out-score a fuller template on
+    /// <c>S_coverage</c>, so they turn up occasionally, for rhythm.</description></item>
+    /// <item><description>Everything else takes the flat <see cref="LayoutWeights.PacingBaseScore"/>
+    /// baseline — a well-filled page is always in rhythm.</description></item>
+    /// </list>
     /// </summary>
     public double Pacing(Template template, PagePlan plan, LayoutWeights weights)
     {
@@ -90,9 +121,36 @@ public sealed class PacingMemory
         }
 
         var coverage = TemplateCatalog.SlotCoverage(template);
-        var target = Math.Min(1.0, Math.Max(0.05, plan.Demand));
-        var matched = Math.Abs(coverage - target) <= weights.PacingCoverageTolerance * target;
-        return weights.PacingBaseScore + (matched ? weights.PacingCoverageBonus : 0);
+        if (coverage >= weights.AiryCoverageMax) return weights.PacingBaseScore;
+
+        return PagesSinceAiry(weights) >= weights.AiryCooldownPages
+            ? weights.PacingAiryInRhythm
+            : weights.PacingAiryOutOfRhythm;
+    }
+
+    /// <summary>
+    /// <c>S_coverage</c> (doc 08 §6) — how much of the page the template's slots actually cover,
+    /// against the target the page deserves: <c>min(1, coverage / target)</c>, with
+    /// <c>target = SOLO_COVERAGE_TARGET</c> for a page holding one photo and
+    /// <c>COVERAGE_TARGET</c> otherwise.
+    /// <para>
+    /// This term is monotone in coverage, which is the whole point. Its predecessor rewarded coverage
+    /// "within ±10% of page demand", so a page whose demand was 0.15 — one weak photo — scored best on
+    /// the emptiest template in the library, and the book came out full of white space. Now fuller
+    /// wins by default at every demand, a photo that earned a page to itself gets a near-full-page
+    /// composition, and airiness is bought back deliberately through <see cref="Pacing"/>.
+    /// </para>
+    /// </summary>
+    public static double Coverage(Template template, PagePlan plan, LayoutWeights weights)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(weights);
+
+        var target = plan.Photos.Count <= 1 ? weights.SoloCoverageTarget : weights.CoverageTarget;
+        if (!(target > 0)) return 1.0;
+
+        return Math.Clamp(TemplateCatalog.SlotCoverage(template) / target, 0, 1);
     }
 }
 
@@ -124,9 +182,9 @@ public sealed record TemplateChoice
 /// <summary>
 /// Phase 4 of doc 08 — template scoring. Hard filters first (photo count, kind, text fit,
 /// mirroring), then the weighted soft score
-/// <c>0.30·S_aspect + 0.20·S_tier + 0.15·S_text + 0.20·S_variety + 0.15·S_pacing</c> plus seeded
-/// jitter. Scoring runs the <em>real</em> phase-5 Hungarian for every surviving candidate — with
-/// n ≤ 8 that is trivial — and the winner's assignment is kept.
+/// <c>0.26·S_aspect + 0.17·S_tier + 0.13·S_text + 0.17·S_variety + 0.10·S_pacing +
+/// 0.17·S_coverage</c> plus seeded jitter. Scoring runs the <em>real</em> phase-5 Hungarian for every
+/// surviving candidate — with n ≤ 8 that is trivial — and the winner's assignment is kept.
 /// </summary>
 public static class TemplateSelector
 {
@@ -315,6 +373,7 @@ public static class TemplateSelector
         var textScore = TextScore(plan, oriented, context);
         var varietyScore = memory.Variety(library, weights);
         var pacingScore = memory.Pacing(library, plan, weights);
+        var coverageScore = PacingMemory.Coverage(library, plan, weights);
 
         var jitter = LayoutRandom.Signed(
             context.Seed, "jitter|" + (library.Id ?? string.Empty) + "|" + plan.StableKey, weights.JitterBound);
@@ -324,6 +383,7 @@ public static class TemplateSelector
                     + weights.TextScoreWeight * textScore
                     + weights.VarietyScoreWeight * varietyScore
                     + weights.PacingScoreWeight * pacingScore
+                    + weights.CoverageScoreWeight * coverageScore
                     + jitter;
 
         return new TemplateChoice

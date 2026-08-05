@@ -1,23 +1,24 @@
 {
   "schemaVersion": 1,
   "id": "t-03-notext-d",
-  "name": "Diagonal cascade of three",
+  "name": "Diagonal cascade with offsets",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 3,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.4,
-        "h": 0.34
+        "x": 0.02,
+        "y": 0.03,
+        "w": 0.42,
+        "h": 0.47
       },
-      "aspect": 1.5225,
+      "aspect": 1.1564,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
@@ -25,29 +26,31 @@
       "id": "s2",
       "rect": {
         "x": 0.3,
-        "y": 0.41,
-        "w": 0.3,
-        "h": 0.4
+        "y": 0.26,
+        "w": 0.46,
+        "h": 0.48
       },
-      "aspect": 0.9706,
+      "aspect": 1.2402,
       "aspectTolerance": 0.35,
-      "tierAffinity": "S",
-      "captionPolicy": "below",
-      "bleed": false
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.7,
+        "x": 0.6,
         "y": 0.5,
-        "w": 0.26,
-        "h": 0.42
+        "w": 0.38,
+        "h": 0.47
       },
-      "aspect": 0.8011,
+      "aspect": 1.0463,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "S",
       "captionPolicy": "none",
-      "bleed": false
+      "bleed": false,
+      "layer": 2
     }
   ],
   "textSlots": [],

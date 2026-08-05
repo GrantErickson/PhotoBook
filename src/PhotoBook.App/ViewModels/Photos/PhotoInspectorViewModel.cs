@@ -10,8 +10,9 @@ namespace PhotoBook.App.ViewModels.Photos;
 /// <summary>
 /// The Photos-tab inspector sections of doc 09 §2 that edit the photo itself: <b>Date</b> (§2.1, R6),
 /// <b>Focus</b> (§2.2, R25) and <b>Adjust</b> (§2.4, R11), plus the controller the grid uses for
-/// drag-reorder (§2.5, R6). Tier and Exclude already live in the shell's own inspector and are
-/// deliberately not duplicated here.
+/// drag-reorder (§2.5, R6). Tier and Exclude live in the shell's own inspector and are deliberately
+/// not duplicated here — but they belong to the same <see cref="InspectorSection.Info"/> section, so
+/// the shell hides them with it.
 ///
 /// <para>
 /// This view model owns nothing but composition: each section is its own view model, every edit goes
@@ -19,25 +20,36 @@ namespace PhotoBook.App.ViewModels.Photos;
 /// re-date dialog and the Focus Region editor — open as their own styled windows, because both are
 /// precision tasks that a 320 px rail cannot do honestly.
 /// </para>
+/// <para>
+/// <b>One section at a time.</b> Stacked end to end these sections are well over two screens tall,
+/// which put Adjust so far below the fold that the image corrections read as missing. They are
+/// therefore switched, not scrolled: <see cref="Section"/> says which one is open, it is one click
+/// from anywhere, and the choice is remembered per user.
+/// </para>
 /// </summary>
 public sealed partial class PhotoInspectorViewModel : ObservableObject
 {
     private readonly PhotoEditor _editor;
+    private readonly EditorSettingsService? _settings;
 
     /// <param name="editor">The undoable edit service.</param>
     /// <param name="adjustments">The Adjust section.</param>
     /// <param name="focus">The Focus Region editor.</param>
     /// <param name="reorder">The grid's reorder controller.</param>
+    /// <param name="settings">Per-user preferences, so the open section survives a restart; optional.</param>
     public PhotoInspectorViewModel(
         PhotoEditor editor,
         AdjustmentsViewModel adjustments,
         FocusRegionEditorViewModel focus,
-        PhotoReorderController reorder)
+        PhotoReorderController reorder,
+        EditorSettingsService? settings = null)
     {
         _editor = editor;
         Adjustments = adjustments;
         Focus = focus;
         Reorder = reorder;
+        _settings = settings;
+        _section = settings?.Settings.InspectorSection ?? InspectorSection.Info;
 
         Adjustments.PreviewRendered += OnPreviewRendered;
         Reorder.Reordered += outcome => StatusMessage = outcome.Message;
@@ -77,6 +89,35 @@ public sealed partial class PhotoInspectorViewModel : ObservableObject
     /// <summary>What just happened, for the inspector's own status line.</summary>
     [ObservableProperty]
     private string _statusMessage = string.Empty;
+
+    /// <summary>The section on show. Remembered per user, never per book.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsInfoSection))]
+    [NotifyPropertyChangedFor(nameof(IsAdjustSection))]
+    [NotifyPropertyChangedFor(nameof(IsFocusSection))]
+    private InspectorSection _section;
+
+    /// <summary>True while the Info section is open — the shell hangs Tier and Exclude off this.</summary>
+    public bool IsInfoSection => Section == InspectorSection.Info;
+
+    /// <summary>True while the Adjust section is open (R11).</summary>
+    public bool IsAdjustSection => Section == InspectorSection.Adjust;
+
+    /// <summary>True while the Focus section is open (R25).</summary>
+    public bool IsFocusSection => Section == InspectorSection.Focus;
+
+    /// <summary>Opens a section — the switcher at the top of the inspector.</summary>
+    /// <param name="section">The section to show.</param>
+    [RelayCommand]
+    private void SelectSection(InspectorSection section) => Section = section;
+
+    partial void OnSectionChanged(InspectorSection value)
+    {
+        if (_settings is not null)
+        {
+            _settings.Settings.InspectorSection = value;
+        }
+    }
 
     /// <summary>The selected photo's catalog record.</summary>
     public Photo? Photo => Item?.Photo;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-01-notext-b",
-  "name": "Small photo, upper outer corner",
+  "name": "Single hero, asymmetric outer band",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 1,
@@ -10,15 +10,15 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.54,
-        "y": 0.09,
-        "w": 0.42,
-        "h": 0.365
+        "x": 0.016,
+        "y": 0.024,
+        "w": 0.9,
+        "h": 0.952
       },
-      "aspect": 1.4891,
-      "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
+      "aspect": 1.2234,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "S",
+      "captionPolicy": "overlay",
       "bleed": false
     }
   ],

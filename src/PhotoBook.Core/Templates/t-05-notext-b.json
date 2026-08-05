@@ -1,21 +1,22 @@
 {
   "schemaVersion": 1,
   "id": "t-05-notext-b",
-  "name": "Quincunx",
+  "name": "Quincunx with an overlapping centre",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 5,
   "mirrorable": false,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.26,
-        "h": 0.24
+        "x": 0.016,
+        "y": 0.024,
+        "w": 0.34,
+        "h": 0.42
       },
-      "aspect": 1.402,
+      "aspect": 1.0476,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -24,12 +25,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.7,
-        "y": 0.06,
-        "w": 0.26,
-        "h": 0.24
+        "x": 0.644,
+        "y": 0.024,
+        "w": 0.34,
+        "h": 0.42
       },
-      "aspect": 1.402,
+      "aspect": 1.0476,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -38,26 +39,26 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.35,
-        "y": 0.305,
-        "w": 0.3,
-        "h": 0.39
+        "x": 0.016,
+        "y": 0.556,
+        "w": 0.34,
+        "h": 0.42
       },
-      "aspect": 0.9955,
+      "aspect": 1.0476,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
+      "tierAffinity": "B",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.7,
-        "w": 0.26,
-        "h": 0.24
+        "x": 0.644,
+        "y": 0.556,
+        "w": 0.34,
+        "h": 0.42
       },
-      "aspect": 1.402,
+      "aspect": 1.0476,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,16 +67,17 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.7,
-        "y": 0.7,
-        "w": 0.26,
-        "h": 0.24
+        "x": 0.28,
+        "y": 0.22,
+        "w": 0.44,
+        "h": 0.56
       },
-      "aspect": 1.402,
+      "aspect": 1.0168,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "S",
       "captionPolicy": "none",
-      "bleed": false
+      "bleed": false,
+      "layer": 1
     }
   ],
   "textSlots": [],

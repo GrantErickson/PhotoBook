@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-05-notext-a",
-  "name": "Mosaic: one big and four descending",
+  "name": "Mosaic, hero inner",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 5,
@@ -10,26 +10,26 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.56,
-        "h": 0.62
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.578,
+        "h": 0.632
       },
-      "aspect": 1.1689,
+      "aspect": 1.1835,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.62,
-        "y": 0.06,
-        "w": 0.34,
-        "h": 0.36
+        "x": 0.614,
+        "y": 0.024,
+        "w": 0.364,
+        "h": 0.31
       },
-      "aspect": 1.2222,
+      "aspect": 1.5195,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.62,
-        "y": 0.44,
-        "w": 0.34,
-        "h": 0.24
+        "x": 0.614,
+        "y": 0.35,
+        "w": 0.364,
+        "h": 0.31
       },
-      "aspect": 1.8333,
+      "aspect": 1.5195,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.7,
-        "w": 0.34,
-        "h": 0.24
+        "x": 0.018,
+        "y": 0.674,
+        "w": 0.476,
+        "h": 0.298
       },
-      "aspect": 1.8333,
+      "aspect": 2.0671,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,14 +66,14 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.4,
-        "y": 0.7,
-        "w": 0.2,
-        "h": 0.24
+        "x": 0.506,
+        "y": 0.674,
+        "w": 0.476,
+        "h": 0.298
       },
-      "aspect": 1.0784,
-      "aspectTolerance": 0.4,
-      "tierAffinity": "C",
+      "aspect": 2.0671,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     }

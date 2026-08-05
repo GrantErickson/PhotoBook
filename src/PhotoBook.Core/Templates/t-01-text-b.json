@@ -1,24 +1,25 @@
 {
   "schemaVersion": 1,
   "id": "t-01-text-b",
-  "name": "Tall portrait with inner journal",
+  "name": "Hero at the outer edge, journal column on a scrim",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 1,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.51,
-        "y": 0.11,
-        "w": 0.45,
-        "h": 0.78
+        "x": 0.058,
+        "y": 0.024,
+        "w": 0.918,
+        "h": 0.952
       },
-      "aspect": 0.7466,
-      "aspectTolerance": 0.35,
+      "aspect": 1.2479,
+      "aspectTolerance": 0.3,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     }
   ],
@@ -26,13 +27,14 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
+        "x": 0.1,
         "y": 0.3,
-        "w": 0.4,
-        "h": 0.34
+        "w": 0.27,
+        "h": 0.46
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

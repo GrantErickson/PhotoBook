@@ -59,6 +59,80 @@ public static class DemandModel
         return total;
     }
 
+    // ── §4b The solo-page rule ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Whether <paramref name="photo"/> has <b>earned</b> a page all to itself (doc 08 §4b). A page
+    /// holding one photo renders that photo huge on a full template, which is only right when the
+    /// photograph deserves it:
+    /// <list type="bullet">
+    /// <item><description>an S- or A-tier photo always does (<see cref="LayoutWeights.SoloTier"/>);</description></item>
+    /// <item><description>otherwise, only when it is genuinely the only photo of its stream — the
+    /// day, or the absorbed run of days, being laid out — and is not bottom-tier
+    /// (<see cref="LayoutWeights.LoneDayTier"/>).</description></item>
+    /// </list>
+    /// Tier is the <b>effective</b> tier, so promoting a photo (R26) is also how the user says "yes,
+    /// this one does deserve its own page".
+    /// </summary>
+    /// <param name="photo">The candidate photo.</param>
+    /// <param name="streamPhotoCount">How many photos the day (or absorbed run) the page came from holds.</param>
+    /// <param name="weights">The tunables of doc 08 §14.</param>
+    public static bool EarnsSoloPage(Photo photo, int streamPhotoCount, LayoutWeights weights)
+    {
+        ArgumentNullException.ThrowIfNull(photo);
+        ArgumentNullException.ThrowIfNull(weights);
+
+        var rank = TierRank(photo.EffectiveTier);
+        if (rank <= TierRank(weights.SoloTier)) return true;
+        return streamPhotoCount <= 1 && rank <= TierRank(weights.LoneDayTier);
+    }
+
+    /// <summary>
+    /// A <b>weak straggler</b>: a day whose single photo has not earned a page to itself, so the day
+    /// cannot stand alone and must be merged or absorbed (doc 08 §4b, §5).
+    /// </summary>
+    public static bool IsWeakStraggler(LayoutDay day, LayoutWeights weights)
+    {
+        ArgumentNullException.ThrowIfNull(day);
+        ArgumentNullException.ThrowIfNull(weights);
+        return day.Photos.Count == 1 && !EarnsSoloPage(day.Photos[0], 1, weights);
+    }
+
+    /// <summary>
+    /// The number of single-photo pages a <paramref name="pages"/>-way cut of
+    /// <paramref name="photoCount"/> photos <em>cannot avoid</em>: every part holds at least one
+    /// photo, so once the parts of two or more run out, <c>2k − n</c> parts are forced down to one.
+    /// </summary>
+    public static int ForcedSoloPages(int photoCount, int pages) => Math.Max(0, 2 * pages - photoCount);
+
+    /// <summary>
+    /// The DP's solo-page cost for cutting <paramref name="photos"/> across <paramref name="pages"/>
+    /// pages (doc 08 §4b): <c>SOLO_PAGE_COST × forcedSoloPages × unearnedShare</c>. It is zero for a
+    /// stream whose every photo has earned a solo page and zero for any cut roomy enough that no page
+    /// is forced down to one photo, so it only bites where the user's complaint lives — a lame frame
+    /// alone on a page.
+    /// </summary>
+    public static double SoloPageCost(IReadOnlyList<Photo> photos, int pages, LayoutWeights weights)
+    {
+        ArgumentNullException.ThrowIfNull(photos);
+        ArgumentNullException.ThrowIfNull(weights);
+
+        var n = photos.Count;
+        if (n == 0) return 0;
+
+        var forced = ForcedSoloPages(n, pages);
+        if (forced == 0) return 0;
+
+        var unearned = 0;
+        foreach (var photo in photos)
+        {
+            if (!EarnsSoloPage(photo, n, weights)) unearned++;
+        }
+
+        if (unearned == 0) return 0;
+        return weights.SoloPageCost * forced * ((double)unearned / n);
+    }
+
     /// <summary>
     /// <c>fitCost(k, D) = ((k − D) / max(k, D))²</c> — 0 is a perfect fill, →1 is badly off
     /// (doc 08 §5).

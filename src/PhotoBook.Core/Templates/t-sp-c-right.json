@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-sp-c-right",
-  "name": "Hero spread \u2014 grid and journal right",
+  "name": "Hero spread - right",
   "pageSize": "11x8.5-landscape",
   "kind": "spreadPair",
   "photoCount": 4,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.34,
-        "y": 0.06,
-        "w": 0.3,
-        "h": 0.38
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.34
       },
-      "aspect": 1.0217,
+      "aspect": 1.8118,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -24,12 +24,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.66,
-        "y": 0.06,
-        "w": 0.3,
-        "h": 0.38
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.34
       },
-      "aspect": 1.0217,
+      "aspect": 1.8118,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.34,
-        "y": 0.46,
-        "w": 0.3,
-        "h": 0.38
+        "x": 0.018,
+        "y": 0.38,
+        "w": 0.476,
+        "h": 0.34
       },
-      "aspect": 1.0217,
+      "aspect": 1.8118,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.66,
-        "y": 0.46,
-        "w": 0.3,
-        "h": 0.38
+        "x": 0.506,
+        "y": 0.38,
+        "w": 0.476,
+        "h": 0.34
       },
-      "aspect": 1.0217,
+      "aspect": 1.8118,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -69,9 +69,9 @@
       "id": "t1",
       "rect": {
         "x": 0.055,
-        "y": 0.24,
-        "w": 0.24,
-        "h": 0.52
+        "y": 0.75,
+        "w": 0.91,
+        "h": 0.195
       },
       "role": "journal",
       "align": "left"

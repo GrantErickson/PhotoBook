@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-06-text-a",
-  "name": "Outer 3x2 grid with journal rail",
+  "name": "Three by two grid with a journal rail",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 6,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.3,
-        "y": 0.08,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.28,
+        "y": 0.024,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -24,12 +24,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.5267,
-        "y": 0.08,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.518,
+        "y": 0.024,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.7533,
-        "y": 0.08,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.756,
+        "y": 0.024,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,40 +52,40 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.3,
-        "y": 0.51,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.28,
+        "y": 0.508,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s5",
       "rect": {
-        "x": 0.5267,
-        "y": 0.51,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.518,
+        "y": 0.508,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s6",
       "rect": {
-        "x": 0.7533,
-        "y": 0.51,
-        "w": 0.2067,
-        "h": 0.41
+        "x": 0.756,
+        "y": 0.508,
+        "w": 0.226,
+        "h": 0.468
       },
-      "aspect": 0.6524,
+      "aspect": 0.6249,
       "aspectTolerance": 0.35,
       "tierAffinity": "C",
       "captionPolicy": "none",
@@ -97,9 +97,9 @@
       "id": "t1",
       "rect": {
         "x": 0.055,
-        "y": 0.1,
-        "w": 0.2,
-        "h": 0.76
+        "y": 0.18,
+        "w": 0.205,
+        "h": 0.64
       },
       "role": "journal",
       "align": "left"

@@ -31,9 +31,23 @@ public enum BinTab
     Outside,
 }
 
+/// <summary>Which section of the Photos-tab inspector is open (doc 09 §2). The switcher's memory.</summary>
+public enum InspectorSection
+{
+    /// <summary>Date, quality Tier and exclusion — what the photo <i>is</i> (§2.1).</summary>
+    Info,
+
+    /// <summary>Exposure, colour and orientation — the image corrections of R11 (§2.4).</summary>
+    Adjust,
+
+    /// <summary>The Focus Regions smart crop must keep in frame (R25, §2.2).</summary>
+    Focus,
+}
+
 /// <summary>
 /// The per-user editor preferences that survive a restart: bin dock side, bin size, which bin tab
-/// was open, and the template gallery's filter. Doc 09 §3.5 is explicit that these are
+/// was open, the template gallery's filter, the page guides toggle and the inspector section.
+/// Doc 09 §3.5 is explicit that these are
 /// <b>user settings, not book content</b>, so they live beside the OneDrive config in
 /// <c>%LOCALAPPDATA%\PhotoBook</c> and never touch the project folder's JSON.
 /// </summary>
@@ -78,6 +92,17 @@ public sealed partial class EditorSettings : ObservableObject
     [ObservableProperty]
     private bool _templateGalleryShowAll;
 
+    /// <summary>
+    /// Whether the Pages canvas draws the bleed/trim/safe guides (<c>G</c>, doc 09 §5). Off by
+    /// default: the page's own edge is always drawn, and the guides are the precision layer over it.
+    /// </summary>
+    [ObservableProperty]
+    private bool _pageGuidesVisible;
+
+    /// <summary>The Photos-tab inspector section that was open when the app last closed.</summary>
+    [ObservableProperty]
+    private InspectorSection _inspectorSection = InspectorSection.Info;
+
     /// <summary>Brings loaded values back into their legal ranges, so a hand-edited file cannot wedge the UI.</summary>
     public void Normalize()
     {
@@ -94,6 +119,11 @@ public sealed partial class EditorSettings : ObservableObject
         if (!Enum.IsDefined(BinTab))
         {
             BinTab = BinTab.Unplaced;
+        }
+
+        if (!Enum.IsDefined(InspectorSection))
+        {
+            InspectorSection = InspectorSection.Info;
         }
     }
 }

@@ -163,8 +163,11 @@
         </Border>
 
         <!-- ==================================================== canvas -->
+        <!-- The table the sheets stand on: the same brush the canvas paints, so the surface runs
+             unbroken from the scroll viewport across both halves of a spread. -->
         <ScrollViewer x:Name="Viewport" Grid.Row="1"
                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      Background="{DynamicResource PageTableBrush}"
                       Focusable="False" Padding="0">
             <Grid x:Name="CanvasHost" Margin="24,20,24,20">
                 <Grid.ColumnDefinitions>
@@ -177,7 +180,8 @@
                     <pb:PageCanvas x:Name="LeftCanvas"
                                    Renderer="{Binding Renderer}"
                                    Page="{Binding LeftPage}"
-                                   Background="{DynamicResource CanvasBrush}" />
+                                   ShowGuides="{Binding ShowGuides}"
+                                   Background="{DynamicResource PageTableBrush}" />
                     <local:PageEditorOverlay x:Name="LeftOverlay" />
 
                     <!-- Layout override mode (doc 09 §3.7) shares the canvas's cell so its handles
@@ -192,7 +196,8 @@
                     <pb:PageCanvas x:Name="RightCanvas"
                                    Renderer="{Binding Renderer}"
                                    Page="{Binding RightPage}"
-                                   Background="{DynamicResource CanvasBrush}" />
+                                   ShowGuides="{Binding ShowGuides}"
+                                   Background="{DynamicResource PageTableBrush}" />
                     <local:PageEditorOverlay x:Name="RightOverlay" />
                 </Grid>
             </Grid>

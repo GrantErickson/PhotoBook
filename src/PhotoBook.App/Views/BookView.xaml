@@ -255,7 +255,7 @@
                             <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
                                           IsChecked="{Binding PageEditor.ShowGuides, Mode=OneWay}"
                                           Command="{Binding PageEditor.ToggleGuidesCommand}"
-                                          ToolTip="Trim, safe and gutter guides  (G)">
+                                          ToolTip="Bleed, trim, safe and gutter guides  (G)">
                                 <pb:Icon Data="{StaticResource Icon.Guides}" Width="16" Height="16" />
                             </ToggleButton>
                             <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
@@ -336,8 +336,23 @@
                                        Visibility="{Binding Converter={StaticResource NullToVisibility}}" />
 
                             <StackPanel Visibility="{Binding Converter={StaticResource NotNullToVisibility}}">
-                                <Border CornerRadius="6" Background="{DynamicResource SurfaceSunkenBrush}"
-                                        Height="200">
+                                <!-- The photo, big while Info is open. Adjust and Focus each carry a
+                                     working preview of their own, so this one steps aside for them
+                                     rather than showing the same picture twice and pushing their
+                                     controls below the fold. -->
+                                <Border CornerRadius="6" Background="{DynamicResource SurfaceSunkenBrush}">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Height" Value="200" />
+                                            <Style.Triggers>
+                                                <DataTrigger Value="False"
+                                                             Binding="{Binding DataContext.Inspector.IsInfoSection,
+                                                                       RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                    <Setter Property="Height" Value="104" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="6" />
                                 </Border>
 
@@ -353,61 +368,68 @@
                                     <TextBlock Text="Date guessed from the file" />
                                 </Border>
 
-                                <TextBlock Text="QUALITY" Style="{StaticResource SectionLabelTextStyle}"
-                                           Margin="0,24,0,0" />
-                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Border CornerRadius="4" Padding="9,3"
-                                            Background="{Binding EffectiveTier, Converter={StaticResource TierToBrush}}">
-                                        <TextBlock Text="{Binding TierLabel}" Foreground="#FF101010"
-                                                   FontWeight="SemiBold" />
-                                    </Border>
-                                    <TextBlock Text="set by you" Style="{StaticResource CaptionMutedTextStyle}"
-                                               VerticalAlignment="Center" Margin="10,0,0,0"
-                                               Visibility="{Binding IsTierOverridden, Converter={StaticResource BoolToVisibility}}" />
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <Button Style="{StaticResource SecondaryButtonStyle}"
-                                            Command="{Binding DataContext.PromoteCommand,
-                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            ToolTip="Give this photo more room on the page">
-                                        <pb:Icon Data="{StaticResource Icon.Promote}" />
-                                    </Button>
-                                    <Button Style="{StaticResource SecondaryButtonStyle}" Margin="6,0,0,0"
-                                            Command="{Binding DataContext.DemoteCommand,
-                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            ToolTip="Give this photo less room">
-                                        <pb:Icon Data="{StaticResource Icon.Demote}" />
-                                    </Button>
-                                    <Button Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0"
-                                            Command="{Binding DataContext.ResetTierCommand,
-                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            Content="Reset" />
-                                </StackPanel>
-
-                                <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
-
-                                <Button Style="{StaticResource DangerButtonStyle}" Margin="0,16,0,0"
-                                        HorizontalContentAlignment="Left"
-                                        Command="{Binding DataContext.ToggleExcludeCommand,
-                                                  RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <pb:Icon Data="{StaticResource Icon.Exclude}" VerticalAlignment="Center" />
-                                        <TextBlock Text="Exclude from book" Margin="10,0,0,0"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-                                <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,8,0,0"
-                                           TextWrapping="Wrap"
-                                           Text="Excluding removes the photo from the book only. The original file is never deleted." />
-
-                                <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
-
-                                <!-- Date, focus and adjustments (doc 09 §2.1, §2.2, §2.4). -->
+                                <!-- Date, focus and adjustments (doc 09 §2.1, §2.2, §2.4). It sits
+                                     directly under the photo so its section switcher — and with it
+                                     the image corrections of R11 — is visible without scrolling. -->
                                 <photos:PhotoInspectorPanel
-                                    Margin="0,20,0,0"
+                                    x:Name="Inspector"
+                                    Margin="0,18,0,0"
                                     DataContext="{Binding DataContext.Inspector,
                                                   RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                                <!-- Tier and Exclude belong to the inspector's Info section; they
+                                     live here because they edit the shell's own selection. -->
+                                <StackPanel Visibility="{Binding DataContext.Inspector.IsInfoSection,
+                                                         RelativeSource={RelativeSource AncestorType=UserControl},
+                                                         Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="QUALITY" Style="{StaticResource SectionLabelTextStyle}"
+                                               Margin="0,24,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <Border CornerRadius="4" Padding="9,3"
+                                                Background="{Binding EffectiveTier, Converter={StaticResource TierToBrush}}">
+                                            <TextBlock Text="{Binding TierLabel}" Foreground="#FF101010"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                        <TextBlock Text="set by you" Style="{StaticResource CaptionMutedTextStyle}"
+                                                   VerticalAlignment="Center" Margin="10,0,0,0"
+                                                   Visibility="{Binding IsTierOverridden, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                Command="{Binding DataContext.PromoteCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                ToolTip="Give this photo more room on the page">
+                                            <pb:Icon Data="{StaticResource Icon.Promote}" />
+                                        </Button>
+                                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="6,0,0,0"
+                                                Command="{Binding DataContext.DemoteCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                ToolTip="Give this photo less room">
+                                            <pb:Icon Data="{StaticResource Icon.Demote}" />
+                                        </Button>
+                                        <Button Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0"
+                                                Command="{Binding DataContext.ResetTierCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Content="Reset" />
+                                    </StackPanel>
+
+                                    <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
+
+                                    <Button Style="{StaticResource DangerButtonStyle}" Margin="0,16,0,0"
+                                            HorizontalContentAlignment="Left"
+                                            Command="{Binding DataContext.ToggleExcludeCommand,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <pb:Icon Data="{StaticResource Icon.Exclude}" VerticalAlignment="Center" />
+                                            <TextBlock Text="Exclude from book" Margin="10,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,8,0,0"
+                                               TextWrapping="Wrap"
+                                               Text="Excluding removes the photo from the book only. The original file is never deleted." />
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>

@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
   "id": "t-01-notext-a",
-  "name": "One photo, centered \u2014 the quiet page",
+  "name": "Single hero, generous outer margin",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 1,
-  "mirrorable": false,
+  "mirrorable": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.14,
-        "y": 0.19,
-        "w": 0.72,
-        "h": 0.62
+        "x": 0.042,
+        "y": 0.024,
+        "w": 0.936,
+        "h": 0.93
       },
-      "aspect": 1.5028,
-      "aspectTolerance": 0.35,
+      "aspect": 1.3025,
+      "aspectTolerance": 0.3,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "overlay",
       "bleed": false
     }
   ],

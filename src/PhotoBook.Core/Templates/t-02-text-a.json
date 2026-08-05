@@ -1,37 +1,38 @@
 {
   "schemaVersion": 1,
   "id": "t-02-text-a",
-  "name": "Two outer photos with journal column",
+  "name": "Two stacked photos, journal on a scrim",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 2,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.5,
-        "y": 0.07,
-        "w": 0.46,
-        "h": 0.44
+        "x": 0.16,
+        "y": 0.024,
+        "w": 0.816,
+        "h": 0.468
       },
-      "aspect": 1.3529,
+      "aspect": 2.2564,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.56,
-        "y": 0.53,
-        "w": 0.4,
-        "h": 0.34
+        "x": 0.16,
+        "y": 0.508,
+        "w": 0.816,
+        "h": 0.468
       },
-      "aspect": 1.5225,
+      "aspect": 2.2564,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     }
@@ -40,13 +41,14 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.22,
-        "w": 0.39,
-        "h": 0.5
+        "x": 0.2,
+        "y": 0.56,
+        "w": 0.26,
+        "h": 0.36
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

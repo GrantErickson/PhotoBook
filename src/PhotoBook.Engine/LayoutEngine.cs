@@ -794,8 +794,10 @@ public static class LayoutEngine
         {
             if (days.Count == 0) return [];
 
-            var segments = PagePartitioner.Partition(days, startParity, _weights, (first, count) =>
-                MergeAllowed(days, first, count));
+            var segments = PagePartitioner.Partition(
+                days, startParity, _weights,
+                (first, count) => MergeAllowed(days, first, count),
+                (first, count) => AbsorbAllowed(days, first, count));
 
             var plans = new List<PagePlan>();
             var pageIndex = startPageIndex;
@@ -850,6 +852,88 @@ public static class LayoutEngine
             return false;
         }
 
+        /// <summary>
+        /// The structural gate on the absorb transition (doc 08 §5). A run may be absorbed when it is
+        /// one host day plus adjacent <b>weak stragglers</b> — days whose single photo has not earned a
+        /// page to itself (§4b) — and the flattened result is something phase 4 can actually place:
+        /// a single-page template of the right photo count exists for at least one legal page count,
+        /// and the combined journal text still fits somewhere. The merge transition is preferred
+        /// wherever it applies, because a <c>multiDay</c> page keeps each day's own section; absorbing
+        /// is what rescues a straggler whose neighbours are too busy to merge with (R28's caps).
+        /// </summary>
+        private bool AbsorbAllowed(List<LayoutDay> days, int firstDayIndex, int count)
+        {
+            if (!_weights.EnableStragglerAbsorb || count < 2) return false;
+
+            var stragglers = 0;
+            var photos = 0;
+            var entries = 0;
+            for (var i = firstDayIndex; i < firstDayIndex + count; i++)
+            {
+                var day = days[i];
+                if (day.Photos.Count == 0) return false;          // journal-only days are folded upstream
+                if (DemandModel.IsWeakStraggler(day, _weights)) stragglers++;
+                photos += day.Photos.Count;
+                entries += day.Entries.Count;
+            }
+
+            // Exactly the shape the rule is about: at least one straggler, and at most one day that
+            // could have stood on its own. Anything richer is a job for merge or for plain splitting.
+            if (stragglers == 0 || count - stragglers > 1) return false;
+
+            // Two or more days' entries would render as one undated block of text on a standard page,
+            // which is a multiDay page's job; only absorb text when at most one day brings any.
+            if (entries > 1) return false;
+
+            var pages = Math.Max(1, CeilDiv(photos, _weights.MaxSlotsPerPage));
+            var perPage = CeilDiv(photos, pages);
+            if (_catalog.SinglePage(perPage).Count == 0 && _catalog.SinglePage(photos).Count == 0) return false;
+
+            if (entries == 0) return true;
+
+            // The absorbed run's text has to land somewhere: some single-page template of a photo
+            // count the run can actually produce must hold it.
+            var paragraphs = new List<string>();
+            for (var i = firstDayIndex; i < firstDayIndex + count; i++) paragraphs.AddRange(days[i].Paragraphs);
+
+            for (var c = 1; c <= Math.Min(photos, JournalBearingCeiling(days[firstDayIndex])); c++)
+            {
+                if (TextFeasible(c, paragraphs)) return true;
+            }
+
+            return false;
+        }
+
+        private static int CeilDiv(int a, int b) => b <= 0 ? a : (a + b - 1) / b;
+
+        /// <summary>
+        /// Flattens an absorbed run into one pseudo-day: photos in chronological order, entries in
+        /// date order. Everything downstream — the text ladder, the gap cut, template scoring — then
+        /// treats it exactly like a single day, which is the point of expressing absorption as a DP
+        /// transition rather than as a special case in phase 4.
+        /// </summary>
+        private static LayoutDay Flatten(List<LayoutDay> days, PageSegment segment)
+        {
+            var photos = new List<Photo>();
+            var entries = new List<JournalEntry>();
+            for (var i = segment.FirstDayIndex; i < segment.FirstDayIndex + segment.DayCount; i++)
+            {
+                photos.AddRange(days[i].Photos);
+                entries.AddRange(days[i].Entries);
+            }
+
+            return new LayoutDay
+            {
+                Date = days[segment.FirstDayIndex].Date,
+                Photos = DayGrouping.SortPhotos(photos),
+                Entries = entries
+                    .OrderBy(e => e.EffectiveDate)
+                    .ThenBy(e => e.Occurrence)
+                    .ThenBy(e => e.Id, StringComparer.Ordinal)
+                    .ToList(),
+            };
+        }
+
         private IReadOnlyList<PagePlan> ExpandSegment(List<LayoutDay> days, PageSegment segment, int startPageIndex)
         {
             if (segment.IsMerge)
@@ -881,8 +965,24 @@ public static class LayoutEngine
                 ];
             }
 
-            var day = days[segment.FirstDayIndex];
+            var day = segment.IsAbsorb ? Flatten(days, segment) : days[segment.FirstDayIndex];
             var pages = Math.Max(1, segment.PageCount);
+
+            if (segment.IsAbsorb)
+            {
+                for (var i = segment.FirstDayIndex; i < segment.FirstDayIndex + segment.DayCount; i++)
+                {
+                    if (!DemandModel.IsWeakStraggler(days[i], _weights)) continue;
+                    _diagnostics.Add(new LayoutDiagnostic
+                    {
+                        Kind = LayoutDiagnosticKind.StragglerAbsorbed,
+                        Severity = LayoutSeverity.Info,
+                        Message = $"The single photo of {days[i].Date:yyyy-MM-dd} shares a page with its " +
+                                  "neighbouring day rather than filling one on its own.",
+                        Date = days[i].Date,
+                    });
+                }
+            }
 
             // §12 escalation ladder step 2 — "shed photos to the next page of the same day". The
             // day's atomic text rides on its first page (§5), so the lever is that page's photo
@@ -1032,7 +1132,10 @@ public static class LayoutEngine
                 {
                     pages.Add(anchor);
                     var template = anchor.DetachedTemplate ?? _catalog.Find(anchor.TemplateRef);
-                    _memory.Record(anchor.TemplateRef, template?.Kind ?? TemplateKind.Standard);
+                    _memory.Record(
+                        anchor.TemplateRef,
+                        template?.Kind ?? TemplateKind.Standard,
+                        template is null ? 1.0 : TemplateCatalog.SlotCoverage(template));
                     continue;
                 }
 
@@ -1087,7 +1190,8 @@ public static class LayoutEngine
                     }
 
                     produced.Add((sided, page, choice));
-                    _memory.Record(choice.Library.Id, choice.Library.Kind);
+                    _memory.Record(
+                        choice.Library.Id, choice.Library.Kind, TemplateCatalog.SlotCoverage(choice.Library));
                 }
 
                 ChainOverflowText(produced);

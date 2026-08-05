@@ -1,49 +1,50 @@
 {
   "schemaVersion": 1,
   "id": "t-sp-b-right",
-  "name": "Mirrored gallery spread \u2014 right",
+  "name": "Mirrored gallery spread - right",
   "pageSize": "11x8.5-landscape",
   "kind": "spreadPair",
   "photoCount": 3,
   "mirrorable": false,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.34,
-        "y": 0.06,
-        "w": 0.62,
-        "h": 0.5
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.628,
+        "h": 0.912
       },
-      "aspect": 1.6047,
+      "aspect": 0.8911,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.34,
-        "y": 0.6,
-        "w": 0.3,
-        "h": 0.34
+        "x": 0.664,
+        "y": 0.024,
+        "w": 0.314,
+        "h": 0.453
       },
-      "aspect": 1.1419,
+      "aspect": 0.897,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.66,
-        "y": 0.6,
-        "w": 0.3,
-        "h": 0.34
+        "x": 0.664,
+        "y": 0.493,
+        "w": 0.314,
+        "h": 0.453
       },
-      "aspect": 1.1419,
+      "aspect": 0.897,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -54,13 +55,14 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.2,
-        "w": 0.24,
-        "h": 0.56
+        "x": 0.06,
+        "y": 0.6,
+        "w": 0.44,
+        "h": 0.3
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": {

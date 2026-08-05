@@ -21,4 +21,12 @@ public sealed record TextSlot
 
     /// <summary>Caption role only: the id of the <see cref="ImageSlot"/> this caption belongs to.</summary>
     public string? AttachedTo { get; set; }
+
+    /// <summary>
+    /// True when this text is deliberately placed <em>over</em> a photo and must render on the doc 10
+    /// §4 scrim so it stays legible. Required by linter rule L3 for any text slot that intersects an
+    /// image slot: text on a photo without a scrim is unreadable over a busy image, so the linter
+    /// treats the missing flag as an error rather than a style choice.
+    /// </summary>
+    public bool Scrim { get; set; }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-06-text-b",
-  "name": "Grid of four plus a stacked pair, journal beneath",
+  "name": "Four up plus a pair, journal band below",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 6,
@@ -10,26 +10,26 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.26,
-        "h": 0.3
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.285,
+        "h": 0.33
       },
-      "aspect": 1.1216,
+      "aspect": 1.1176,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
+      "tierAffinity": "S",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.32,
-        "y": 0.06,
-        "w": 0.26,
-        "h": 0.3
+        "x": 0.315,
+        "y": 0.024,
+        "w": 0.285,
+        "h": 0.33
       },
-      "aspect": 1.1216,
+      "aspect": 1.1176,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -38,26 +38,26 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.62,
-        "y": 0.06,
-        "w": 0.34,
-        "h": 0.3
+        "x": 0.018,
+        "y": 0.37,
+        "w": 0.285,
+        "h": 0.33
       },
-      "aspect": 1.4667,
+      "aspect": 1.1176,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
+      "tierAffinity": "B",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.38,
-        "w": 0.26,
-        "h": 0.3
+        "x": 0.315,
+        "y": 0.37,
+        "w": 0.285,
+        "h": 0.33
       },
-      "aspect": 1.1216,
+      "aspect": 1.1176,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,28 +66,28 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.32,
-        "y": 0.38,
-        "w": 0.26,
-        "h": 0.3
+        "x": 0.614,
+        "y": 0.024,
+        "w": 0.364,
+        "h": 0.33
       },
-      "aspect": 1.1216,
+      "aspect": 1.4275,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s6",
       "rect": {
-        "x": 0.62,
-        "y": 0.38,
-        "w": 0.34,
-        "h": 0.3
+        "x": 0.614,
+        "y": 0.37,
+        "w": 0.364,
+        "h": 0.33
       },
-      "aspect": 1.4667,
+      "aspect": 1.4275,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     }
@@ -96,10 +96,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.06,
-        "y": 0.72,
-        "w": 0.88,
-        "h": 0.2
+        "x": 0.055,
+        "y": 0.74,
+        "w": 0.91,
+        "h": 0.205
       },
       "role": "journal",
       "align": "left"

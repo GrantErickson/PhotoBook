@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-03-notext-a",
-  "name": "Big photo with two small \u2014 L arrangement",
+  "name": "L arrangement, hero inner",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 3,
@@ -10,26 +10,26 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.1,
-        "w": 0.56,
-        "h": 0.78
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.638,
+        "h": 0.952
       },
-      "aspect": 0.9291,
+      "aspect": 0.8673,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.63,
-        "y": 0.1,
-        "w": 0.33,
-        "h": 0.3
+        "x": 0.674,
+        "y": 0.024,
+        "w": 0.304,
+        "h": 0.468
       },
-      "aspect": 1.4235,
+      "aspect": 0.8406,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.63,
-        "y": 0.44,
-        "w": 0.33,
-        "h": 0.3
+        "x": 0.674,
+        "y": 0.508,
+        "w": 0.304,
+        "h": 0.468
       },
-      "aspect": 1.4235,
+      "aspect": 0.8406,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",

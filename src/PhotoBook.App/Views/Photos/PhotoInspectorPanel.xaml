@@ -2,15 +2,32 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:svc="clr-namespace:PhotoBook.App.Services"
              xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/PhotoBook.App;component/Themes/PhotoEditing.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- One segment of the section switcher: icon over label, an equal third of the rail. -->
+            <Style x:Key="SectionSegmentStyle" TargetType="{x:Type RadioButton}"
+                   BasedOn="{StaticResource SegmentedRadioButtonStyle}">
+                <Setter Property="Padding" Value="6,6,6,7" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!--
+        The Photos-tab inspector body (doc 09 §2.1, §2.2, §2.4).
+
+        Date, Focus and Adjust are switched rather than stacked. Stacked, the three ran to well over
+        two screens and Adjust sat so far below the fold that the image corrections of R11 read as
+        missing software. The switcher is the first thing under the photo, so every section is one
+        click from every other and none of them needs scrolling to be discovered.
+    -->
     <StackPanel Visibility="{Binding HasPhoto, Converter={StaticResource BoolToVisibility}}">
 
         <!-- Why a drop was refused. Lives here rather than over the grid so it never covers a tile
@@ -23,54 +40,117 @@
                        Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" />
         </Border>
 
-        <!-- ============================================ date (R6, §2.1) -->
-        <TextBlock Text="Date" Style="{StaticResource SectionLabelTextStyle}" />
-        <TextBlock Text="{Binding DateLabel}" Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding ProvenanceLabel}" Style="{StaticResource CaptionMutedTextStyle}"
-                   Margin="0,3,0,0" />
+        <!-- ============================================ section switcher -->
+        <Border Style="{StaticResource SegmentedGroupStyle}">
+            <UniformGrid Rows="1" Columns="3">
+                <RadioButton x:Name="InfoTab" GroupName="InspectorSection"
+                             Style="{StaticResource SectionSegmentStyle}"
+                             IsChecked="{Binding IsInfoSection, Mode=OneWay}"
+                             Command="{Binding SelectSectionCommand}"
+                             CommandParameter="{x:Static svc:InspectorSection.Info}"
+                             ToolTip="Date, quality and whether this photo is in the book">
+                    <StackPanel>
+                        <pb:Icon Data="{StaticResource Icon.Info}" Width="16" Height="16"
+                                 HorizontalAlignment="Center" />
+                        <TextBlock Text="Info" Margin="0,3,0,0" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
 
-        <Border Style="{StaticResource AmberBadgeStyle}" Margin="0,8,0,0" HorizontalAlignment="Left"
-                Visibility="{Binding IsDateUncertain, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock Text="Date guessed from the file" />
+                <RadioButton x:Name="AdjustTab" GroupName="InspectorSection"
+                             Style="{StaticResource SectionSegmentStyle}"
+                             IsChecked="{Binding IsAdjustSection, Mode=OneWay}"
+                             Command="{Binding SelectSectionCommand}"
+                             CommandParameter="{x:Static svc:InspectorSection.Adjust}"
+                             ToolTip="Exposure, colour, sharpening, straighten, rotate — image corrections (R11)">
+                    <StackPanel>
+                        <Grid HorizontalAlignment="Center">
+                            <pb:Icon Data="{StaticResource Icon.Adjust}" Width="16" Height="16" />
+
+                            <!-- A photo that already carries edits says so on the tab. -->
+                            <Ellipse Width="6" Height="6" Margin="0,-2,-5,0"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                     Fill="{DynamicResource AccentBrush}"
+                                     Visibility="{Binding Adjustments.HasEdits,
+                                                  Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                        <TextBlock Text="Adjust" Margin="0,3,0,0" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+
+                <RadioButton x:Name="FocusTab" GroupName="InspectorSection"
+                             Style="{StaticResource SectionSegmentStyle}"
+                             IsChecked="{Binding IsFocusSection, Mode=OneWay}"
+                             Command="{Binding SelectSectionCommand}"
+                             CommandParameter="{x:Static svc:InspectorSection.Focus}"
+                             ToolTip="What smart crop must keep in frame (R25)">
+                    <StackPanel>
+                        <Grid HorizontalAlignment="Center">
+                            <pb:Icon Data="{StaticResource Icon.FocusTarget}" Width="16" Height="16" />
+                            <Ellipse Width="6" Height="6" Margin="0,-2,-5,0"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                     Fill="{DynamicResource AccentBrush}"
+                                     Visibility="{Binding HasUserFocus,
+                                                  Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                        <TextBlock Text="Focus" Margin="0,3,0,0" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+            </UniformGrid>
         </Border>
 
-        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,10,0,0"
-                HorizontalAlignment="Left" Command="{Binding ChangeDateCommand}"
-                ToolTip="Re-date this photo (D). A new month moves it to that month's Unplaced bin.">
-            <StackPanel Orientation="Horizontal">
-                <pb:Icon Data="{StaticResource Icon.Calendar}" VerticalAlignment="Center" />
-                <TextBlock Text="Change date…" Margin="9,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>
+        <!-- ============================================ info (R6, §2.1) -->
+        <!-- The shell's own Tier and Exclude blocks follow this one and hide with it. -->
+        <StackPanel Visibility="{Binding IsChecked, ElementName=InfoTab,
+                                 Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="Date" Style="{StaticResource SectionLabelTextStyle}" Margin="0,20,0,0" />
+            <TextBlock Text="{Binding DateLabel}" Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ProvenanceLabel}" Style="{StaticResource CaptionMutedTextStyle}"
+                       Margin="0,3,0,0" />
 
-        <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
+            <Border Style="{StaticResource AmberBadgeStyle}" Margin="0,8,0,0" HorizontalAlignment="Left"
+                    Visibility="{Binding IsDateUncertain, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Date guessed from the file" />
+            </Border>
 
-        <!-- ============================================ focus (R25, §2.2) -->
-        <TextBlock Text="Focus" Style="{StaticResource SectionLabelTextStyle}" Margin="0,20,0,0" />
-
-        <Border CornerRadius="6" Background="{DynamicResource FocusSurfaceBrush}" Height="150"
-                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" ClipToBounds="True">
-            <pb:FocusRegionSurface IsInteractive="False"
-                                   Image="{Binding Focus.Preview}"
-                                   Regions="{Binding Focus.Regions}" />
-        </Border>
-
-        <TextBlock Text="{Binding FocusSummary}" Style="{StaticResource CaptionMutedTextStyle}"
-                   Margin="0,8,0,0" TextWrapping="Wrap" />
-
-        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,10,0,0"
-                HorizontalAlignment="Left" Command="{Binding EditFocusCommand}"
-                ToolTip="Draw or adjust what smart crop must keep in frame (F)">
-            <StackPanel Orientation="Horizontal">
-                <pb:Icon Data="{StaticResource Icon.FocusTarget}" VerticalAlignment="Center" />
-                <TextBlock Text="Edit focus areas…" Margin="9,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>
-
-        <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
+            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,10,0,0"
+                    HorizontalAlignment="Left" Command="{Binding ChangeDateCommand}"
+                    ToolTip="Re-date this photo (D). A new month moves it to that month's Unplaced bin.">
+                <StackPanel Orientation="Horizontal">
+                    <pb:Icon Data="{StaticResource Icon.Calendar}" VerticalAlignment="Center" />
+                    <TextBlock Text="Change date…" Margin="9,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
 
         <!-- ============================================ adjust (R11, §2.4) -->
-        <photos:AdjustmentsPanel Margin="0,20,0,0" DataContext="{Binding Adjustments}" />
+        <photos:AdjustmentsPanel Margin="0,18,0,0" DataContext="{Binding Adjustments}"
+                                 Visibility="{Binding IsChecked, ElementName=AdjustTab,
+                                              Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- ============================================ focus (R25, §2.2) -->
+        <StackPanel Visibility="{Binding IsChecked, ElementName=FocusTab,
+                                 Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="Focus areas" Style="{StaticResource SectionLabelTextStyle}" Margin="0,20,0,0" />
+
+            <Border CornerRadius="6" Background="{DynamicResource FocusSurfaceBrush}" Height="150"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" ClipToBounds="True">
+                <pb:FocusRegionSurface IsInteractive="False"
+                                       Image="{Binding Focus.Preview}"
+                                       Regions="{Binding Focus.Regions}" />
+            </Border>
+
+            <TextBlock Text="{Binding FocusSummary}" Style="{StaticResource CaptionMutedTextStyle}"
+                       Margin="0,8,0,0" TextWrapping="Wrap" />
+
+            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,10,0,0"
+                    HorizontalAlignment="Left" Command="{Binding EditFocusCommand}"
+                    ToolTip="Draw or adjust what smart crop must keep in frame (F)">
+                <StackPanel Orientation="Horizontal">
+                    <pb:Icon Data="{StaticResource Icon.FocusTarget}" VerticalAlignment="Center" />
+                    <TextBlock Text="Edit focus areas…" Margin="9,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
 
         <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionMutedTextStyle}"
                    Margin="0,16,0,0" TextWrapping="Wrap" />

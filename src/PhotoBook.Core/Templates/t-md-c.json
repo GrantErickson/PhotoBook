@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-md-c",
-  "name": "Three days, vertical thirds",
+  "name": "Three days in vertical thirds",
   "pageSize": "11x8.5-landscape",
   "kind": "multiDay",
   "photoCount": 3,
@@ -10,42 +10,42 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.2933,
-        "h": 0.4
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
       },
-      "aspect": 0.9489,
+      "aspect": 0.6181,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.3533,
-        "y": 0.06,
-        "w": 0.2933,
-        "h": 0.4
+        "x": 0.3433,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
       },
-      "aspect": 0.9489,
+      "aspect": 0.6181,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.6667,
-        "y": 0.06,
-        "w": 0.2933,
-        "h": 0.4
+        "x": 0.6687,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
       },
-      "aspect": 0.9489,
+      "aspect": 0.6181,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     }
@@ -54,10 +54,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.5,
-        "w": 0.2783,
-        "h": 0.42
+        "x": 0.0465,
+        "y": 0.71,
+        "w": 0.3093,
+        "h": 0.235
       },
       "role": "journal",
       "align": "left"
@@ -65,10 +65,10 @@
     {
       "id": "t2",
       "rect": {
-        "x": 0.3533,
-        "y": 0.5,
-        "w": 0.2933,
-        "h": 0.42
+        "x": 0.3433,
+        "y": 0.71,
+        "w": 0.3093,
+        "h": 0.235
       },
       "role": "journal",
       "align": "left"
@@ -76,10 +76,10 @@
     {
       "id": "t3",
       "rect": {
-        "x": 0.6667,
-        "y": 0.5,
-        "w": 0.2933,
-        "h": 0.42
+        "x": 0.6687,
+        "y": 0.71,
+        "w": 0.2923,
+        "h": 0.235
       },
       "role": "journal",
       "align": "left"

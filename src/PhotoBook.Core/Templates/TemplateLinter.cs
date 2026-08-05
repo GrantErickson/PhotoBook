@@ -17,7 +17,7 @@ public enum LintSeverity
 /// embedded library fails the build on any <see cref="LintSeverity.Error"/>, and the editor turns
 /// findings on a Detached snapshot into badges that never block saving (doc 07, doc 09, doc 13).
 /// </summary>
-/// <param name="Rule">The doc 07 rule id — <c>L1</c>…<c>L12</c>.</param>
+/// <param name="Rule">The doc 07 rule id — <c>L1</c>…<c>L13</c>.</param>
 /// <param name="Severity">How badly it breaks.</param>
 /// <param name="TemplateId">The template's id, or its <c>basedOn</c> id for a detached snapshot.</param>
 /// <param name="TargetId">The offending slot / text slot / section id, when the rule has one.</param>
@@ -37,7 +37,7 @@ public sealed record TemplateDiagnostic(
 
 /// <summary>
 /// The doc 07 template linter: pure, allocation-light, and identical in both contexts it runs in.
-/// Rules L1–L12 are implemented one method each and reported as <see cref="TemplateDiagnostic"/>s.
+/// Rules L1–L13 are implemented one method each and reported as <see cref="TemplateDiagnostic"/>s.
 /// </summary>
 public static class TemplateLinter
 {
@@ -70,14 +70,34 @@ public static class TemplateLinter
     /// <summary>The reserved below-caption band — 0.30 in.</summary>
     public const double CaptionBandHeight = 0.0353;
 
-    /// <summary>L2's tolerated pairwise slot intersection — rounding slop only.</summary>
+    /// <summary>
+    /// The pairwise slot intersection L2 treats as rounding slop rather than an overlap at all.
+    /// Anything above this is a real overlap and must be declared (<see cref="Template.Overlaps"/>)
+    /// and layered (<see cref="ImageSlot.Layer"/>).
+    /// </summary>
     public const double MaxSlotOverlapArea = 0.002;
+
+    /// <summary>
+    /// L2's burial limit: how much of the <em>lower</em> slot a higher-layer slot may cover. Past
+    /// this the buried photo is no longer a photo on the page, it is a sliver behind another one.
+    /// </summary>
+    public const double MaxBuriedFraction = 0.35;
+
+    /// <summary>
+    /// L3's limit on how much of an image slot a scrimmed text block may cover. A caption or journal
+    /// sitting on the quiet edge of a photo is a design; one covering most of it is a text box that
+    /// happens to have a photo behind it.
+    /// </summary>
+    public const double MaxTextOverImageFraction = 0.5;
+
+    /// <summary>Highest legal <see cref="ImageSlot.Layer"/>; deeper stacks are an authoring mistake.</summary>
+    public const int MaxLayer = 9;
 
     /// <summary>L10's lower coverage bound.</summary>
     public const double MinCoverage = 0.15;
 
     /// <summary>L10's upper coverage bound.</summary>
-    public const double MaxCoverage = 0.95;
+    public const double MaxCoverage = 0.97;
 
     /// <summary>Geometric slop; rects are authored to four decimals.</summary>
     private const double Eps = 1e-6;
@@ -134,6 +154,7 @@ public static class TemplateLinter
         SpreadPairShape(template, id, issues);         // L9 (single-template half)
         CoverageSanity(template, id, issues);          // L10
         TrimTouchingSlots(template, id, issues);       // L11
+        OverlapPlacement(template, id, issues);        // L13
 
         return Order(issues);
     }
@@ -282,34 +303,140 @@ public static class TemplateLinter
         }
     }
 
-    /// <summary>L2 — pairwise image-slot intersection is rounding slop at most; v1 has no intentional overlaps.</summary>
+    /// <summary>
+    /// L2 — image-slot overlap is a design tool, not an error, <b>when it is declared</b>. An
+    /// intersection above <see cref="MaxSlotOverlapArea"/> (anything larger than rounding slop) is
+    /// legal only when the template opts in with <see cref="Template.Overlaps"/> and the two slots sit
+    /// on different <see cref="ImageSlot.Layer"/>s, so the paint order is defined rather than
+    /// accidental. Genuine mistakes still fail: an undeclared overlap, two slots stacked on the same
+    /// layer, and a lower slot buried past <see cref="MaxBuriedFraction"/> of its own area.
+    /// </summary>
     private static void NoSlotOverlaps(Template t, string id, List<TemplateDiagnostic> issues)
     {
+        foreach (var slot in t.Slots.Where(s => s.Layer is < 0 or > MaxLayer))
+        {
+            issues.Add(Error("L2", id, slot.Id, $"layer {slot.Layer} is outside 0..{MaxLayer}."));
+        }
+
+        var overlapping = false;
+
         for (var i = 0; i < t.Slots.Count; i++)
         {
             for (var j = i + 1; j < t.Slots.Count; j++)
             {
-                var overlap = t.Slots[i].Rect.IntersectionArea(t.Slots[j].Rect);
-                if (overlap > MaxSlotOverlapArea)
+                var a = t.Slots[i];
+                var b = t.Slots[j];
+                var overlap = a.Rect.IntersectionArea(b.Rect);
+                if (overlap <= MaxSlotOverlapArea) continue;
+
+                overlapping = true;
+
+                if (!t.Overlaps)
                 {
-                    issues.Add(Error("L2", id, t.Slots[i].Id,
-                        $"overlaps {t.Slots[j].Id} by {overlap:0.####} of the page " +
-                        $"(limit {MaxSlotOverlapArea})."));
+                    issues.Add(Error("L2", id, a.Id,
+                        $"overlaps {b.Id} by {overlap:0.####} of the page, but the template does not " +
+                        "declare \"overlaps\": true; an undeclared overlap is an authoring accident."));
+                    continue;
+                }
+
+                if (a.Layer == b.Layer)
+                {
+                    issues.Add(Error("L2", id, a.Id,
+                        $"overlaps {b.Id} on the same layer ({a.Layer}); a deliberate overlap needs a " +
+                        "z-order — give the slot on top a higher \"layer\"."));
+                    continue;
+                }
+
+                var lower = a.Layer < b.Layer ? a : b;
+                var upper = a.Layer < b.Layer ? b : a;
+                var buried = lower.Rect.Area <= 0 ? 1 : overlap / lower.Rect.Area;
+                if (buried > MaxBuriedFraction)
+                {
+                    issues.Add(Error("L2", id, lower.Id,
+                        $"is {buried:P0} covered by {upper.Id} on layer {upper.Layer}; a slot buried past " +
+                        $"{MaxBuriedFraction:P0} is not a photo on the page. Overlap a corner, not the frame."));
                 }
             }
         }
+
+        if (t.Overlaps && !overlapping && !t.TextSlots.Any(x => x.Scrim))
+        {
+            issues.Add(new TemplateDiagnostic("L2", LintSeverity.Warning, id, null,
+                "declares \"overlaps\": true but nothing overlaps; drop the declaration so the flag keeps meaning something."));
+        }
     }
 
-    /// <summary>L3 — journal and caption text never sits on a photo; only monthTitle may (R24).</summary>
+    /// <summary>
+    /// L3 — text over a photo is legal when it is deliberate <em>and</em> legible: the template
+    /// declares <see cref="Template.Overlaps"/>, the text slot asks for the doc 10 §4 scrim
+    /// (<see cref="TextSlot.Scrim"/>), and the block sits wholly inside one image slot covering at most
+    /// <see cref="MaxTextOverImageFraction"/> of it. Text half on a photo and half on the page would
+    /// carry its scrim onto the background; text with no scrim is unreadable over a busy image; text
+    /// covering the photo is a text box with a picture behind it. All three stay errors.
+    /// <para>
+    /// <see cref="TextRole.MonthTitle"/> may overlap by R24 and takes the same legibility checks — the
+    /// renderer scrims an overlapping title automatically (doc 10 §7), so the flag is what the author
+    /// states and the linter verifies.
+    /// </para>
+    /// </summary>
     private static void TextImageSeparation(Template t, string id, List<TemplateDiagnostic> issues)
     {
-        foreach (var text in t.TextSlots.Where(x => x.Role != TextRole.MonthTitle))
+        foreach (var text in t.TextSlots)
         {
-            foreach (var slot in t.Slots.Where(s => s.Rect.Intersects(text.Rect)))
+            var hits = t.Slots.Where(s => s.Rect.IntersectionArea(text.Rect) > Eps).ToList();
+
+            if (hits.Count == 0)
+            {
+                if (text.Scrim)
+                {
+                    issues.Add(new TemplateDiagnostic("L3", LintSeverity.Warning, id, text.Id,
+                        "asks for a scrim but sits on no image slot; the gradient would darken the page background."));
+                }
+
+                continue;
+            }
+
+            var role = text.Role.ToString().ToLowerInvariant();
+
+            if (!t.Overlaps)
             {
                 issues.Add(Error("L3", id, text.Id,
-                    $"{text.Role.ToString().ToLowerInvariant()} text intersects image slot {slot.Id}; " +
-                    "only monthTitle text may overlap a photo."));
+                    $"{role} text sits on image slot {hits[0].Id}, but the template does not declare " +
+                    "\"overlaps\": true; text drifting onto a photo is an authoring accident."));
+                continue;
+            }
+
+            if (!text.Scrim)
+            {
+                issues.Add(Error("L3", id, text.Id,
+                    $"{role} text sits on image slot {hits[0].Id} without \"scrim\": true; " +
+                    "text over a busy photo needs the doc 10 §4 scrim to stay legible."));
+                continue;
+            }
+
+            if (hits.Count > 1)
+            {
+                issues.Add(Error("L3", id, text.Id,
+                    $"{role} text spans {hits.Count} image slots ({string.Join(", ", hits.Select(s => s.Id))}); " +
+                    "a scrim belongs to one photo — the gaps between them would show through it."));
+                continue;
+            }
+
+            var slot = hits[0];
+            var covered = slot.Rect.IntersectionArea(text.Rect);
+
+            if (covered < text.Rect.Area - Eps)
+            {
+                issues.Add(Error("L3", id, text.Id,
+                    $"{role} text hangs off image slot {slot.Id} ({1 - covered / text.Rect.Area:P0} of it " +
+                    "is over the page background); a scrimmed block must lie wholly inside its photo."));
+            }
+
+            if (slot.Rect.Area > 0 && covered / slot.Rect.Area > MaxTextOverImageFraction)
+            {
+                issues.Add(Error("L3", id, text.Id,
+                    $"{role} text covers {covered / slot.Rect.Area:P0} of image slot {slot.Id} " +
+                    $"(limit {MaxTextOverImageFraction:P0}); at that size the photo is wallpaper, not a photo."));
             }
         }
     }
@@ -540,14 +667,17 @@ public static class TemplateLinter
     }
 
     /// <summary>
-    /// L10 — coverage sanity. Negative space is legitimate (R20), so this is a warning, and pages
-    /// carrying a bleed slot are exempt: full-bleed coverage is over 1.0 by construction.
+    /// L10 — coverage sanity. Measured as the <em>union</em> of the slot rects clipped to the trim box
+    /// (<see cref="PageCoverage"/>), so an overlapping layout is judged on how much of the page a
+    /// reader actually sees covered rather than on double-counted area. Negative space is legitimate
+    /// (R20), so this is a warning; pages carrying a bleed slot are exempt because their coverage is
+    /// the whole page by construction.
     /// </summary>
     private static void CoverageSanity(Template t, string id, List<TemplateDiagnostic> issues)
     {
         if (t.Slots.Any(s => s.Bleed)) return;
 
-        var coverage = t.Slots.Where(s => s.Rect.IsWellFormed).Sum(s => s.Rect.Area);
+        var coverage = PageCoverage(t);
         if (coverage < MinCoverage || coverage > MaxCoverage)
         {
             issues.Add(new TemplateDiagnostic("L10", LintSeverity.Warning, id, null,
@@ -575,7 +705,88 @@ public static class TemplateLinter
         }
     }
 
+    /// <summary>
+    /// L13 — where an intentional overlap lands. Smart-crop puts the subject near the middle of a slot
+    /// (R25), so a covering slot that bites into the centre of the one below hides exactly what the
+    /// crop worked to keep. Corners and outer thirds are the safe places to overlap; anything landing
+    /// in the middle ninth of the covered slot is flagged for the author.
+    /// </summary>
+    private static void OverlapPlacement(Template t, string id, List<TemplateDiagnostic> issues)
+    {
+        if (!t.Overlaps) return;
+
+        for (var i = 0; i < t.Slots.Count; i++)
+        {
+            for (var j = i + 1; j < t.Slots.Count; j++)
+            {
+                var a = t.Slots[i];
+                var b = t.Slots[j];
+                if (a.Layer == b.Layer) continue;
+
+                var overlap = a.Rect.IntersectionArea(b.Rect);
+                if (overlap <= MaxSlotOverlapArea) continue;
+
+                var lower = a.Layer < b.Layer ? a : b;
+                var upper = a.Layer < b.Layer ? b : a;
+                var r = lower.Rect;
+                if (!r.IsWellFormed) continue;
+
+                var shared = Intersection(r, upper.Rect);
+                var u = (shared.CenterX - r.X) / r.W;
+                var v = (shared.CenterY - r.Y) / r.H;
+
+                if (u is > 1.0 / 3 and < 2.0 / 3 && v is > 1.0 / 3 and < 2.0 / 3)
+                {
+                    issues.Add(new TemplateDiagnostic("L13", LintSeverity.Warning, id, lower.Id,
+                        $"{upper.Id} overlaps the middle of {lower.Id} (at {u:0.##}, {v:0.##} of it); " +
+                        "smart-crop puts the subject there — overlap a corner or an outer third instead."));
+                }
+            }
+        }
+    }
+
     // ----------------------------------------------------------------- helpers
+
+    /// <summary>
+    /// How much of the trim box the template's image slots actually cover, counting overlapped area
+    /// once: the union of every slot rect clipped to <c>[0,1]²</c>. This is the honest "how full is
+    /// this page" number — the one L10 bounds and the one the library's fullness is measured with.
+    /// </summary>
+    public static double PageCoverage(Template template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+
+        var rects = template.Slots
+            .Where(s => s.Rect.IsWellFormed)
+            .Select(s => Intersection(s.Rect, Rect.Unit))
+            .Where(r => r.W > 0 && r.H > 0)
+            .ToList();
+
+        if (rects.Count == 0) return 0;
+
+        // Coordinate-compressed sweep: with at most 8 slots the grid is tiny and the answer exact.
+        var xs = rects.SelectMany(r => new[] { r.X, r.Right }).Distinct().Order().ToList();
+        var ys = rects.SelectMany(r => new[] { r.Y, r.Bottom }).Distinct().Order().ToList();
+
+        var area = 0.0;
+        for (var i = 0; i + 1 < xs.Count; i++)
+        {
+            for (var j = 0; j + 1 < ys.Count; j++)
+            {
+                var cx = (xs[i] + xs[i + 1]) / 2;
+                var cy = (ys[j] + ys[j + 1]) / 2;
+                if (rects.Any(r => r.Contains(cx, cy)))
+                {
+                    area += (xs[i + 1] - xs[i]) * (ys[j + 1] - ys[j]);
+                }
+            }
+        }
+
+        return area;
+    }
+
+    private static Rect Intersection(Rect a, Rect b) =>
+        Rect.FromEdges(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Right, b.Right), Math.Min(a.Bottom, b.Bottom));
 
     private static HashSet<string> SpanIds(Template t) =>
         t.Slots.Where(s => s.SpanId is not null).Select(s => s.SpanId!).ToHashSet(StringComparer.Ordinal);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-07-notext-a",
-  "name": "Mosaic of seven, largest outer",
+  "name": "Seven-photo mosaic, hero outer",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 7,
@@ -10,40 +10,40 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.48,
-        "h": 0.26
+        "x": 0.42,
+        "y": 0.024,
+        "w": 0.558,
+        "h": 0.592
       },
-      "aspect": 2.3891,
-      "aspectTolerance": 0.45,
-      "tierAffinity": "A",
+      "aspect": 1.2198,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.56,
-        "y": 0.06,
-        "w": 0.4,
-        "h": 0.56
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.383,
+        "h": 0.29
       },
-      "aspect": 0.9244,
+      "aspect": 1.7091,
       "aspectTolerance": 0.35,
-      "tierAffinity": "S",
-      "captionPolicy": "below",
+      "tierAffinity": "A",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.04,
-        "y": 0.34,
-        "w": 0.23,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.33,
+        "w": 0.383,
+        "h": 0.29
       },
-      "aspect": 1.063,
+      "aspect": 1.7091,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.29,
-        "y": 0.34,
-        "w": 0.23,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.64,
+        "w": 0.232,
+        "h": 0.332
       },
-      "aspect": 1.063,
+      "aspect": 0.9043,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,26 +66,26 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.04,
-        "y": 0.66,
-        "w": 0.28,
-        "h": 0.28
+        "x": 0.262,
+        "y": 0.64,
+        "w": 0.232,
+        "h": 0.332
       },
-      "aspect": 1.2941,
+      "aspect": 0.9043,
       "aspectTolerance": 0.35,
-      "tierAffinity": "C",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s6",
       "rect": {
-        "x": 0.34,
-        "y": 0.66,
-        "w": 0.28,
-        "h": 0.28
+        "x": 0.506,
+        "y": 0.64,
+        "w": 0.232,
+        "h": 0.332
       },
-      "aspect": 1.2941,
+      "aspect": 0.9043,
       "aspectTolerance": 0.35,
       "tierAffinity": "C",
       "captionPolicy": "none",
@@ -94,14 +94,14 @@
     {
       "id": "s7",
       "rect": {
-        "x": 0.64,
-        "y": 0.66,
-        "w": 0.32,
-        "h": 0.28
+        "x": 0.75,
+        "y": 0.64,
+        "w": 0.232,
+        "h": 0.332
       },
-      "aspect": 1.479,
+      "aspect": 0.9043,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     }

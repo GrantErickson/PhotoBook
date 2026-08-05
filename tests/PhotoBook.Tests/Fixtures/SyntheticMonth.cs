@@ -292,14 +292,40 @@ public sealed class SyntheticMonth : IAsyncLifetime, IDisposable
     private static string Heading(DateOnly date) =>
         date.ToDateTime(TimeOnly.MinValue).ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture);
 
-    /// <summary>Deterministic prose of about <paramref name="characters"/> characters.</summary>
+    /// <summary>
+    /// Deterministic prose of exactly <paramref name="characters"/> characters, ending on a word
+    /// boundary.
+    /// <para>
+    /// The length is exact because the demand model measures journal size in characters, so a
+    /// fixture that returned "about" this many would move page counts. Ending on a word boundary
+    /// matters for a different reason: a hard mid-word cut looks exactly like a text-overflow bug
+    /// when these pages are rendered and inspected by eye, and it cost real time being mistaken for
+    /// one. Padding the trimmed remainder keeps the count exact.
+    /// </para>
+    /// </summary>
     public static string Filler(int characters)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(characters);
         const string sentence =
             "We walked down to the creek before breakfast and the kids found a heron standing in the shallows. ";
-        var text = string.Concat(Enumerable.Repeat(sentence, characters / sentence.Length + 1));
-        return text[..characters];
+
+        if (characters == 0)
+        {
+            return string.Empty;
+        }
+
+        var text = string.Concat(Enumerable.Repeat(sentence, characters / sentence.Length + 1))[..characters];
+
+        var lastSpace = text.LastIndexOf(' ');
+        if (lastSpace <= 0)
+        {
+            return text;
+        }
+
+        // Trim back to the last whole word, then pad to the requested length so callers that reason
+        // about character counts still get exactly what they asked for.
+        var words = text[..lastSpace].TrimEnd();
+        return words.PadRight(characters);
     }
 }
 

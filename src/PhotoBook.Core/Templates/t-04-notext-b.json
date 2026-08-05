@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-04-notext-b",
-  "name": "Outer hero with inner rail of three",
+  "name": "Hero outer with an inner rail of three",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 4,
@@ -10,40 +10,40 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.26,
-        "h": 0.28
+        "x": 0.34,
+        "y": 0.024,
+        "w": 0.638,
+        "h": 0.952
       },
-      "aspect": 1.2017,
+      "aspect": 0.8673,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "S",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.32,
-        "y": 0.06,
-        "w": 0.64,
-        "h": 0.88
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.304,
+        "h": 0.3067
       },
-      "aspect": 0.9412,
+      "aspect": 1.2829,
       "aspectTolerance": 0.35,
-      "tierAffinity": "S",
-      "captionPolicy": "below",
+      "tierAffinity": "B",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.04,
-        "y": 0.36,
-        "w": 0.26,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.3467,
+        "w": 0.304,
+        "h": 0.3067
       },
-      "aspect": 1.2017,
+      "aspect": 1.2829,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.66,
-        "w": 0.26,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.6693,
+        "w": 0.304,
+        "h": 0.3067
       },
-      "aspect": 1.2017,
+      "aspect": 1.2829,
       "aspectTolerance": 0.35,
       "tierAffinity": "C",
       "captionPolicy": "none",

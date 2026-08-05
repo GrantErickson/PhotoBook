@@ -10,26 +10,26 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.52,
-        "h": 0.6
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.598,
+        "h": 0.632
       },
-      "aspect": 1.1216,
+      "aspect": 1.2245,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.58,
-        "y": 0.06,
-        "w": 0.38,
-        "h": 0.28
+        "x": 0.634,
+        "y": 0.024,
+        "w": 0.344,
+        "h": 0.31
       },
-      "aspect": 1.7563,
+      "aspect": 1.4361,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -38,40 +38,40 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.58,
-        "y": 0.36,
-        "w": 0.18,
-        "h": 0.3
+        "x": 0.634,
+        "y": 0.35,
+        "w": 0.344,
+        "h": 0.31
       },
-      "aspect": 0.7765,
+      "aspect": 1.4361,
       "aspectTolerance": 0.35,
-      "tierAffinity": "C",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.78,
-        "y": 0.36,
-        "w": 0.18,
-        "h": 0.3
+        "x": 0.018,
+        "y": 0.674,
+        "w": 0.3133,
+        "h": 0.298
       },
-      "aspect": 0.7765,
+      "aspect": 1.3607,
       "aspectTolerance": 0.35,
-      "tierAffinity": "C",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s5",
       "rect": {
-        "x": 0.04,
-        "y": 0.68,
-        "w": 0.3,
-        "h": 0.26
+        "x": 0.3433,
+        "y": 0.674,
+        "w": 0.3133,
+        "h": 0.298
       },
-      "aspect": 1.4932,
+      "aspect": 1.3607,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -80,14 +80,14 @@
     {
       "id": "s6",
       "rect": {
-        "x": 0.36,
-        "y": 0.68,
-        "w": 0.3,
-        "h": 0.26
+        "x": 0.6687,
+        "y": 0.674,
+        "w": 0.3133,
+        "h": 0.298
       },
-      "aspect": 1.4932,
+      "aspect": 1.3607,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     }

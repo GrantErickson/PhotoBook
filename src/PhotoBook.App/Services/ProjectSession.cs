@@ -391,7 +391,12 @@ public sealed class ProjectSession : IDisposable
     /// <param name="width">Target width in pixels.</param>
     /// <param name="height">Target height in pixels.</param>
     /// <param name="showFlags">Draw the amber empty-slot flags (R14).</param>
-    /// <param name="drawGuides">Draw trim, safe and gutter guides — screen only (the <c>G</c> key).</param>
+    /// <param name="drawGuides">
+    /// Bake trim, safe and gutter guides into the page bitmap — screen only. The page editor passes
+    /// <c>false</c> and draws its own guides over the preview instead, so what it shows of the page is
+    /// byte-for-byte what the PDF gets; this stays for callers that want a self-contained annotated
+    /// raster.
+    /// </param>
     public PagePreview RenderPage(
         Chapter chapter, Page page, int width, int height, bool showFlags = true, bool drawGuides = false)
     {

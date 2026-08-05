@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-md-b",
-  "name": "Two days, side-by-side columns",
+  "name": "Two day columns, two photos each",
   "pageSize": "11x8.5-landscape",
   "kind": "multiDay",
   "photoCount": 4,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.44,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.373
       },
-      "aspect": 2.0336,
+      "aspect": 1.6515,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -24,40 +24,40 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.52,
-        "y": 0.05,
-        "w": 0.44,
-        "h": 0.28
+        "x": 0.018,
+        "y": 0.413,
+        "w": 0.476,
+        "h": 0.373
       },
-      "aspect": 2.0336,
-      "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "none",
-      "bleed": false
-    },
-    {
-      "id": "s3",
-      "rect": {
-        "x": 0.04,
-        "y": 0.35,
-        "w": 0.44,
-        "h": 0.28
-      },
-      "aspect": 2.0336,
+      "aspect": 1.6515,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
+      "id": "s3",
+      "rect": {
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.373
+      },
+      "aspect": 1.6515,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
       "id": "s4",
       "rect": {
-        "x": 0.52,
-        "y": 0.35,
-        "w": 0.44,
-        "h": 0.28
+        "x": 0.506,
+        "y": 0.413,
+        "w": 0.476,
+        "h": 0.373
       },
-      "aspect": 2.0336,
+      "aspect": 1.6515,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -69,9 +69,9 @@
       "id": "t1",
       "rect": {
         "x": 0.055,
-        "y": 0.65,
-        "w": 0.425,
-        "h": 0.28
+        "y": 0.81,
+        "w": 0.435,
+        "h": 0.135
       },
       "role": "journal",
       "align": "left"
@@ -79,10 +79,10 @@
     {
       "id": "t2",
       "rect": {
-        "x": 0.52,
-        "y": 0.65,
-        "w": 0.44,
-        "h": 0.28
+        "x": 0.51,
+        "y": 0.81,
+        "w": 0.455,
+        "h": 0.135
       },
       "role": "journal",
       "align": "left"
@@ -94,7 +94,7 @@
       "id": "d1",
       "slotIds": [
         "s1",
-        "s3"
+        "s2"
       ],
       "textSlotIds": [
         "t1"
@@ -103,7 +103,7 @@
     {
       "id": "d2",
       "slotIds": [
-        "s2",
+        "s3",
         "s4"
       ],
       "textSlotIds": [

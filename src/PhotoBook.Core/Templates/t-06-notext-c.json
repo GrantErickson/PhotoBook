@@ -10,54 +10,54 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.34,
-        "h": 0.42
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.4042,
+        "h": 0.468
       },
-      "aspect": 1.0476,
+      "aspect": 1.1177,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
+      "tierAffinity": "S",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.4,
-        "y": 0.05,
-        "w": 0.28,
-        "h": 0.42
+        "x": 0.4342,
+        "y": 0.024,
+        "w": 0.282,
+        "h": 0.468
       },
-      "aspect": 0.8627,
+      "aspect": 0.7798,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
-      "captionPolicy": "below",
+      "tierAffinity": "A",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s3",
       "rect": {
-        "x": 0.7,
-        "y": 0.05,
-        "w": 0.26,
-        "h": 0.42
+        "x": 0.7282,
+        "y": 0.024,
+        "w": 0.2538,
+        "h": 0.468
       },
-      "aspect": 0.8011,
+      "aspect": 0.7018,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.04,
-        "y": 0.51,
-        "w": 0.26,
-        "h": 0.42
+        "x": 0.018,
+        "y": 0.508,
+        "w": 0.2538,
+        "h": 0.468
       },
-      "aspect": 0.8011,
+      "aspect": 0.7018,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,28 +66,28 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.32,
-        "y": 0.51,
-        "w": 0.28,
-        "h": 0.42
+        "x": 0.2838,
+        "y": 0.508,
+        "w": 0.3008,
+        "h": 0.468
       },
-      "aspect": 0.8627,
+      "aspect": 0.8318,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "A",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s6",
       "rect": {
-        "x": 0.62,
-        "y": 0.51,
-        "w": 0.34,
-        "h": 0.42
+        "x": 0.5966,
+        "y": 0.508,
+        "w": 0.3854,
+        "h": 0.468
       },
-      "aspect": 1.0476,
+      "aspect": 1.0657,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
+      "tierAffinity": "S",
       "captionPolicy": "none",
       "bleed": false
     }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-01-fb-b",
-  "name": "Full-bleed hero, silent",
+  "name": "Full-bleed hero, no caption",
   "pageSize": "11x8.5-landscape",
   "kind": "fullBleed",
   "photoCount": 1,

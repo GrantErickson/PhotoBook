@@ -1,24 +1,25 @@
 {
   "schemaVersion": 1,
   "id": "t-01-text-a",
-  "name": "One photo with journal column",
+  "name": "Hero photo with journal on a scrim",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 1,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.34,
-        "y": 0.13,
-        "w": 0.62,
-        "h": 0.74
+        "x": 0.024,
+        "y": 0.03,
+        "w": 0.952,
+        "h": 0.94
       },
-      "aspect": 1.0843,
-      "aspectTolerance": 0.35,
+      "aspect": 1.3106,
+      "aspectTolerance": 0.3,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     }
   ],
@@ -26,13 +27,14 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.24,
-        "w": 0.245,
-        "h": 0.48
+        "x": 0.52,
+        "y": 0.6,
+        "w": 0.42,
+        "h": 0.32
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

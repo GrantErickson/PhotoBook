@@ -1,38 +1,39 @@
 {
   "schemaVersion": 1,
   "id": "t-02-text-b",
-  "name": "Pair on top, journal band below",
+  "name": "Side-by-side pair, journal on a scrim",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 2,
-  "mirrorable": false,
+  "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.44,
-        "h": 0.52
+        "x": 0.018,
+        "y": 0.028,
+        "w": 0.476,
+        "h": 0.917
       },
-      "aspect": 1.095,
+      "aspect": 0.6718,
       "aspectTolerance": 0.35,
-      "tierAffinity": "S",
-      "captionPolicy": "below",
+      "tierAffinity": "A",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.52,
-        "y": 0.06,
-        "w": 0.44,
-        "h": 0.52
+        "x": 0.506,
+        "y": 0.028,
+        "w": 0.476,
+        "h": 0.917
       },
-      "aspect": 1.095,
+      "aspect": 0.6718,
       "aspectTolerance": 0.35,
-      "tierAffinity": "A",
-      "captionPolicy": "below",
+      "tierAffinity": "S",
+      "captionPolicy": "none",
       "bleed": false
     }
   ],
@@ -41,12 +42,13 @@
       "id": "t1",
       "rect": {
         "x": 0.06,
-        "y": 0.64,
-        "w": 0.88,
-        "h": 0.28
+        "y": 0.66,
+        "w": 0.4,
+        "h": 0.27
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

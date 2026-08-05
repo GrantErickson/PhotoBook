@@ -106,6 +106,10 @@ public partial class PageEditorView : UserControl
             case nameof(PageEditorViewModel.ViewportZoom):
                 UpdateViewportSize();
                 break;
+
+            case nameof(PageEditorViewModel.ShowGuides):
+                UpdateOverlays();
+                break;
         }
     }
 
@@ -145,6 +149,11 @@ public partial class PageEditorView : UserControl
         RightHost.Visibility = spread && hasRight ? Visibility.Visible : Visibility.Collapsed;
         SeamColumn.Width = new GridLength(spread && hasRight ? 2 : 0);
         RightColumn.Width = spread && hasRight ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        // Each canvas draws its own sheet; telling it which half it is drawing is what turns two
+        // sheets into one open book — no bleed and no shadow at the spine, and a shaded gutter.
+        LeftCanvas.SpreadSide = spread && hasRight ? PageSheetSide.Left : PageSheetSide.None;
+        RightCanvas.SpreadSide = spread && hasRight ? PageSheetSide.Right : PageSheetSide.None;
 
         SyncSelection();
         UpdateViewportSize();
@@ -412,11 +421,14 @@ public partial class PageEditorView : UserControl
 
     /// <summary>
     /// The Spread view's gutter caution band: half an inch of page either side of the spine, taken
-    /// from the geometry the renderer actually drew with (doc 09 §3.1).
+    /// from the geometry the renderer actually drew with (doc 09 §3.1). It is a precision guide, so
+    /// it rides the same <c>G</c> toggle as bleed/trim/safe; the always-on cue that a spread has a
+    /// spine is the gutter shading the canvas draws into the sheet itself.
     /// </summary>
     private void UpdateGutter(PageCanvas canvas, PageEditorOverlay overlay)
     {
-        if (_viewModel?.IsSpread != true || RightHost.Visibility != Visibility.Visible ||
+        if (_viewModel?.IsSpread != true || _viewModel?.ShowGuides != true ||
+            RightHost.Visibility != Visibility.Visible ||
             canvas.Preview is not { } preview || canvas.PreviewScale <= 0)
         {
             overlay.SetGutter(Rect.Empty, null, 0);

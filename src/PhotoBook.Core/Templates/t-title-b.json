@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-title-b",
-  "name": "Month title beneath a wide photo",
+  "name": "Photo above the month name",
   "pageSize": "11x8.5-landscape",
   "kind": "monthTitle",
   "photoCount": 1,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.04,
-        "w": 0.92,
-        "h": 0.62
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.964,
+        "h": 0.686
       },
-      "aspect": 1.9203,
+      "aspect": 1.8186,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
       "captionPolicy": "none",
@@ -26,10 +26,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.06,
-        "y": 0.72,
-        "w": 0.88,
-        "h": 0.2
+        "x": 0.055,
+        "y": 0.745,
+        "w": 0.91,
+        "h": 0.185
       },
       "role": "monthTitle",
       "align": "left"

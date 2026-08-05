@@ -52,6 +52,36 @@ public sealed record LayoutWeights
     /// <summary><c>MIN_DAY_DEMAND</c> — floor for any non-empty day. Default 0.15.</summary>
     public double MinDayDemand { get; init; } = 0.15;
 
+    // ── §4b The solo-page rule ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// <c>SOLO_TIER</c> — the worst effective tier that earns a page all to itself no matter how many
+    /// other photos its day has. Default <see cref="Tier.A"/>: an S or A photo is allowed to be the
+    /// only thing on a page, because on a full template that means it renders huge.
+    /// </summary>
+    public Tier SoloTier { get; init; } = Tier.A;
+
+    /// <summary>
+    /// <c>LONE_DAY_TIER</c> — the worst effective tier that earns a solo page when the photo is
+    /// genuinely the only one its day has. Default <see cref="Tier.B"/>, so a day with a single
+    /// bottom-tier frame is folded onto a neighbour instead of getting a page of its own.
+    /// </summary>
+    public Tier LoneDayTier { get; init; } = Tier.B;
+
+    /// <summary>
+    /// <c>SOLO_PAGE_COST</c> — DP cost charged per page that would hold a single photo which has not
+    /// earned it (doc 08 §4b). Comparable in size to <see cref="ParityPenalty"/>, so the partitioner
+    /// will pay a whole page of misfit rather than strand a weak frame on its own. Default 0.45.
+    /// </summary>
+    public double SoloPageCost { get; init; } = 0.45;
+
+    /// <summary>
+    /// Penalty, in normalized time-gap units, charged inside a day's page cut for every part that
+    /// would hold one unearned photo. Larger than the largest possible normalized gap (1.0) so even a
+    /// day boundary cannot strand a weak straggler alone. Default 1.25.
+    /// </summary>
+    public double SoloPartPenalty { get; init; } = 1.25;
+
     // ── §5 DP page partitioning ───────────────────────────────────────────────────────────────
 
     /// <summary><c>W_FIT</c> — how tightly pages hug demand. Default 1.0.</summary>
@@ -59,6 +89,21 @@ public sealed record LayoutWeights
 
     /// <summary><c>MERGE_COST</c> — cost per extra day merged onto one page. Default 0.08.</summary>
     public double MergeCost { get; init; } = 0.08;
+
+    /// <summary>
+    /// <c>ABSORB_COST</c> — cost per straggler day absorbed into a neighbouring day's ordinary page
+    /// (doc 08 §5, the third transition). Deliberately above <see cref="MergeCost"/> so a
+    /// <c>multiDay</c> merge — which keeps each day's own section and heading — always wins when one
+    /// is available; absorbing flattens the days into one photo stream and is the fallback for a
+    /// straggler whose neighbours are too busy to merge with. Default 0.12.
+    /// </summary>
+    public double AbsorbCost { get; init; } = 0.12;
+
+    /// <summary>
+    /// Whether the partitioner may absorb weak straggler days into a neighbour's page at all. Turning
+    /// it off restores the doc's original two-transition DP. Default true.
+    /// </summary>
+    public bool EnableStragglerAbsorb { get; init; } = true;
 
     /// <summary><c>PARITY_PENALTY</c> — cost of failing to spread-align a long-text day. Default 0.50.</summary>
     public double ParityPenalty { get; init; } = 0.50;
@@ -91,20 +136,26 @@ public sealed record LayoutWeights
 
     // ── §6 Template scoring ───────────────────────────────────────────────────────────────────
 
-    /// <summary><c>S_aspect</c> weight. Default 0.30.</summary>
-    public double AspectScoreWeight { get; init; } = 0.30;
+    /// <summary><c>S_aspect</c> weight. Default 0.26.</summary>
+    public double AspectScoreWeight { get; init; } = 0.26;
 
-    /// <summary><c>S_tier</c> weight. Default 0.20.</summary>
-    public double TierScoreWeight { get; init; } = 0.20;
+    /// <summary><c>S_tier</c> weight. Default 0.17.</summary>
+    public double TierScoreWeight { get; init; } = 0.17;
 
-    /// <summary><c>S_text</c> weight. Default 0.15.</summary>
-    public double TextScoreWeight { get; init; } = 0.15;
+    /// <summary><c>S_text</c> weight. Default 0.13.</summary>
+    public double TextScoreWeight { get; init; } = 0.13;
 
-    /// <summary><c>S_variety</c> weight. Default 0.20.</summary>
-    public double VarietyScoreWeight { get; init; } = 0.20;
+    /// <summary><c>S_variety</c> weight. Default 0.17.</summary>
+    public double VarietyScoreWeight { get; init; } = 0.17;
 
-    /// <summary><c>S_pacing</c> weight. Default 0.15.</summary>
-    public double PacingScoreWeight { get; init; } = 0.15;
+    /// <summary><c>S_pacing</c> weight — rhythm only (full bleeds and airy pages). Default 0.10.</summary>
+    public double PacingScoreWeight { get; init; } = 0.10;
+
+    /// <summary>
+    /// <c>S_coverage</c> weight — how much of the page the template's slots actually cover. This is
+    /// the term that makes fuller layouts the default (doc 08 §6). Default 0.17.
+    /// </summary>
+    public double CoverageScoreWeight { get; init; } = 0.17;
 
     /// <summary>Bound of the seeded template-score jitter (doc 08 §6, §9). Default 0.02.</summary>
     public double JitterBound { get; init; } = 0.02;
@@ -127,14 +178,36 @@ public sealed record LayoutWeights
     /// <summary><c>S_variety</c> when the template's family appeared within <see cref="VarietyFamilyWindow"/>. Default 0.75.</summary>
     public double VarietyFamilyScore { get; init; } = 0.75;
 
-    /// <summary>Slot-coverage tolerance around <c>min(1, pageDemand)</c> in <c>S_pacing</c>. Default 0.10.</summary>
-    public double PacingCoverageTolerance { get; init; } = 0.10;
+    /// <summary>
+    /// Slot coverage a page's template should reach before <c>S_coverage</c> is satisfied — the
+    /// "layouts should use most of the space on a page" of R20 turned into a number. Default 0.82.
+    /// </summary>
+    public double CoverageTarget { get; init; } = 0.82;
 
-    /// <summary>Baseline <c>S_pacing</c> of a non-full-bleed template. Default 0.70.</summary>
-    public double PacingBaseScore { get; init; } = 0.70;
+    /// <summary>
+    /// The same target for a page holding one photo. A photo that earned a page to itself must render
+    /// <em>large</em>, so only a near-full-page composition scores 1.0 here. Default 0.92.
+    /// </summary>
+    public double SoloCoverageTarget { get; init; } = 0.92;
 
-    /// <summary>Bonus added when slot coverage matches page demand. Default 0.30.</summary>
-    public double PacingCoverageBonus { get; init; } = 0.30;
+    /// <summary>
+    /// Coverage below which a template reads as deliberately airy — lots of negative space (R20). Airy
+    /// templates are not forbidden, they are <em>rationed</em> by <see cref="AiryCooldownPages"/>.
+    /// Default 0.55.
+    /// </summary>
+    public double AiryCoverageMax { get; init; } = 0.55;
+
+    /// <summary>Pages that must pass before another airy page is well paced. Default 5.</summary>
+    public int AiryCooldownPages { get; init; } = 5;
+
+    /// <summary><c>S_pacing</c> of an airy template whose turn has come round. Default 1.0.</summary>
+    public double PacingAiryInRhythm { get; init; } = 1.0;
+
+    /// <summary><c>S_pacing</c> of an airy template that would follow another one too soon. Default 0.25.</summary>
+    public double PacingAiryOutOfRhythm { get; init; } = 0.25;
+
+    /// <summary>Baseline <c>S_pacing</c> of an ordinary, well-filled template. Default 0.80.</summary>
+    public double PacingBaseScore { get; init; } = 0.80;
 
     /// <summary><c>S_pacing</c> of a <c>fullBleed</c> template that is out of rhythm. Default 0.20.</summary>
     public double PacingFullBleedOutOfRhythm { get; init; } = 0.20;

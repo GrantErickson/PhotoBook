@@ -6,6 +6,23 @@ using CorePage = PhotoBook.Core.Model.Page;
 namespace PhotoBook.App.Controls;
 
 /// <summary>
+/// Which half of a facing pair a <see cref="PageCanvas"/> is drawing. A Spread is a view over two
+/// pages, never a stored entity (kernel §4), so this says only how the sheet is drawn: the side
+/// facing the spine takes no bleed and no drop shadow, and its gutter is shaded.
+/// </summary>
+public enum PageSheetSide
+{
+    /// <summary>A single page: bleed, shadow and edge all the way round.</summary>
+    None,
+
+    /// <summary>The left page of the pair — its spine is its right edge.</summary>
+    Left,
+
+    /// <summary>The right page of the pair — its spine is its left edge.</summary>
+    Right,
+}
+
+/// <summary>
 /// What <see cref="PageCanvas"/> asks its renderer for: one page, at a pixel size that matches the
 /// control's current aspect, cancellable because the user is still dragging.
 /// </summary>

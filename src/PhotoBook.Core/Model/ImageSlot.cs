@@ -28,6 +28,15 @@ public sealed record ImageSlot
     public bool Bleed { get; set; }
 
     /// <summary>
+    /// Paint order within the page, <c>0..9</c>, default <c>0</c> (doc 07 "Deliberate overlap"). Slots
+    /// are drawn in ascending layer, ties broken by authored order, so a higher layer sits <em>on
+    /// top</em>. Two slots may only overlap when they sit on different layers and their template
+    /// declares <see cref="Template.Overlaps"/> — that pairing is what separates an intentional inset
+    /// from an authoring accident (linter rule L2).
+    /// </summary>
+    public int Layer { get; set; }
+
+    /// <summary>
     /// Spread-pair templates only: slots on the two sides sharing a span id hold the <em>same</em>
     /// photo, rendered continuously across the gutter (R18).
     /// </summary>

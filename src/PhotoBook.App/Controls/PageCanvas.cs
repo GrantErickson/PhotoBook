@@ -30,6 +30,15 @@ namespace PhotoBook.App.Controls;
 /// drag stays smooth, and are blitted through <see cref="PixelBridge"/>. A caller that renders
 /// elsewhere can set <see cref="Preview"/> directly instead.</para>
 ///
+/// <para><b>The sheet.</b> A v1 page is solid black (kernel §3), so it is drawn as a physical sheet
+/// standing on a lighter <c>PageTableBrush</c> table: a soft drop shadow, then the page pixels
+/// clipped to the trim box, then a <c>PageEdgeBrush</c> hairline on the cut line. Nothing outside
+/// trim is shown unless <see cref="ShowGuides"/> is on, because nothing outside trim is printed —
+/// the sheet on screen is exactly the sheet that comes back from the printer. With guides on the
+/// sheet grows to the bleed box and the bleed, trim and safe rects are drawn over it.
+/// <see cref="SpreadSide"/> tells a canvas it is one half of a facing pair, which suppresses the
+/// bleed and the shadow at the spine and shades the gutter, so two canvases read as one open book.</para>
+///
 /// <para><b>Interaction layer.</b> Over the bitmap the canvas draws hover and selection outlines and
 /// the amber empty-slot affordance of R14 — dashed <c>AmberFlagBrush</c> border, amber wash, a
 /// photo-plus glyph and a "Click to fill" pill on hover. Empty slots are template slots with no
@@ -116,10 +125,24 @@ public sealed class PageCanvas : FrameworkElement
     /// <summary>The slot a drag is currently over, drawn with the accent inset ring (doc 09 §3.2).</summary>
     public static readonly DependencyProperty DropTargetSlotIdProperty = DropTargetSlotIdKey.DependencyProperty;
 
-    /// <summary>Backdrop behind the sheet; defaults to the palette's <c>CanvasBrush</c>.</summary>
+    /// <summary>The table the sheet stands on; defaults to the palette's <c>PageTableBrush</c>.</summary>
     public static readonly DependencyProperty BackgroundProperty = DependencyProperty.Register(
         nameof(Background), typeof(Brush), typeof(PageCanvas),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>
+    /// Whether the bleed, trim and safe-margin guides are drawn over the sheet (kernel §3, the
+    /// <c>G</c> key). Off by default; turning them on also grows the visible sheet from the trim box
+    /// to the bleed box, so the strip that will be cut away becomes visible.
+    /// </summary>
+    public static readonly DependencyProperty ShowGuidesProperty = DependencyProperty.Register(
+        nameof(ShowGuides), typeof(bool), typeof(PageCanvas),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>Which half of a facing pair this canvas is drawing; <c>None</c> for a single page.</summary>
+    public static readonly DependencyProperty SpreadSideProperty = DependencyProperty.Register(
+        nameof(SpreadSide), typeof(PageSheetSide), typeof(PageCanvas),
+        new FrameworkPropertyMetadata(PageSheetSide.None, FrameworkPropertyMetadataOptions.AffectsRender));
 
     /// <summary>Whether the amber empty-slot affordance is drawn over the bitmap (R14). Default true.</summary>
     public static readonly DependencyProperty ShowEmptySlotAffordanceProperty = DependencyProperty.Register(
@@ -197,6 +220,20 @@ public sealed class PageCanvas : FrameworkElement
     {
         get => (Brush?)GetValue(BackgroundProperty);
         set => SetValue(BackgroundProperty, value);
+    }
+
+    /// <inheritdoc cref="ShowGuidesProperty"/>
+    public bool ShowGuides
+    {
+        get => (bool)GetValue(ShowGuidesProperty);
+        set => SetValue(ShowGuidesProperty, value);
+    }
+
+    /// <inheritdoc cref="SpreadSideProperty"/>
+    public PageSheetSide SpreadSide
+    {
+        get => (PageSheetSide)GetValue(SpreadSideProperty);
+        set => SetValue(SpreadSideProperty, value);
     }
 
     /// <inheritdoc cref="ShowEmptySlotAffordanceProperty"/>
@@ -310,7 +347,12 @@ public sealed class PageCanvas : FrameworkElement
         }
     }
 
-    /// <summary>Where the preview bitmap is drawn inside the control — letterboxed and centered.</summary>
+    /// <summary>
+    /// Where the preview bitmap is drawn inside the control — letterboxed and centered, except on a
+    /// half of a facing pair, where it slides sideways until its spine edge meets the control's inner
+    /// edge so the two halves butt-join into one spread. Every other coordinate helper derives from
+    /// this, so the shift moves hit testing and drag deltas with it.
+    /// </summary>
     public Rect PageRect
     {
         get
@@ -324,13 +366,65 @@ public sealed class PageCanvas : FrameworkElement
 
             var width = bitmap.PixelWidth * scale;
             var height = bitmap.PixelHeight * scale;
-            return new Rect((ActualWidth - width) / 2, (ActualHeight - height) / 2, width, height);
+            var rect = new Rect((ActualWidth - width) / 2, (ActualHeight - height) / 2, width, height);
+
+            if (SpreadSide == PageSheetSide.None || Preview is not { } preview)
+            {
+                return rect;
+            }
+
+            var trim = preview.Geometry.TrimRect;
+            var shift = SpreadSide == PageSheetSide.Left
+                ? ActualWidth - (rect.X + (trim.Right * scale))
+                : -(rect.X + (trim.Left * scale));
+
+            return double.IsFinite(shift) ? Rect.Offset(rect, shift, 0) : rect;
         }
     }
 
     /// <summary>The trim box (the sheet's cut edge) in control pixels — normalized <c>[0,1]²</c> maps onto this.</summary>
     public Rect TrimRect =>
         Preview is { } preview ? BitmapRectToControl(preview.Geometry.TrimRect) : Rect.Empty;
+
+    /// <summary>The bleed box in control pixels — the trim box plus the strip that gets cut away.</summary>
+    public Rect MediaRect =>
+        Preview is { } preview ? BitmapRectToControl(preview.Geometry.MediaRect) : Rect.Empty;
+
+    /// <summary>
+    /// The sheet as it is shown: the trim box, or the bleed box while <see cref="ShowGuides"/> is on,
+    /// never crossing the spine on a half of a facing pair. Snapped to whole device-independent
+    /// pixels so its hairline edge stays crisp. The page pixels are clipped to it.
+    /// </summary>
+    public Rect SheetRect
+    {
+        get
+        {
+            if (Preview is not { } preview || PreviewScale <= 0)
+            {
+                return PageRect;
+            }
+
+            var rect = BitmapRectToControl(ShowGuides ? preview.Geometry.MediaRect : preview.Geometry.TrimRect);
+            if (rect.IsEmpty || rect.Width <= 0 || rect.Height <= 0)
+            {
+                return PageRect;
+            }
+
+            // At the spine the two halves butt-join with no inner bleed (doc 12 "Spreads"), so the
+            // sheet stops at trim on that side however the guides are set.
+            if (SpreadSide != PageSheetSide.None)
+            {
+                var trim = BitmapRectToControl(preview.Geometry.TrimRect);
+                rect = SpreadSide == PageSheetSide.Left
+                    ? new Rect(rect.X, rect.Y, Math.Max(1, trim.Right - rect.X), rect.Height)
+                    : new Rect(trim.X, rect.Y, Math.Max(1, rect.Right - trim.X), rect.Height);
+            }
+
+            var left = Math.Round(rect.X);
+            var top = Math.Round(rect.Y);
+            return new Rect(left, top, Math.Max(1, Math.Round(rect.Right) - left), Math.Max(1, Math.Round(rect.Bottom) - top));
+        }
+    }
 
     /// <summary>Converts a control point to preview-bitmap pixels, where <c>SlotRects</c> lives.</summary>
     public Point ControlToBitmap(Point point)
@@ -765,7 +859,7 @@ public sealed class PageCanvas : FrameworkElement
         base.OnRender(dc);
 
         var bounds = new Rect(RenderSize);
-        dc.DrawRectangle(Background ?? PaletteBrush("CanvasBrush", "#FF0A0B0C"), null, bounds);
+        dc.DrawRectangle(Background ?? PaletteBrush("PageTableBrush", "#FF33383E"), null, bounds);
 
         var bitmap = _bitmap;
         if (bitmap is null)
@@ -779,14 +873,40 @@ public sealed class PageCanvas : FrameworkElement
             return;
         }
 
-        dc.DrawImage(bitmap, page);
-        dc.DrawRectangle(null, new Pen(PaletteBrush("BorderSubtleBrush", "#FF23272C"), 1), Inset(page, 0.5));
-
-        if (!IsInteractive)
+        var sheet = SheetRect;
+        if (sheet.IsEmpty || sheet.Width <= 1 || sheet.Height <= 1)
         {
-            return;
+            sheet = page;
         }
 
+        DrawSheetShadow(dc, sheet);
+
+        dc.PushClip(new RectangleGeometry(sheet));
+        dc.DrawImage(bitmap, page);
+        DrawGutterShading(dc, sheet);
+
+        if (ShowGuides)
+        {
+            DrawGuides(dc);
+        }
+
+        if (IsInteractive)
+        {
+            DrawInteractionLayer(dc);
+        }
+
+        dc.Pop();
+
+        DrawSheetEdge(dc, sheet);
+
+        if (ShowGuides)
+        {
+            DrawGuideLegend(dc, sheet);
+        }
+    }
+
+    private void DrawInteractionLayer(DrawingContext dc)
+    {
         if (ShowEmptySlotAffordance)
         {
             foreach (var slotId in _emptySlots)
@@ -809,6 +929,187 @@ public sealed class PageCanvas : FrameworkElement
         if (SelectedSlotId is { } selected && selected != DropTargetSlotId)
         {
             DrawSlotOutline(dc, selected, PaletteBrush("SelectionBorderBrush", "#CC4C8DF5"), 2, contrast: true);
+        }
+    }
+
+    /// <summary>
+    /// The soft shadow that seats the sheet on the table: concentric rounded rects whose alpha falls
+    /// off quadratically, offset a little downwards so the light reads as coming from above. The
+    /// spine edge of a facing pair gets none — the two sheets meet there.
+    /// </summary>
+    private void DrawSheetShadow(DrawingContext dc, Rect sheet)
+    {
+        const int Layers = 8;
+        const double Spread = 2.6;
+
+        var shadow = PaletteColor("PageShadowColor", "#FF04060A");
+        var noLeft = SpreadSide == PageSheetSide.Right;
+        var noRight = SpreadSide == PageSheetSide.Left;
+
+        for (var i = Layers; i >= 1; i--)
+        {
+            var grow = i * Spread;
+            var fade = 1.0 - ((i - 1) / (double)Layers);
+            var alpha = (byte)Math.Clamp(Math.Round(96 * fade * fade), 1, 255);
+
+            var rect = new Rect(
+                sheet.X - (noLeft ? 0 : grow),
+                sheet.Y - (grow * 0.35),
+                sheet.Width + (noLeft ? 0 : grow) + (noRight ? 0 : grow),
+                sheet.Height + (grow * 0.35) + (grow * 0.9));
+
+            var brush = new SolidColorBrush(Color.FromArgb(alpha, shadow.R, shadow.G, shadow.B));
+            brush.Freeze();
+            dc.DrawRoundedRectangle(brush, null, rect, grow * 0.5, grow * 0.5);
+        }
+    }
+
+    /// <summary>
+    /// The cut line: a dark hairline just outside the sheet so it never disappears into a light
+    /// table, and the crisp <c>PageEdgeBrush</c> line on the trim itself. With guides on the sheet
+    /// edge is the <i>bleed</i> box, so the bright line is left to the trim guide and only the dark
+    /// hairline seats the sheet — one white line on screen, always meaning "this is the cut".
+    /// </summary>
+    private void DrawSheetEdge(DrawingContext dc, Rect sheet)
+    {
+        var shade = new Pen(PaletteBrush("PageEdgeShadeBrush", "#59000000"), 1);
+        shade.Freeze();
+        dc.DrawRectangle(null, shade, Inset(sheet, -0.5));
+
+        if (ShowGuides)
+        {
+            return;
+        }
+
+        var edge = new Pen(PaletteBrush("PageEdgeBrush", "#E8DCE3EA"), 1);
+        edge.Freeze();
+        dc.DrawRectangle(null, edge, Inset(sheet, 0.5));
+    }
+
+    /// <summary>
+    /// A spread's gutter: the page darkens as it turns into the binding, which — with the two trim
+    /// hairlines meeting at the seam — is what makes the centre line legible (doc 09 §3.1).
+    /// </summary>
+    private void DrawGutterShading(DrawingContext dc, Rect sheet)
+    {
+        if (SpreadSide == PageSheetSide.None)
+        {
+            return;
+        }
+
+        var width = Math.Min(sheet.Width * 0.06, Math.Max(6, sheet.Width * 0.045));
+        if (width < 3)
+        {
+            return;
+        }
+
+        var left = SpreadSide == PageSheetSide.Left;
+        var shadow = PaletteColor("PageShadowColor", "#FF04060A");
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = left ? new Point(1, 0) : new Point(0, 0),
+            EndPoint = left ? new Point(0, 0) : new Point(1, 0),
+            GradientStops =
+            [
+                new GradientStop(Color.FromArgb(0x8A, shadow.R, shadow.G, shadow.B), 0),
+                new GradientStop(Color.FromArgb(0x38, shadow.R, shadow.G, shadow.B), 0.45),
+                new GradientStop(Color.FromArgb(0x00, shadow.R, shadow.G, shadow.B), 1),
+            ],
+        };
+
+        brush.Freeze();
+        dc.DrawRectangle(
+            brush,
+            null,
+            new Rect(left ? sheet.Right - width : sheet.X, sheet.Y, width, sheet.Height));
+    }
+
+    /// <summary>
+    /// Bleed, trim and safe-margin guides (kernel §3), taken from the geometry the renderer actually
+    /// drew with so they can never disagree with the pixels underneath.
+    /// </summary>
+    private void DrawGuides(DrawingContext dc)
+    {
+        if (Preview is not { } preview || PreviewScale <= 0)
+        {
+            return;
+        }
+
+        DrawGuideRect(dc, BitmapRectToControl(preview.Geometry.MediaRect), PaletteBrush("GuideBleedBrush", "#FFE0685E"), dashed: true);
+        DrawGuideRect(dc, BitmapRectToControl(preview.Geometry.TrimRect), PaletteBrush("GuideTrimBrush", "#FFDCE3EA"), dashed: false);
+        DrawGuideRect(dc, BitmapRectToControl(preview.Geometry.SafeRect), PaletteBrush("GuideSafeBrush", "#FF56C79F"), dashed: true);
+    }
+
+    private void DrawGuideRect(DrawingContext dc, Rect rect, Brush brush, bool dashed)
+    {
+        if (rect.IsEmpty || rect.Width <= 2 || rect.Height <= 2)
+        {
+            return;
+        }
+
+        // The dark backing line keeps a guide readable where it crosses a bright photograph.
+        var backing = new Pen(PaletteBrush("ScrimBrush", "#99000000"), 2);
+        backing.Freeze();
+        dc.DrawRectangle(null, backing, Inset(rect, 0.5));
+
+        var pen = new Pen(brush, 1);
+        if (dashed)
+        {
+            pen.DashStyle = new DashStyle([4, 3], 0);
+            pen.DashCap = PenLineCap.Flat;
+        }
+
+        pen.Freeze();
+        dc.DrawRectangle(null, pen, Inset(rect, 0.5));
+    }
+
+    /// <summary>
+    /// Names the three guides, on the table just under the sheet where it covers no photograph —
+    /// falling back to inside the sheet only when the sheet all but fills the canvas.
+    /// </summary>
+    private void DrawGuideLegend(DrawingContext dc, Rect sheet)
+    {
+        if (sheet.Width < 260 || sheet.Height < 150)
+        {
+            return;
+        }
+
+        (string Label, Brush Brush)[] entries =
+        [
+            ("Bleed", PaletteBrush("GuideBleedBrush", "#FFE0685E")),
+            ("Trim", PaletteBrush("GuideTrimBrush", "#FFDCE3EA")),
+            ("Safe", PaletteBrush("GuideSafeBrush", "#FF56C79F")),
+        ];
+
+        const double Pad = 8;
+        const double Swatch = 14;
+        const double Gap = 6;
+
+        var labels = entries.Select(e => FormatText(e.Label, PaletteBrush("TextPrimaryBrush", "#FFECEFF3"), 10.5, FontWeights.SemiBold)).ToList();
+        var width = (Pad * 2) + labels.Sum(l => l.Width) + (entries.Length * (Swatch + Gap)) + ((entries.Length - 1) * 12);
+        var height = labels.Max(l => l.Height) + 10;
+
+        var below = sheet.Bottom + 10 + height <= ActualHeight;
+        var pill = new Rect(
+            sheet.X + (below ? 0 : 12),
+            below ? sheet.Bottom + 10 : sheet.Bottom - height - 12,
+            width,
+            height);
+
+        dc.DrawRoundedRectangle(
+            PaletteBrush("ScrimHeavyBrush", "#CC07080A"), null, pill, height / 2, height / 2);
+
+        var x = pill.X + Pad;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var pen = new Pen(entries[i].Brush, 2);
+            pen.Freeze();
+            var y = pill.Y + (pill.Height / 2);
+            dc.DrawLine(pen, new Point(x, y), new Point(x + Swatch, y));
+
+            x += Swatch + Gap;
+            dc.DrawText(labels[i], new Point(x, pill.Y + ((pill.Height - labels[i].Height) / 2)));
+            x += labels[i].Width + 12;
         }
     }
 
@@ -915,6 +1216,17 @@ public sealed class PageCanvas : FrameworkElement
         solid.Freeze();
         return solid;
     }
+
+    /// <summary>
+    /// Resolves a palette <see cref="Color"/> — for the shadow ramps, which need one hue at many
+    /// alphas and so cannot use a single brush resource.
+    /// </summary>
+    private Color PaletteColor(string key, string fallback) => TryFindResource(key) switch
+    {
+        Color color => color,
+        SolidColorBrush brush => brush.Color,
+        _ => (Color)ColorConverter.ConvertFromString(fallback),
+    };
 
     private static Rect Inset(Rect rect, double amount)
     {

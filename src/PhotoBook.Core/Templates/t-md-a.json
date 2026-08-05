@@ -1,38 +1,39 @@
 {
   "schemaVersion": 1,
   "id": "t-md-a",
-  "name": "Two days, stacked halves",
+  "name": "Two days, stacked photo bands with journal scrims",
   "pageSize": "11x8.5-landscape",
   "kind": "multiDay",
   "photoCount": 2,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.44,
-        "h": 0.4
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.956,
+        "h": 0.442
       },
-      "aspect": 1.4235,
+      "aspect": 2.799,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
-        "x": 0.52,
-        "y": 0.54,
-        "w": 0.44,
-        "h": 0.4
+        "x": 0.018,
+        "y": 0.51,
+        "w": 0.956,
+        "h": 0.442
       },
-      "aspect": 1.4235,
+      "aspect": 2.799,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     }
   ],
@@ -40,24 +41,26 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.52,
-        "y": 0.06,
+        "x": 0.06,
+        "y": 0.24,
         "w": 0.44,
-        "h": 0.38
+        "h": 0.2
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     },
     {
       "id": "t2",
       "rect": {
-        "x": 0.055,
-        "y": 0.55,
-        "w": 0.425,
-        "h": 0.38
+        "x": 0.5,
+        "y": 0.72,
+        "w": 0.44,
+        "h": 0.2
       },
       "role": "journal",
-      "align": "left"
+      "align": "left",
+      "scrim": true
     }
   ],
   "pair": null,

@@ -1,10 +1,10 @@
 # 07 — Layout Template System
 
 This doc is the full specification of PhotoBook's page templates: the JSON schema every template
-file must satisfy, the semantics of image Slots and text slots, caption policies, the left/right
-mirroring rule (R20), multi-day section templates (R28), matched spread pairs (R22), the
-detach-on-edit rule that keeps the library immutable, the concrete v1 library of ~50 templates,
-and the linter that keeps every template printable. The auto-layout engine
+file must satisfy, the semantics of image Slots and text slots, caption policies, deliberate
+overlap and z-order, the left/right mirroring rule (R20), multi-day section templates (R28),
+matched spread pairs (R22), the detach-on-edit rule that keeps the library immutable, the concrete
+v1 library of ~50 templates, and the linter that keeps every template printable. The auto-layout engine
 ([08-auto-layout-engine.md](08-auto-layout-engine.md)) consumes these templates as pure input;
 the editor ([09-editor-ux.md](09-editor-ux.md)) swaps and detaches them; styles
 ([10-styles-and-typography.md](10-styles-and-typography.md)) control how their text renders.
@@ -28,8 +28,18 @@ Related docs: [03-domain-model.md](03-domain-model.md) ·
 4. **The library is immutable.** User edits to a page's geometry produce a Detached inline
    snapshot in the chapter file; library templates are never mutated (see
    [Detach-on-edit and template swap](#detach-on-edit-and-template-swap)).
-5. **Deliberate negative space is a feature.** Not every template fills the page, and not every
-   template has a text slot — textless layouts are the negative-space option (R20).
+5. **A page is full unless it is deliberately empty.** R20 asks layouts to use *most* of the space,
+   and the first real month said the v1 library did not: it averaged 0.56 of the page covered and a
+   lone photo rendered as a stamp in a black field. The library now averages **0.79** with most
+   standard templates in the **0.75–0.92** band and every single-photo standard template a hero at
+   ≥ 0.72. Negative space stays a feature — around **8** standard layouts sit under 0.72 with
+   generous asymmetric margins — but it is now a choice a template makes, not the default, and the
+   engine rations those airy pages instead of leaning on them
+   ([08-auto-layout-engine.md](08-auto-layout-engine.md)).
+6. **Overlap is a design tool, and it is declared.** Photos may overlap each other and text may sit
+   on a photo, but only when the template says so and the geometry says how — see
+   [Deliberate overlap](#deliberate-overlap-layers-and-scrims). Undeclared overlap is an authoring
+   accident and the linter treats it as one.
 
 > **Decision:** Templates ship as embedded JSON resources in `PhotoBook.Core`
 > (`Templates/{id}.json`, one file per template), loaded at startup into an in-memory
@@ -64,22 +74,23 @@ the kernel §6 example `t-04-text-a` fully worked:
   "kind": "standard",                   // standard | monthTitle | fullBleed | multiDay | spreadPair
   "photoCount": 4,                      // 1..8 (R20); must equal total slot count
   "mirrorable": true,                   // engine may mirror horizontally for left pages (R20)
+  "overlaps": false,                    // opt-in to deliberate overlap; default false, omit when false
   "slots": [
-    { "id": "s1", "rect": { "x": 0.00, "y": 0.00, "w": 0.50, "h": 0.66 },
-      "aspect": 0.98, "aspectTolerance": 0.35,
+    { "id": "s1", "rect": { "x": 0.018, "y": 0.024, "w": 0.578, "h": 0.592 },
+      "aspect": 1.2635, "aspectTolerance": 0.35,
       "tierAffinity": "S", "captionPolicy": "below", "bleed": false },
-    { "id": "s2", "rect": { "x": 0.52, "y": 0.00, "w": 0.48, "h": 0.42 },
-      "aspect": 1.48, "aspectTolerance": 0.35,
+    { "id": "s2", "rect": { "x": 0.614, "y": 0.024, "w": 0.364, "h": 0.333 },
+      "aspect": 1.4146, "aspectTolerance": 0.35,
       "tierAffinity": "A", "captionPolicy": "none", "bleed": false },
-    { "id": "s3", "rect": { "x": 0.76, "y": 0.44, "w": 0.20, "h": 0.24 },
-      "aspect": 1.08, "aspectTolerance": 0.30,
+    { "id": "s3", "rect": { "x": 0.614, "y": 0.373, "w": 0.364, "h": 0.333 },
+      "aspect": 1.4146, "aspectTolerance": 0.35,
       "tierAffinity": "B", "captionPolicy": "none", "bleed": false },
-    { "id": "s4", "rect": { "x": 0.00, "y": 0.68, "w": 0.50, "h": 0.28 },
-      "aspect": 2.31, "aspectTolerance": 0.40,
-      "tierAffinity": "any", "captionPolicy": "below", "bleed": false }
+    { "id": "s4", "rect": { "x": 0.018, "y": 0.634, "w": 0.578, "h": 0.311 },
+      "aspect": 2.4051, "aspectTolerance": 0.35,
+      "tierAffinity": "B", "captionPolicy": "none", "bleed": false }
   ],
   "textSlots": [
-    { "id": "t1", "rect": { "x": 0.55, "y": 0.72, "w": 0.41, "h": 0.22 },
+    { "id": "t1", "rect": { "x": 0.614, "y": 0.72, "w": 0.35, "h": 0.225 },
       "role": "journal", "align": "left" }
   ],
   "pair": null,                         // spreadPair only: { "pairId": "sp-a", "side": "left" }
@@ -98,6 +109,7 @@ Top-level fields:
 | `kind` | enum | `standard \| monthTitle \| fullBleed \| multiDay \| spreadPair` (kernel §6). Drives engine eligibility: `monthTitle` only for the Chapter title page (R24), `multiDay` only for merged Day Groups (R28), `spreadPair` only when both facing pages are available. |
 | `photoCount` | int | 1..8 (R20). Must equal `slots.length` (`multiDay`: total across sections; `spreadPair`: this side's slots, with each `spanId` slot counted once per pair). |
 | `mirrorable` | bool | Required. See [Mirroring](#mirroring-one-template-left-and-right-pages). Must be `false` for `spreadPair`. |
+| `overlaps` | bool | Optional, default `false`; omitted when false. The template's opt-in to [deliberate overlap](#deliberate-overlap-layers-and-scrims) — image slots that intersect, or text placed on a photo. Overlap without this flag is a linter error (L2, L3). |
 | `slots` | ImageSlot[] | Required, ≥ 1. |
 | `textSlots` | TextSlot[] | Required, may be empty (`[]`) — textless templates are legal and encouraged (R20). |
 | `pair` | object? | `spreadPair` only: `{ "pairId": string, "side": "left" \| "right" }`. |
@@ -117,6 +129,7 @@ preserved round-trip on detached snapshots for forward compatibility.
 | `tierAffinity` | enum | `S \| A \| B \| C \| any`. **Soft** preference, never a hard filter: the Hungarian assignment adds cost for tier mismatch (a Chapter may simply have no S-tier photos left). Authoring rule of thumb: Slots covering ≥ 30% of the page get `S`, 12–30% get `A`, 5–12% get `B`, thumbnails get `C` or `any`. This is how Tier drives photo size on the page (R26). |
 | `captionPolicy` | enum | `none \| below \| overlay` — see [Caption policies](#caption-policies). |
 | `bleed` | bool | Default `false`. When `true`, the rect may cross the trim edge and must extend fully to the bleed box edge on every side it crosses (bleed box = trim + 0.125 in per outer edge, i.e. x ∈ [−0.0114, 1.0114], y ∈ [−0.0147, 1.0147]). No partial-bleed slivers. |
+| `layer` | int | Optional, `0..9`, default `0`; omitted when 0. Paint order: slots draw in ascending layer, ties in authored order, so a higher layer sits **on top**. Two slots may only overlap when their layers differ (L2). `Template.SlotsInPaintOrder` is the ordering the renderer consumes; `slots` itself stays in reading order because assignment, bin fill and empty-slot flags follow that. |
 | `spanId` | string? | `spreadPair` templates only: slots in the left and right templates sharing a `spanId` render **one** photo continuously across the gutter (R18). |
 
 A full-bleed single-photo slot is exactly:
@@ -139,9 +152,10 @@ smart-crop, not via template geometry — Slots themselves may run to the trim e
 |---|---|---|
 | `id` | string | Unique in template. Convention `t1..tN`. |
 | `rect` | `{x,y,w,h}` | Must lie fully inside the safe area **and** clear the gutter caution zone: `x ≥ 0.0455`, `x + w ≤ 0.9659`, `y ≥ 0.0441`, `y + h ≤ 0.9559` (as authored — templates are authored as right pages, see Mirroring). |
-| `role` | enum | `journal \| caption \| monthTitle` (kernel §6). `journal` holds a day's journal text; `caption` is a rare standalone caption block placed beside an image; `monthTitle` holds the Chapter title (R24) and is the one role allowed to overlap image slots. |
+| `role` | enum | `journal \| caption \| monthTitle` (kernel §6). `journal` holds a day's journal text; `caption` is a rare standalone caption block placed beside an image; `monthTitle` holds the Chapter title (R24). Any role may sit on a photo when the template declares it and the slot takes a `scrim`; `monthTitle` additionally gets the scrim automatically at render time (doc 10 §7). |
 | `align` | enum? | `left \| center \| right`. Default `left` for `journal`/`caption`, `center` for `monthTitle`. |
 | `attachedTo` | string? | `caption` role only: the `id` of the ImageSlot this caption belongs to. |
+| `scrim` | bool | Optional, default `false`; omitted when false. Declares that this text sits **on** a photo and renders on the [doc 10 §4](10-styles-and-typography.md) scrim. Required for any text slot that intersects an image slot (L3) — see [Deliberate overlap](#deliberate-overlap-layers-and-scrims). |
 
 What a TextSlot does **not** contain: font family, size, color, line spacing. All of that comes
 from the Style cascade — journal text defaults to Source Serif 4 10.5 pt, captions Source Sans 3
@@ -176,7 +190,67 @@ photo has one:
 
 Authoring guidance: give `below` to large Slots with room to spare, `overlay` only to `bleed`
 slots and heroes, `none` to thumbnails under 2.5 in wide (an 8.5 pt caption under a tiny image
-reads as clutter).
+reads as clutter) **and to any Slot that carries an overlaid TextSlot** — a journal block on a
+scrim plus an overlay caption on the same photo is two pieces of text fighting for the same corner.
+
+## Deliberate overlap: layers and scrims
+
+The v1 library shipped with zero overlapping slots and one text-over-photo template, and the pages
+read flat: rows of rectangles in a grid, each one boxed off from the next. Overlap is what turns a
+grid into a composition, so it is now a first-class part of the schema — but a *declared* one, because
+the same geometry produced by accident is a bug.
+
+> **Decision:** Overlap is opt-in per template (`"overlaps": true`) and ordered per slot
+> (`"layer": n`). Rationale: the flag separates intent from accident so the linter can still catch a
+> slot that slid under its neighbour during an edit, and the layer gives the renderer a defined paint
+> order that does not depend on `slots` being in reading order — which it must stay in, because slot
+> assignment, the Unplaced-bin fill order and the amber empty-slot flags all follow it.
+
+**Photo over photo.** Give the covering slot a higher `layer`. The paint order the renderer consumes
+is `Template.SlotsInPaintOrder` — ascending layer, ties in authored order — never `slots` directly.
+The library uses three moves:
+
+- a small photo overlapping the **corner** of a larger one (`t-02-notext-b`, `t-02-text-c`,
+  `t-03-notext-c`, `t-04-notext-c`),
+- a stacked pair with a deliberate **offset** (`t-02-text-d`, `t-03-notext-d`'s diagonal cascade),
+- a rail or centre panel biting into the **outer third** of what it sits on (`t-05-notext-b`,
+  `t-08-notext-b`).
+
+**Keep faces safe.** Smart-crop centres the subject in its slot (R25), so an overlap that lands in the
+middle of the covered slot hides exactly what the crop worked to keep. Overlap corners and outer
+thirds; L13 warns when the shared area's centre falls in the middle ninth of the covered slot, and L2
+errors when the covered slot loses more than 35% of itself.
+
+**Text over photo.** A TextSlot may sit on an ImageSlot when the template declares `overlaps` and the
+text slot declares `scrim: true`, which is what gets it the doc 10 §4 gradient. Three things stay
+errors (L3), because each one is unreadable rather than expressive:
+
+- no scrim — white text on an unknown photo is a coin flip,
+- the block hanging off its photo, which would drag the scrim onto the black page background,
+- a block covering more than half its photo, which is a text box with wallpaper behind it.
+
+The block must also sit on exactly one photo: a scrim spanning two slots would show the gap between
+them through the gradient. Thirteen templates place text this way — the hero singles, the multi-day
+`t-md-a`, the month titles `t-title-a`/`t-title-d`, and the gallery spread — always on the quiet
+outer or gutter-side edge of the photo, never across its middle. What the renderer draws behind them
+is the **panel scrim** of [10-styles-and-typography.md](10-styles-and-typography.md) §4: sized to the
+words rather than to the slot, feathered on all four sides, clipped to the photo it belongs to.
+
+**How an overlap reads as deliberate.** Geometry alone does not do it: two frames of similar tone
+simply merge at the seam, and the result looks like a collision rather than a composition. So a slot
+above `layer: 0` casts a soft **lift** — a 7 pt feathered shadow offset 2 pt down, at 55% — onto
+whatever is beneath it, drawn immediately before its photo so only the offset skirt shows.
+
+> **Decision:** **The lift is geometry, not style.** Layer-zero slots never get one. An edge treatment
+> on *every* photo is `imageBorder`, which is the user's to switch on across the whole book (R23,
+> doc 10 §5); this is the page telling the reader which frame is on top, and it exists only in the
+> templates that opted into overlap. Like the scrims, it is built from flat fills and plain gradients
+> so `SKDocument.CreatePdf` writes it natively (ADR-0003) — a blur would rasterize on the PDF path and
+> make export diverge from the preview.
+
+Both behaviours are pinned by pixel assertions rather than by a golden page, because a golden compares
+the emitted page and would pass whether or not the renderer honored any of this — see
+[13-testing-strategy.md](13-testing-strategy.md) "Pixel assertions for the things a golden cannot see".
 
 ## Mirroring: one template, left and right pages
 
@@ -298,113 +372,122 @@ chapter" with the page explicitly unpinned regenerates it, R16).
 Per kernel §6 the target is **~50 templates**: 54 single-page templates in the category counts
 below, plus 3 spread pairs (6 template files, counted as 3 units). Every id follows the naming
 convention from the schema table. `Text` = has a journal TextSlot. `Mir` = `mirrorable`.
+`Cov` = slot coverage, the union of the slot rects clipped to trim (what L10 bounds and what the
+engine's `S_coverage` scores). `Ov` = declares `overlaps`: **P** photo over photo, **T** text on a
+scrim over a photo.
+
+Library-wide: mean coverage **0.79** (was 0.56), 32 of 43 standard templates in the 0.75–0.92 band,
+21 templates using overlap, 8 standard templates deliberately airy under 0.72.
 
 ### 1-photo — 6 (incl. full-bleed)
 
-| Id | Kind | Text | Mir | Description |
-|---|---|---|---|---|
-| `t-01-fb-a` | fullBleed | no | no | Full-bleed hero, overlay caption on bottom scrim (R5, R18-feel on one page). |
-| `t-01-fb-b` | fullBleed | no | no | Full-bleed hero, no caption — pure image page. |
-| `t-01-text-a` | standard | yes | yes | Large photo on outer two-thirds, journal column at the gutter side. |
-| `t-01-text-b` | standard | yes | yes | Tall portrait photo outer, wide journal block inner, generous whitespace. |
-| `t-01-notext-a` | standard | no | no | One large centered photo in an even black field — the quiet page. |
-| `t-01-notext-b` | standard | no | yes | Small photo pushed to the upper-outer corner; deliberate negative space (R20). |
+Every single-photo standard template is a **hero**: a lone photo is a statement, never a stamp in
+the middle of a black page.
+
+| Id | Kind | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|---|
+| `t-01-fb-a` | fullBleed | no | no | 1.00 | | Full-bleed hero, overlay caption on bottom scrim (R5). |
+| `t-01-fb-b` | fullBleed | no | no | 1.00 | | Full-bleed hero, no caption — pure image page. |
+| `t-01-text-a` | standard | yes | yes | 0.89 | T | Photo across the whole page, journal on a scrim in its outer-bottom quarter. |
+| `t-01-text-b` | standard | yes | yes | 0.87 | T | Hero at the outer edge, journal column on a scrim over its quiet gutter-side third. |
+| `t-01-notext-a` | standard | no | yes | 0.87 | | One hero, generous even margin, overlay caption available. |
+| `t-01-notext-b` | standard | no | yes | 0.86 | | One hero pushed to the gutter side, a deliberate outer band of black (R20). |
 
 ### 2-photo — 8
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-02-text-a` | yes | yes | Two landscapes stacked on the outer half, journal column inner. |
-| `t-02-text-b` | yes | no | Side-by-side pair on top, full-width journal band below. |
-| `t-02-text-c` | yes | yes | Big hero top (S), small photo bottom-outer, journal bottom-inner. |
-| `t-02-text-d` | yes | yes | Tall portrait outer edge, landscape inner above the journal block. |
-| `t-02-notext-a` | no | no | Two equal landscapes side by side, vertically centered. |
-| `t-02-notext-b` | no | yes | Dominant square + small offset portrait, asymmetric balance. |
-| `t-02-notext-c` | no | no | Two portraits as a centered diptych. |
-| `t-02-notext-d` | no | no | Two stacked full-width panorama strips (aspect ≈ 2.6). |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-02-text-a` | yes | yes | 0.76 | T | Two landscapes stacked wide, journal on a scrim over the lower one's inner third. |
+| `t-02-text-b` | yes | yes | 0.87 | T | Full-height side-by-side pair, journal on a scrim over the gutter-side photo. |
+| `t-02-text-c` | yes | yes | 0.74 | P | Wide hero with a smaller photo overlapping its outer-bottom corner, journal beneath. |
+| `t-02-text-d` | yes | yes | 0.72 | P | Tall portrait outer overlapping a landscape inner, journal under the landscape. |
+| `t-02-notext-a` | no | no | 0.84 | | Two equal landscapes side by side in a full-height band. |
+| `t-02-notext-b` | no | yes | 0.78 | P | Dominant photo with a small inset overlapping its outer-bottom corner. |
+| `t-02-notext-c` | no | no | 0.83 | | Two portraits as a full-height diptych. |
+| `t-02-notext-d` | no | no | 0.84 | | Two edge-to-edge panorama strips (aspect ≈ 2.9). |
 
 ### 3-photo — 8
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-03-text-a` | yes | yes | Hero on outer half, two stacked photos inner, journal below them. |
-| `t-03-text-b` | yes | no | Three across the top band, journal across the bottom. |
-| `t-03-text-c` | yes | yes | Hero top, two smalls below, journal column on the outer edge. |
-| `t-03-text-d` | yes | yes | Two stacked outer + hero inner, journal under the hero. |
-| `t-03-notext-a` | no | yes | One big + two small in an L arrangement. |
-| `t-03-notext-b` | no | no | Three equal portrait columns — triptych. |
-| `t-03-notext-c` | no | no | Hero square center, two smalls in opposite corners. |
-| `t-03-notext-d` | no | yes | Diagonal cascade of three mixed-aspect photos. |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-03-text-a` | yes | yes | 0.82 | | Full-height hero outer, two stacked inner, journal in the inner-bottom corner. |
+| `t-03-text-b` | yes | no | 0.54 | | Three across the top with a wide centre, roomy journal band below — airy, text-led. |
+| `t-03-text-c` | yes | yes | 0.86 | T | Wide hero over two below, journal on a scrim in the hero's gutter side. |
+| `t-03-text-d` | yes | yes | 0.75 | | Hero inner, two stacked outer, journal under the hero. |
+| `t-03-notext-a` | no | yes | 0.89 | | One big + two small in an L arrangement. |
+| `t-03-notext-b` | no | no | 0.88 | | Three full-height portrait columns — triptych. |
+| `t-03-notext-c` | no | yes | 0.78 | P | Hero with two small photos overlapping opposite corners. |
+| `t-03-notext-d` | no | yes | 0.52 | P | Diagonal cascade of three, each offset over the last — airy by design. |
 
 ### 4-photo — 8
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-04-text-a` | yes | yes | "Four up with journal" — the schema example: hero + wrap of three, journal bottom-inner. |
-| `t-04-text-b` | yes | yes | 2×2 grid on the outer side, journal column at the gutter. |
-| `t-04-text-c` | yes | no | Filmstrip of four across the top, journal band below. |
-| `t-04-text-d` | yes | no | Journal band on top, four equal photos below. |
-| `t-04-notext-a` | no | no | 2×2 equal grid with 0.15 in gutters. |
-| `t-04-notext-b` | no | yes | Hero on outer two-thirds + three stacked in an inner rail. |
-| `t-04-notext-c` | no | yes | Mosaic: one big, one medium, two small. |
-| `t-04-notext-d` | no | no | Four portraits in a row, edge to edge. |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-04-text-a` | yes | yes | 0.76 | | "Four up with journal" — the schema example: hero + wrap of three, journal bottom-outer. |
+| `t-04-text-b` | yes | yes | 0.89 | T | Full 2×2 grid, journal on a scrim over the bottom-inner photo. |
+| `t-04-text-c` | yes | no | 0.38 | | Filmstrip of four over the library's roomiest journal band — the long-entry page. |
+| `t-04-text-d` | yes | no | 0.61 | | Journal band on top, four equal photos below. |
+| `t-04-notext-a` | no | no | 0.89 | | 2×2 equal grid, tight gutters. |
+| `t-04-notext-b` | no | yes | 0.89 | | Full-height hero outer + three stacked in an inner rail. |
+| `t-04-notext-c` | no | yes | 0.79 | P | Mosaic of three with a fourth overlapping the big photo's bottom edge. |
+| `t-04-notext-d` | no | no | 0.84 | | Four portraits in a row, edge to edge. |
 
 ### 5-photo — 6
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-05-text-a` | yes | yes | Hero + 2×2 small grid, journal column inner. |
-| `t-05-text-b` | yes | no | Three across the top, two below-left, journal below-right. |
-| `t-05-text-c` | yes | no | Journal band top-outer, filmstrip of five across the bottom. |
-| `t-05-notext-a` | no | yes | Mosaic: one big + four descending sizes. |
-| `t-05-notext-b` | no | no | Quincunx — four corners + one center square. |
-| `t-05-notext-c` | no | no | Two rows: two large above three small. |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-05-text-a` | yes | yes | 0.85 | T | Full-height hero + 2×2 grid, journal on a scrim over the hero's lower half. |
+| `t-05-text-b` | yes | no | 0.65 | | Three across the top, two below-inner, journal below-outer. |
+| `t-05-text-c` | yes | no | 0.44 | | Roomy journal band above a five-photo filmstrip — airy, text-led. |
+| `t-05-notext-a` | no | yes | 0.87 | | Mosaic: one big + four descending sizes. |
+| `t-05-notext-b` | no | no | 0.75 | P | Quincunx — four corners with a centre panel overlapping all four inner corners. |
+| `t-05-notext-c` | no | no | 0.88 | | Two large above three small. |
 
 ### 6-photo — 5
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-06-text-a` | yes | yes | 3×2 grid on the outer side, narrow journal rail at the gutter. |
-| `t-06-text-b` | yes | yes | 2×2 grid + two stacked, journal band beneath. |
-| `t-06-notext-a` | no | no | 3×2 equal grid — the workhorse. |
-| `t-06-notext-b` | no | yes | Hero + five-photo mosaic. |
-| `t-06-notext-c` | no | no | Two triptych rows of mixed aspects. |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-06-text-a` | yes | yes | 0.63 | | 3×2 grid on the outer side, journal rail at the gutter — airy by design. |
+| `t-06-text-b` | yes | yes | 0.62 | | 2×2 grid + two stacked, journal band beneath — airy by design. |
+| `t-06-notext-a` | no | no | 0.88 | | 3×2 equal grid — the workhorse. |
+| `t-06-notext-b` | no | yes | 0.87 | | Hero + five-photo mosaic. |
+| `t-06-notext-c` | no | no | 0.88 | | Two triptych rows of mixed widths, weight alternating across the rows. |
 
 ### 7–8-photo — 4
 
-| Id | Text | Mir | Description |
-|---|---|---|---|
-| `t-07-text-a` | yes | yes | Hero + six thumbnails, journal strip along the bottom. |
-| `t-07-notext-a` | no | yes | Mosaic of seven mixed sizes, largest at the outer edge. |
-| `t-08-notext-a` | no | no | 4×2 equal grid — the contact-sheet page (R20 max). |
-| `t-08-notext-b` | no | yes | Two hero squares + six-thumbnail rail. |
+| Id | Text | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-07-text-a` | yes | yes | 0.85 | T | Wide hero with a six-thumbnail band below, journal on a scrim in the hero's gutter side. |
+| `t-07-notext-a` | no | yes | 0.86 | | Mosaic of seven mixed sizes, largest at the outer edge. |
+| `t-08-notext-a` | no | no | 0.87 | | 4×2 equal grid — the contact-sheet page (R20 max). |
+| `t-08-notext-b` | no | yes | 0.86 | P | Two heroes with a six-thumbnail rail overlapping their bottom edge. |
 
 ### Month title — 4 (kind `monthTitle`, R24)
 
-| Id | Photos | Mir | Description |
-|---|---|---|---|
-| `t-title-a` | 1 | no | Full-bleed photo, month name overlaid lower-outer on a scrim (name overlaps image per R24). |
-| `t-title-b` | 1 | yes | Photo on the top two-thirds, month name in the black field below. |
-| `t-title-c` | 3 | no | Three-photo band across the middle, month name centered above. |
-| `t-title-d` | 1 | no | Small centered photo above a large centered month name — minimal. |
+| Id | Photos | Mir | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-title-a` | 1 | no | 1.00 | T | Full-bleed photo, month name on a scrim lower-outer (name overlaps image per R24). |
+| `t-title-b` | 1 | yes | 0.66 | | Photo on the top two-thirds, month name in the black field below. |
+| `t-title-c` | 3 | no | 0.64 | | Month name centered above a three-photo band. |
+| `t-title-d` | 1 | no | 0.77 | T | Hero photo, month name on a scrim in its lower-outer corner. |
 
 ### Multi-day — 5 (kind `multiDay`, R28)
 
-| Id | Sections | Photos | Description |
-|---|---|---|---|
-| `t-md-a` | 2 | 2 | Two half-page sections stacked: 1 photo + journal each. |
-| `t-md-b` | 2 | 4 | Two side-by-side day columns: 2 photos + journal each. |
-| `t-md-c` | 3 | 3 | Three vertical thirds: 1 photo + short journal each. |
-| `t-md-d` | 2 | 3 | Hero day (2 photos + journal) over a minor-day strip (1 photo + journal). |
-| `t-md-e` | 3 | 6 | Three days × 2 photos + one-line journal each — the dense catch-up page. |
+| Id | Sections | Photos | Cov | Ov | Description |
+|---|---|---|---|---|---|
+| `t-md-a` | 2 | 2 | 0.85 | T | Two full-width photo bands, each day's journal on a scrim over its own photo. |
+| `t-md-b` | 2 | 4 | 0.71 | | Two side-by-side day columns: 2 photos + journal each. |
+| `t-md-c` | 3 | 3 | 0.62 | | Three vertical thirds: 1 photo + short journal each. |
+| `t-md-d` | 2 | 3 | 0.61 | | Hero day (2 photos + journal) over a minor day (1 photo + journal). |
+| `t-md-e` | 3 | 6 | 0.58 | | Three day rows of 2 photos + a journal column — the dense catch-up page. |
 
 ### Spread pairs — 3 pairs (kind `spreadPair`, R22, ships in M5)
 
-| Pair | Files | Description |
-|---|---|---|
-| `sp-a` | `t-sp-a-left` / `t-sp-a-right` | Panorama: one photo spans the full 22 × 8.5 spread via `spanId` (R18), overlay caption on the right page. |
-| `sp-b` | `t-sp-b-left` / `t-sp-b-right` | Mirrored gallery: 3 photos + journal per side, symmetric weight around the gutter. |
-| `sp-c` | `t-sp-c-left` / `t-sp-c-right` | Hero spread: full-bleed hero left, 4-photo grid + journal right. |
+| Pair | Files | Cov | Ov | Description |
+|---|---|---|---|---|
+| `sp-a` | `t-sp-a-left` / `t-sp-a-right` | 1.00 / 1.00 | | Panorama: one photo spans the full 22 × 8.5 spread via `spanId` (R18), overlay caption on the right page. |
+| `sp-b` | `t-sp-b-left` / `t-sp-b-right` | 0.86 / 0.86 | T | Mirrored gallery: hero + two stacked per side, journal on a scrim over each side's hero. |
+| `sp-c` | `t-sp-c-left` / `t-sp-c-right` | 1.00 / 0.65 | | Hero spread: full-bleed hero left, 4-photo grid + journal band right. |
 
 ## Representative sketches
 
@@ -423,28 +506,46 @@ Normalized page outline = trim box; `░` = caption scrim; sketches are proporti
 └────────────────────────────────────────────┘
 ```
 
-`t-01-text-a` — photo outer, journal at the gutter (authored as right page; gutter = left):
+`t-01-text-a` — hero single, journal on a scrim over its outer-bottom quarter (authored as a right
+page; gutter = left). Coverage 0.89 — the lone photo is the page:
 
 ```
 ┌────────────────────────────────────────────┐
-│  ┌─────────┐   ┌─────────────────────────┐ │
-│  │ t1      │   │                         │ │
-│  │ journal │   │        s1 (S)           │ │
-│  │         │   │                         │ │
-│  └─────────┘   └─────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │
+│ │                                        │ │
+│ │              s1 (S)                    │ │
+│ │                     ░░░░░░░░░░░░░░░░░░ │ │
+│ │                     ░ t1 journal     ░ │ │
+│ │                     ░ on scrim       ░ │ │
+│ └────────────────────────────────────────┘ │
 └────────────────────────────────────────────┘
 ```
 
-`t-03-notext-a` — L arrangement, no text (negative space bottom-right, R20):
+`t-03-notext-a` — L arrangement, no text, full height (coverage 0.89):
 
 ```
 ┌────────────────────────────────────────────┐
-│ ┌──────────────────────┐ ┌───────┐         │
-│ │                      │ │ s2 (B)│         │
-│ │       s1 (S)         │ └───────┘         │
-│ │                      │ ┌───────┐         │
-│ │                      │ │ s3 (B)│         │
-│ └──────────────────────┘ └───────┘         │
+│ ┌──────────────────────┐ ┌───────────────┐ │
+│ │                      │ │    s2 (B)     │ │
+│ │       s1 (S)         │ └───────────────┘ │
+│ │                      │ ┌───────────────┐ │
+│ │                      │ │    s3 (B)     │ │
+│ └──────────────────────┘ └───────────────┘ │
+└────────────────────────────────────────────┘
+```
+
+`t-02-notext-b` — deliberate overlap: a small photo on `layer: 1` biting the outer-bottom corner of
+the dominant one, which keeps 93% of itself (L2's limit is 35% covered):
+
+```
+┌────────────────────────────────────────────┐
+│ ┌────────────────────────────┐             │
+│ │                            │             │
+│ │         s1 (S, layer 0)    │             │
+│ │                    ┌───────┴──────────┐  │
+│ │                    │ s2 (B, layer 1)  │  │
+│ └────────────────────┤                  │  │
+│                      └──────────────────┘  │
 └────────────────────────────────────────────┘
 ```
 
@@ -455,11 +556,11 @@ Normalized page outline = trim box; `░` = caption scrim; sketches are proporti
 │ ┌───────────────────┐ ┌──────────────────┐ │
 │ │                   │ │      s2 (A)      │ │
 │ │      s1 (S)       │ └──────────────────┘ │
-│ │   caption below   │            ┌───────┐ │
-│ │                   │            │ s3 (B)│ │
-│ └───────────────────┘            └───────┘ │
+│ │   caption below   │ ┌──────────────────┐ │
+│ │                   │ │      s3 (B)      │ │
+│ └───────────────────┘ └──────────────────┘ │
 │ ┌───────────────────┐  ┌─────────────────┐ │
-│ │     s4 (any)      │  │ t1 journal      │ │
+│ │      s4 (B)       │  │ t1 journal      │ │
 │ └───────────────────┘  └─────────────────┘ │
 └────────────────────────────────────────────┘
 ```
@@ -490,16 +591,17 @@ Normalized page outline = trim box; `░` = caption scrim; sketches are proporti
 └────────────────────────────────────────────┘
 ```
 
-`t-md-a` — two-day page, each day's photo + journal stay together (R28):
+`t-md-a` — two-day page, each day's photo + journal stay together (R28); the journal sits on a scrim
+over its own day's photo, so both days get a full-width band (coverage 0.85):
 
 ```
 ┌────────────────────────────────────────────┐
-│ ┌────────────────┐  ┌────────────────────┐ │  section d1
-│ │    s1 (A)      │  │ t1 journal (day 1) │ │
-│ └────────────────┘  └────────────────────┘ │
-│ ┌────────────────────┐  ┌────────────────┐ │  section d2
-│ │ t2 journal (day 2) │  │    s2 (A)      │ │
-│ └────────────────────┘  └────────────────┘ │
+│ ┌────────────────────────────────────────┐ │  section d1
+│ │ s1 (A)     ░ t1 journal (day 1) ░      │ │
+│ └────────────────────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │  section d2
+│ │ s2 (A)             ░ t2 journal (day 2)│ │
+│ └────────────────────────────────────────┘ │
 └────────────────────────────────────────────┘
 ```
 
@@ -525,17 +627,18 @@ saving ([09-editor-ux.md](09-editor-ux.md)). Rules, with severities:
 | Rule | Sev | Check |
 |---|---|---|
 | **L1** slots inside trim | error | Every Slot rect within `[0,1]²`; exceeding trim requires `bleed: true`, and a bleed rect must lie within the bleed box (x ∈ [−0.0114, 1.0114], y ∈ [−0.0147, 1.0147]) and reach the bleed edge exactly on every crossed side. |
-| **L2** no slot overlaps | error | Pairwise ImageSlot intersection area ≤ 0.002 of page area (rounding slop only — v1 has no intentional overlaps). |
-| **L3** text/image separation | error | `journal` and `caption` TextSlots must not intersect any ImageSlot; `monthTitle` TextSlots may (R24). |
+| **L2** overlap is declared and ordered | error | Pairwise ImageSlot intersection ≤ 0.002 of page area is rounding slop. Above that it is an overlap and must be *intentional*: the template declares `"overlaps": true`, the two slots sit on different `layer`s, and the lower slot keeps ≥ 65% of itself uncovered. `layer` ∈ 0..9. Warns when a template declares `overlaps` and nothing overlaps. |
+| **L3** text on an image is deliberate and legible | error | A TextSlot intersecting an ImageSlot needs `"overlaps": true` on the template **and** `"scrim": true` on the slot (doc 10 §4); it must lie wholly inside exactly one ImageSlot and cover ≤ 50% of it. Applies to every role — `monthTitle` may overlap by R24 and takes the same legibility checks. Warns on a `scrim` with no image behind it. |
 | **L4** text slots inside safe area | error | Every TextSlot: `x ≥ 0.0455` (gutter caution, as authored), `x + w ≤ 0.9659`, `y ≥ 0.0441`, `y + h ≤ 0.9559`. |
 | **L5** aspect sanity | error | `abs(aspect − derived)/derived ≤ 0.03` where `derived = (w × pageW) / (h × pageH)`; `aspect ∈ [0.3, 3.5]`; `aspectTolerance ∈ [0, 0.6]`. |
 | **L6** photo count | error | `photoCount == slots.length` (multiDay: summed over sections; spreadPair: `spanId` slots counted once per pair); `1 ≤ photoCount ≤ 8` (R20). |
 | **L7** printable slot size | error | `w ≥ 0.1364` and `h ≥ 0.1765` (1.5 in minimum edge, keeps effective DPI printable); if `captionPolicy: "below"`, `h ≥ 0.1765 + 0.0353`. |
 | **L8** structural integrity | error | Ids unique per template; multiDay `sections` partition all slots and textSlots exactly (each id in exactly one section); `sections` present iff `kind: "multiDay"`; `pair` present iff `kind: "spreadPair"`. |
 | **L9** spread pair integrity | error | `spreadPair`: `mirrorable == false`; both `pairId` sides exist in the library; `spanId` sets match 1:1 across the two sides. |
-| **L10** coverage sanity | warn | Total Slot area between 0.15 and 0.95 of page area — negative space is legitimate (R20), a near-empty or over-stuffed page is suspicious. |
+| **L10** coverage sanity | warn | Slot coverage between 0.15 and 0.97 of page area, measured as the **union** of the Slot rects clipped to trim (`TemplateLinter.PageCoverage`) so overlap cannot double-count. Negative space is legitimate (R20); a near-empty or over-stuffed page is suspicious. Templates with a bleed Slot are exempt. |
 | **L11** trim-touching slots | warn | A non-bleed Slot edge exactly on trim may show a hairline at trim variance; allowed (black background hides it), flagged for the author. |
 | **L12** well-formedness | error | All rect values finite, `w, h > 0`; `schemaVersion` known; unknown fields rejected for library templates, preserved (warn) on Detached snapshots. |
+| **L13** overlap placement | warn | The shared area of an intentional overlap should not be centred in the middle ninth of the covered Slot — smart-crop puts the subject there (R25). Overlap corners and outer thirds. |
 
 Linter pseudocode shape (library gate):
 

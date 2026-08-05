@@ -58,8 +58,20 @@ Each cell shows badges: **Tier chip** (S/A/B/C, per [06-image-analysis.md](06-im
 **placed/unplaced dot** (green = on a page, hollow = in Unplaced bin), **⚠ dateUncertain**, and
 **Excluded** (dimmed 40% opacity, only visible when the *Show excluded* filter is on). Filters:
 All / Unplaced / Excluded / dateUncertain / by Tier. `Space` opens a full-size quick preview;
-`Enter` opens the inspector panel (right side, 320 px) with four sections: **Date**, **Tier**,
-**Focus**, **Adjust**.
+`Enter` opens the inspector panel (right side, 320 px).
+
+The inspector is **switched, not scrolled**: an **Info | Adjust | Focus** segmented control sits
+directly under the photo thumbnail, with a dot on any section carrying edits. Info holds the file,
+date, Tier and Exclude controls; Adjust holds the full adjustment stack (§2.3); Focus holds the
+region editor (§2.2). The thumbnail shrinks from 200 px to 104 px when Adjust or Focus is open,
+because those sections carry their own working preview.
+
+> **Decision:** **Sections, not one long scroll.** Adjust originally sat ~870 px down a 320 px rail,
+> below Date and a 150 px Focus preview, and the first user of a real month reported the image
+> corrections as *missing* — they exist and are complete, they were simply below the fold. The
+> switcher puts every section one click from anywhere and opening Adjust shows the live preview,
+> Orientation, Black-and-white and the Exposure/Brightness/Contrast sliders with no scrolling. The
+> selected section persists in `editorSettings.inspectorSection`.
 
 ### 2.1 Re-date flow and the Outside-book tray (R6)
 
@@ -138,10 +150,27 @@ times. Rules:
 ## 3. Pages tab
 
 Layout: page filmstrip on the left (72 px thumbnails, amber badges on pages with empty Slots),
-the SkiaSharp canvas in the center with trim/safe/gutter guides toggleable (`G`), the dockable
-bin panel (§3.5), and a toolbar: view toggle Single|Spread, *Change template*, *Edit layout*,
-and the three auto-layout buttons (§3.8). Viewport zoom: `Ctrl+wheel`, `Ctrl+=`/`Ctrl+-`,
-`F11` = fit page.
+the SkiaSharp canvas in the center, the dockable bin panel (§3.5), and a toolbar: view toggle
+Single|Spread, *Change template*, *Edit layout*, and the three auto-layout buttons (§3.8).
+Viewport zoom: `Ctrl+wheel`, `Ctrl+=`/`Ctrl+-`, `F11` = fit page.
+
+**The sheet is drawn as a physical object.** The canvas clips the page to its trim box and sets it on
+a lighter "table" surface (`PageTableBrush`, shared with the Pages scroller so the surround is
+unbroken), with a soft drop shadow beneath it and a crisp light trim line around it. Nothing outside
+trim is shown, because nothing outside trim is printed. In Spread view the two halves take no inner
+bleed and no spine shadow, and their trim edges butt-join into a single seam.
+
+> **Decision:** **The page edge must survive a black page.** v1 pages are `#000000` (R21) and the
+> boundary used to be a 1 px `#23272C` hairline on a `#0A0B0C` canvas — three near-blacks, so the
+> first user of a real month could not tell where the page ended. Contrast for the edge comes from the
+> *surround*, not from the line, which is why the table is a mid-grey rather than the app background.
+
+Guides — **bleed** (dashed warm red at the media box), **trim** (solid light) and **safe** (dashed
+green) — are an overlay on `G`, off by default and persisted in `editorSettings.pageGuidesVisible`,
+with a named legend pill. Turning them on grows the visible sheet from the trim box to the bleed box,
+so the strip that gets cut is visible; the amber gutter caution hatch rides the same toggle. They are
+drawn *over* the preview rather than baked into it by the renderer, so the bitmap the editor shows is
+byte-for-byte what the PDF gets.
 
 ### 3.1 Single-page vs Spread editing toggle (R8)
 
@@ -380,7 +409,7 @@ interface IEditCommand {
 | `T` | Pages tab | Template gallery (§3.4) |
 | `L` | Pages tab | Toggle layout override mode (§3.7) |
 | `B` | Pages tab | Show/hide bin panel |
-| `G` | Pages tab | Toggle trim/safe/gutter guides |
+| `G` | Pages tab | Toggle the bleed/trim/safe guide overlay and the gutter caution hatch (persisted) |
 | `F11` | Pages tab | Fit page to window |
 | `Ctrl+wheel`, `Ctrl+=` / `Ctrl+-` | Pages tab | Viewport zoom |
 | `Tab` | Slot selected | Select next Slot on page |

@@ -15,8 +15,9 @@ namespace PhotoBook.Rendering;
 /// empty-slot flags of doc 09 §3.6 are drawn — they never are in export.
 /// </para>
 /// <para>
-/// Draw order per page (doc 10 §6): background, then image slots in template declaration order with
-/// their captions, then text slots, then editor-only overlays. Crops come from
+/// Draw order per page (doc 10 §6): background, then image slots in <see cref="Template.SlotsInPaintOrder"/>
+/// — ascending <see cref="ImageSlot.Layer"/>, authored order within a layer — with their captions, then
+/// text slots (each on a panel scrim where it sits on a photo), then editor-only overlays. Crops come from
 /// <see cref="CropMath.SourceRect"/>, so what the engine computed and what the editor edits is
 /// exactly what prints (kernel §4).
 /// </para>
@@ -50,6 +51,15 @@ public static class PageRenderer
 
     /// <summary>Tracking of the month-title year subtitle, in ems (doc 10 §7).</summary>
     public const double MonthTitleSubtitleTrackingEm = 0.05;
+
+    /// <summary>Feather radius of the lift under an overlapping photo, in points (doc 07 "Deliberate overlap").</summary>
+    public const double OverlapLiftFeatherPt = 7.0;
+
+    /// <summary>How far the overlap lift sits below its photo, in points — enough to read as depth, not as a border.</summary>
+    public const double OverlapLiftOffsetPt = 2.0;
+
+    /// <summary>Opacity of the overlap lift at its core.</summary>
+    public const double OverlapLiftOpacity = 0.55;
 
     /// <summary>Sampling for export: a Mitchell cubic, which downsamples photographs cleanly.</summary>
     public static SKSamplingOptions ExportSampling { get; } = new(new SKCubicResampler(1f / 3f, 1f / 3f));
@@ -130,7 +140,11 @@ public static class PageRenderer
                 if (_request.DrawBackground) DrawBackground(pageRegion);
                 ReportFontSubstitutions();
 
-                foreach (var slot in _request.Template.Slots) DrawImageSlot(slot);
+                // Paint order, not reading order: a slot on a higher layer sits on top of the ones
+                // below it, which is what makes a declared overlap an inset rather than a collision
+                // (doc 07 "Deliberate overlap"). Templates with no overlap have every layer at 0, so
+                // this is the authored order for all but the 8 that declare one.
+                foreach (var slot in _request.Template.SlotsInPaintOrder) DrawImageSlot(slot);
                 foreach (var textSlot in _request.Template.TextSlots) DrawTextSlot(textSlot);
 
                 if (_request.WatermarkVisible) DrawWatermark(pageRegion);
@@ -211,6 +225,8 @@ public static class PageRenderer
                 DrawEmptySlotFlag(imageRect);
                 return;
             }
+
+            DrawOverlapLift(slot, imageRect);
 
             // The crop is computed over the whole panorama for a gutter-spanning photo (R18); each page
             // then draws only the part that lands inside its own slot.
@@ -473,6 +489,170 @@ public static class PageRenderer
             TextLayout.Draw(_canvas, layout, font, paint, new SKPoint(textLeft, textTop), width);
         }
 
+        /// <summary>
+        /// The panel scrim of doc 10 §4: the darkening under a text block that a template deliberately
+        /// placed <em>on</em> a photo (<see cref="TextSlot.Scrim"/>, doc 07 "Deliberate overlap"). The
+        /// overlay-caption gradient of <see cref="DrawScrim"/> is anchored to the photo's bottom edge
+        /// and is wrong here: these blocks sit in the middle of an image, where a one-sided ramp leaves
+        /// the first line on bare photo and cuts hard at the last. So the panel is <c>maxOpacity</c>
+        /// black over the text plus <c>paddingPt</c>, feathered to nothing over a further
+        /// <c>paddingPt</c> on all four sides, and clipped to the photos it belongs to so it never
+        /// darkens the page around them.
+        /// <para>
+        /// It is built from flat fills and plain linear/radial gradients rather than a blur, because
+        /// those are the primitives <c>SKDocument.CreatePdf</c> writes natively — a mask filter would
+        /// rasterize on the PDF path and break the one-draw-path guarantee of ADR-0003.
+        /// </para>
+        /// </summary>
+        private void DrawPanelScrim(SKRect block, TextSlot slot)
+        {
+            if (_style.OverlayScrim?.Enabled == false) return;
+            var maxOpacity = Math.Clamp(_style.OverlayScrim?.MaxOpacity ?? 0.6, 0, 1);
+            if (maxOpacity <= 0 || block.Width <= 0 || block.Height <= 0) return;
+
+            var padding = Math.Max(_geo.Points(_style.OverlayScrim?.PaddingPt ?? 12), 1f);
+            var core = new SKRect(block.Left - padding, block.Top - padding, block.Right + padding, block.Bottom + padding);
+            var feather = padding;
+
+            var save = _canvas.Save();
+            try
+            {
+                if (ScrimClip(slot) is { } clip)
+                {
+                    using (clip) _canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
+                }
+
+                FeatheredBlock(core, feather, SKColors.Black.WithOpacity(maxOpacity));
+            }
+            finally
+            {
+                _canvas.RestoreToCount(save);
+            }
+        }
+
+        /// <summary>
+        /// The box the drawn glyphs actually occupy inside a text slot: the widest line governs the
+        /// width, alignment decides which edge it hangs from, and the laid-out height governs the
+        /// bottom. A scrim sized to the <em>slot</em> instead would be a dark plate reaching across
+        /// empty page wherever the words ran short — which is what the scrim is supposed to avoid.
+        /// </summary>
+        private static SKRect InkedBounds(TextBlockLayout layout, SKRect column, SKTextAlign align)
+        {
+            var widest = 0f;
+            foreach (var line in layout.Lines) widest = Math.Max(widest, line.Width);
+            widest = Math.Min(widest, column.Width);
+            var height = Math.Min(layout.Height, column.Height);
+
+            var (left, right) = align switch
+            {
+                SKTextAlign.Center => (column.MidX - widest / 2f, column.MidX + widest / 2f),
+                SKTextAlign.Right => (column.Right - widest, column.Right),
+                _ => (column.Left, column.Left + widest),
+            };
+
+            return new SKRect(left, column.Top, right, column.Top + height);
+        }
+
+        /// <summary>
+        /// The lift under a photo that a template deliberately laid over another one
+        /// (<see cref="ImageSlot.Layer"/> above zero). Overlap with no separation reads as a collision —
+        /// two frames of similar tone simply merge at the seam — so the slot on top casts a soft shadow
+        /// onto whatever is beneath it. It is drawn <em>before</em> the photo, so the photo covers the
+        /// solid core and only the offset skirt shows.
+        /// <para>
+        /// Layer-zero slots never get one: a shadow around every photo would be a style, and style is
+        /// the user's to choose (R23, doc 10 §5). This is the geometry telling the reader which frame is
+        /// on top, and it exists only in the templates that opted into overlap.
+        /// </para>
+        /// </summary>
+        private void DrawOverlapLift(ImageSlot slot, SKRect rect)
+        {
+            if (slot.Layer <= 0 || rect.Width <= 0 || rect.Height <= 0) return;
+
+            var feather = Math.Max(_geo.Points(OverlapLiftFeatherPt), 1f);
+            var offset = _geo.Points(OverlapLiftOffsetPt);
+            var core = new SKRect(rect.Left, rect.Top + offset, rect.Right, rect.Bottom + offset);
+            FeatheredBlock(core, feather, SKColors.Black.WithOpacity(OverlapLiftOpacity));
+        }
+
+        /// <summary>
+        /// A solid rect that fades to nothing over <paramref name="feather"/> on every side — the shared
+        /// primitive behind the panel scrim and the overlap lift. Flat fills plus plain linear and radial
+        /// gradients only, so <c>SKDocument.CreatePdf</c> writes it natively instead of rasterizing a
+        /// blur and breaking the one-draw-path guarantee of ADR-0003.
+        /// </summary>
+        private void FeatheredBlock(SKRect core, float feather, SKColor color)
+        {
+            if (core.Width <= 0 || core.Height <= 0) return;
+
+            using (var fill = new SKPaint { Color = color, Style = SKPaintStyle.Fill, IsAntialias = false })
+            {
+                _canvas.DrawRect(core, fill);
+            }
+
+            FeatherEdge(new SKRect(core.Left, core.Top - feather, core.Right, core.Top), color, vertical: true, towardEnd: true);
+            FeatherEdge(new SKRect(core.Left, core.Bottom, core.Right, core.Bottom + feather), color, vertical: true, towardEnd: false);
+            FeatherEdge(new SKRect(core.Left - feather, core.Top, core.Left, core.Bottom), color, vertical: false, towardEnd: true);
+            FeatherEdge(new SKRect(core.Right, core.Top, core.Right + feather, core.Bottom), color, vertical: false, towardEnd: false);
+
+            FeatherCorner(new SKPoint(core.Left, core.Top), -feather, -feather, color);
+            FeatherCorner(new SKPoint(core.Right, core.Top), feather, -feather, color);
+            FeatherCorner(new SKPoint(core.Left, core.Bottom), -feather, feather, color);
+            FeatherCorner(new SKPoint(core.Right, core.Bottom), feather, feather, color);
+        }
+
+        /// <summary>One edge of a feathered block: opaque against the core, transparent at the outer edge.</summary>
+        private void FeatherEdge(SKRect band, SKColor color, bool vertical, bool towardEnd)
+        {
+            if (band.Width <= 0 || band.Height <= 0) return;
+            var (from, to) = vertical
+                ? (new SKPoint(band.Left, band.Top), new SKPoint(band.Left, band.Bottom))
+                : (new SKPoint(band.Left, band.Top), new SKPoint(band.Right, band.Top));
+            var colors = towardEnd
+                ? new[] { color.WithAlpha(0), color }
+                : new[] { color, color.WithAlpha(0) };
+
+            using var shader = SKShader.CreateLinearGradient(from, to, colors, [0f, 1f], SKShaderTileMode.Clamp);
+            using var paint = new SKPaint { Shader = shader, IsAntialias = false };
+            _canvas.DrawRect(band, paint);
+        }
+
+        /// <summary>One corner of a feathered block, so the feather turns instead of notching.</summary>
+        private void FeatherCorner(SKPoint pivot, float dx, float dy, SKColor color)
+        {
+            var radius = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            if (radius <= 0) return;
+
+            using var shader = SKShader.CreateRadialGradient(
+                pivot, radius, [color, color.WithAlpha(0)], [0f, 1f], SKShaderTileMode.Clamp);
+            using var paint = new SKPaint { Shader = shader, IsAntialias = false };
+            var rect = new SKRect(Math.Min(pivot.X, pivot.X + dx), Math.Min(pivot.Y, pivot.Y + dy),
+                                  Math.Max(pivot.X, pivot.X + dx), Math.Max(pivot.Y, pivot.Y + dy));
+            _canvas.DrawRect(rect, paint);
+        }
+
+        /// <summary>
+        /// The photos this text sits on, as a clip path. The linter guarantees a scrimmed text slot lies
+        /// wholly inside one image slot (L3), but a Detached page snapshot the user hand-edited carries
+        /// no such promise — so the clip is the union of every placed slot the text actually touches,
+        /// and null when it touches none (nothing to darken).
+        /// </summary>
+        private SKPath? ScrimClip(TextSlot slot)
+        {
+            SKPathBuilder? builder = null;
+            foreach (var image in _request.Template.Slots)
+            {
+                if (!image.Rect.Intersects(slot.Rect)) continue;
+                if (_request.Page.PlacementFor(image.Id) is not { } placement || string.IsNullOrEmpty(placement.PhotoId)) continue;
+
+                var mapped = _geo.MapPageRect(image.Rect, _request.Half);
+                var rect = _geo.ApplyBleedExtension(image.Rect, mapped, _request.Half);
+                (builder ??= new SKPathBuilder()).AddRect(rect);
+            }
+
+            return builder?.Detach();
+        }
+
         /// <summary>The doc 10 §4 gradient: transparent at the top edge, <c>maxOpacity</c> black at the bottom.</summary>
         private void DrawScrim(SKRect rect)
         {
@@ -535,6 +715,13 @@ public static class PageRenderer
                     slot.Id, value: layout.OverflowCharacters);
             }
 
+            // The scrim hugs the text that is actually there, not the slot: a two-line entry in a tall
+            // journal slot would otherwise get a panel four times the size of the words on it.
+            if (OverlapsPlacedPhoto(slot))
+            {
+                DrawPanelScrim(InkedBounds(layout, rect, Align(slot, SKTextAlign.Left)), slot);
+            }
+
             var save = _canvas.Save();
             try
             {
@@ -563,6 +750,11 @@ public static class PageRenderer
             {
                 Report(RenderDiagnosticKind.CaptionTruncated, RenderSeverity.Warning,
                     "This caption is longer than its text slot and was shortened.", slot.Id);
+            }
+
+            if (OverlapsPlacedPhoto(slot))
+            {
+                DrawPanelScrim(InkedBounds(layout, rect, Align(slot, SKTextAlign.Left)), slot);
             }
 
             var save = _canvas.Save();
@@ -615,10 +807,12 @@ public static class PageRenderer
             var blockHeight = layout.Height + subtitleHeight;
             var top = rect.Top + Math.Max(0, (rect.Height - blockHeight) / 2f);
 
-            if (OverlapsPlacedPhoto(slot) && _style.OverlayScrim?.Enabled != false)
+            if (OverlapsPlacedPhoto(slot))
             {
-                var padding = _geo.Points(_style.OverlayScrim?.PaddingPt ?? 12);
-                DrawScrim(new SKRect(rect.Left, top - padding, rect.Right, top + blockHeight + padding));
+                // The subtitle sits under the title and can be wider than nothing but never wider than
+                // it, so the title's own inked span is the panel width.
+                var span = InkedBounds(layout, rect, align);
+                DrawPanelScrim(new SKRect(span.Left, top, span.Right, top + blockHeight), slot);
             }
 
             using var paint = TextPaint(_style.MonthTitle?.Color);

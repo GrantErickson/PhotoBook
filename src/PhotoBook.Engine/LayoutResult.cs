@@ -29,6 +29,12 @@ public enum LayoutDiagnosticKind
     /// <summary>A journal-only day's text rode along on a neighbouring day's page (§12).</summary>
     JournalOnlyDayCarried,
 
+    /// <summary>
+    /// A weak straggler day — one photo that has not earned a page to itself — was absorbed onto a
+    /// neighbouring day's page instead of standing alone (§4b, §5).
+    /// </summary>
+    StragglerAbsorbed,
+
     /// <summary>No template in the library satisfied the page's hard filters at all.</summary>
     NoTemplate,
 

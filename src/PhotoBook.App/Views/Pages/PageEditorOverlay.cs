@@ -121,11 +121,8 @@ public sealed class PageEditorOverlay : FrameworkElement
         dc.Pop();
         dc.Pop();
 
-        // The spine itself, so the two facing pages read as one sheet.
-        var spineX = side == PageSide.Left ? _pageRect.Right : _pageRect.X;
-        var spine = new Pen(Palette("BorderStrongBrush", "#FF444C56"), 1);
-        spine.Freeze();
-        dc.DrawLine(spine, new Point(spineX, _pageRect.Y), new Point(spineX, _pageRect.Bottom));
+        // The spine itself is the sheet's own trim edge, drawn by PageCanvas: one owner for the page
+        // boundary, so a dull line here can never sit on top of the crisp one there.
     }
 
     private void DrawCropGuides(DrawingContext dc)

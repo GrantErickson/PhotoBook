@@ -1,39 +1,41 @@
 {
   "schemaVersion": 1,
   "id": "t-02-notext-b",
-  "name": "Dominant square with offset portrait",
+  "name": "Dominant photo with an overlapping outer inset",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 2,
   "mirrorable": true,
+  "overlaps": true,
   "slots": [
     {
       "id": "s1",
       "rect": {
-        "x": 0.05,
-        "y": 0.08,
-        "w": 0.58,
-        "h": 0.75
+        "x": 0.022,
+        "y": 0.028,
+        "w": 0.778,
+        "h": 0.892
       },
-      "aspect": 1.0008,
+      "aspect": 1.1287,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
-      "captionPolicy": "below",
+      "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s2",
       "rect": {
         "x": 0.68,
-        "y": 0.44,
-        "w": 0.25,
-        "h": 0.43
+        "y": 0.5,
+        "w": 0.298,
+        "h": 0.445
       },
-      "aspect": 0.7524,
+      "aspect": 0.8666,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
-      "bleed": false
+      "bleed": false,
+      "layer": 1
     }
   ],
   "textSlots": [],

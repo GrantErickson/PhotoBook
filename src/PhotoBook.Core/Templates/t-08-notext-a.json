@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-08-notext-a",
-  "name": "Contact sheet \u2014 even 4x2 grid",
+  "name": "Four by two contact sheet",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 8,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -24,12 +24,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.275,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.262,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.51,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.745,
-        "y": 0.06,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.75,
+        "y": 0.024,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,54 +66,54 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.04,
-        "y": 0.51,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.018,
+        "y": 0.508,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s6",
       "rect": {
-        "x": 0.275,
-        "y": 0.51,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.262,
+        "y": 0.508,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s7",
       "rect": {
-        "x": 0.51,
-        "y": 0.51,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.506,
+        "y": 0.508,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
-      "tierAffinity": "B",
+      "tierAffinity": "C",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s8",
       "rect": {
-        "x": 0.745,
-        "y": 0.51,
-        "w": 0.215,
-        "h": 0.43
+        "x": 0.75,
+        "y": 0.508,
+        "w": 0.232,
+        "h": 0.468
       },
-      "aspect": 0.6471,
+      "aspect": 0.6415,
       "aspectTolerance": 0.35,
       "tierAffinity": "C",
       "captionPolicy": "none",

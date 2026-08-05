@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-05-notext-c",
-  "name": "Two large over three small",
+  "name": "Two large above three small",
   "pageSize": "11x8.5-landscape",
   "kind": "standard",
   "photoCount": 5,
@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.05,
-        "w": 0.45,
-        "h": 0.46
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.532
       },
-      "aspect": 1.266,
+      "aspect": 1.1579,
       "aspectTolerance": 0.35,
       "tierAffinity": "S",
       "captionPolicy": "below",
@@ -24,12 +24,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.51,
-        "y": 0.05,
-        "w": 0.45,
-        "h": 0.46
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.532
       },
-      "aspect": 1.266,
+      "aspect": 1.1579,
       "aspectTolerance": 0.35,
       "tierAffinity": "A",
       "captionPolicy": "below",
@@ -38,12 +38,12 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.04,
-        "y": 0.55,
-        "w": 0.2933,
-        "h": 0.36
+        "x": 0.018,
+        "y": 0.578,
+        "w": 0.3133,
+        "h": 0.394
       },
-      "aspect": 1.0543,
+      "aspect": 1.0292,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -52,12 +52,12 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.3533,
-        "y": 0.55,
-        "w": 0.2933,
-        "h": 0.36
+        "x": 0.3433,
+        "y": 0.578,
+        "w": 0.3133,
+        "h": 0.394
       },
-      "aspect": 1.0543,
+      "aspect": 1.0292,
       "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
@@ -66,12 +66,12 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.6667,
-        "y": 0.55,
-        "w": 0.2933,
-        "h": 0.36
+        "x": 0.6687,
+        "y": 0.578,
+        "w": 0.3133,
+        "h": 0.394
       },
-      "aspect": 1.0543,
+      "aspect": 1.0292,
       "aspectTolerance": 0.35,
       "tierAffinity": "C",
       "captionPolicy": "none",

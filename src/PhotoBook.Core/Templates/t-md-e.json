@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "t-md-e",
-  "name": "Three days, two photos each \u2014 the catch-up page",
+  "name": "Three days, two photos each",
   "pageSize": "11x8.5-landscape",
   "kind": "multiDay",
   "photoCount": 6,
@@ -10,13 +10,13 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.04,
-        "y": 0.04,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.018,
+        "y": 0.03,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -24,13 +24,13 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.52,
-        "y": 0.04,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.365,
+        "y": 0.03,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -38,13 +38,13 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.04,
-        "y": 0.35,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.018,
+        "y": 0.3423,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -52,13 +52,13 @@
     {
       "id": "s4",
       "rect": {
-        "x": 0.52,
-        "y": 0.35,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.365,
+        "y": 0.3423,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -66,13 +66,13 @@
     {
       "id": "s5",
       "rect": {
-        "x": 0.04,
-        "y": 0.66,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.018,
+        "y": 0.6547,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -80,13 +80,13 @@
     {
       "id": "s6",
       "rect": {
-        "x": 0.52,
-        "y": 0.66,
-        "w": 0.44,
-        "h": 0.2
+        "x": 0.365,
+        "y": 0.6547,
+        "w": 0.335,
+        "h": 0.2903
       },
-      "aspect": 2.8471,
-      "aspectTolerance": 0.45,
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
       "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
@@ -96,10 +96,10 @@
     {
       "id": "t1",
       "rect": {
-        "x": 0.055,
-        "y": 0.26,
-        "w": 0.905,
-        "h": 0.06
+        "x": 0.715,
+        "y": 0.05,
+        "w": 0.25,
+        "h": 0.2503
       },
       "role": "journal",
       "align": "left"
@@ -107,10 +107,10 @@
     {
       "id": "t2",
       "rect": {
-        "x": 0.055,
-        "y": 0.57,
-        "w": 0.905,
-        "h": 0.06
+        "x": 0.715,
+        "y": 0.3623,
+        "w": 0.25,
+        "h": 0.2503
       },
       "role": "journal",
       "align": "left"
@@ -118,10 +118,10 @@
     {
       "id": "t3",
       "rect": {
-        "x": 0.055,
-        "y": 0.88,
-        "w": 0.905,
-        "h": 0.06
+        "x": 0.715,
+        "y": 0.6747,
+        "w": 0.25,
+        "h": 0.2503
       },
       "role": "journal",
       "align": "left"

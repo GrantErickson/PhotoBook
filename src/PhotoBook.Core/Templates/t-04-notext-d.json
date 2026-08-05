@@ -10,12 +10,12 @@
     {
       "id": "s1",
       "rect": {
-        "x": 0.0,
-        "y": 0.22,
-        "w": 0.235,
-        "h": 0.56
+        "x": 0.014,
+        "y": 0.04,
+        "w": 0.234,
+        "h": 0.9
       },
-      "aspect": 0.5431,
+      "aspect": 0.3365,
       "aspectTolerance": 0.45,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -24,12 +24,12 @@
     {
       "id": "s2",
       "rect": {
-        "x": 0.255,
-        "y": 0.22,
-        "w": 0.235,
-        "h": 0.56
+        "x": 0.26,
+        "y": 0.04,
+        "w": 0.234,
+        "h": 0.9
       },
-      "aspect": 0.5431,
+      "aspect": 0.3365,
       "aspectTolerance": 0.45,
       "tierAffinity": "A",
       "captionPolicy": "none",
@@ -38,28 +38,28 @@
     {
       "id": "s3",
       "rect": {
-        "x": 0.51,
-        "y": 0.22,
-        "w": 0.235,
-        "h": 0.56
+        "x": 0.506,
+        "y": 0.04,
+        "w": 0.234,
+        "h": 0.9
       },
-      "aspect": 0.5431,
+      "aspect": 0.3365,
       "aspectTolerance": 0.45,
-      "tierAffinity": "A",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     },
     {
       "id": "s4",
       "rect": {
-        "x": 0.765,
-        "y": 0.22,
-        "w": 0.235,
-        "h": 0.56
+        "x": 0.752,
+        "y": 0.04,
+        "w": 0.234,
+        "h": 0.9
       },
-      "aspect": 0.5431,
+      "aspect": 0.3365,
       "aspectTolerance": 0.45,
-      "tierAffinity": "A",
+      "tierAffinity": "B",
       "captionPolicy": "none",
       "bleed": false
     }

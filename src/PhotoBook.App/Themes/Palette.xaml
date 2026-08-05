@@ -41,6 +41,30 @@
     <SolidColorBrush x:Key="PageBlackBrush" Color="#FF000000" />
     <SolidColorBrush x:Key="TransparentBrush" Color="#00000000" />
 
+    <!-- ========================================================= the sheet -->
+    <!--
+        A v1 page is solid black, so on the near-black Canvas it had no visible edge at all. The
+        editor therefore stands the sheet on a *table*: one step lighter than every panel in the
+        shell, deliberately the lightest surface in the app, because it is the only one whose job is
+        to be darker than nothing on it and lighter than the page. The trim edge is then a hairline
+        of PageEdge with PageShadow falling away beneath it, which is what makes the cut line
+        unmistakable (doc 09 §3.1).
+    -->
+    <Color x:Key="PageTableColor">#FF33383E</Color>
+    <SolidColorBrush x:Key="PageTableBrush" Color="{StaticResource PageTableColor}" />
+
+    <!-- The trim edge itself, and the dark hairline just outside it that seats it on the table. -->
+    <SolidColorBrush x:Key="PageEdgeBrush" Color="#E8DCE3EA" />
+    <SolidColorBrush x:Key="PageEdgeShadeBrush" Color="#59000000" />
+
+    <!-- Drop shadow under the sheet, and the gutter shading a spread's spine edge falls into. -->
+    <Color x:Key="PageShadowColor">#FF04060A</Color>
+
+    <!-- Bleed / trim / safe guides (kernel §3), off by default and toggled with G. -->
+    <SolidColorBrush x:Key="GuideBleedBrush" Color="#FFE0685E" />
+    <SolidColorBrush x:Key="GuideTrimBrush" Color="#FFDCE3EA" />
+    <SolidColorBrush x:Key="GuideSafeBrush" Color="#FF56C79F" />
+
     <!-- ============================================================== strokes -->
     <Color x:Key="BorderSubtleColor">#FF23272C</Color>
     <Color x:Key="BorderColor">#FF31373E</Color>
