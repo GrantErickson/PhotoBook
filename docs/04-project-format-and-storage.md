@@ -162,7 +162,9 @@ in one step — every file therefore always has its last-known-good predecessor 
 
 - A dirty-tracking timer saves **every 30 seconds** — only files whose model actually changed.
 - Additional immediate save points: import/sync completion, any auto-layout run, chapter
-  re-layout (R16), photo exclusion (R17), date edits (R6), before PDF export, and app exit.
+  re-layout (R16), photo exclusion (R17), date edits (R6), an auto-adjust run (R6/R11), before PDF
+  export, and app exit. The rule is the same each time: work measured in minutes over thousands of
+  photos must not depend on a clean exit to survive.
 - Manual `Ctrl+S` saves everything dirty. There is no "unsaved document" state to lose — the
   project on disk trails the in-memory model by at most 30 seconds.
 - Saves run on the single writer thread ([02-architecture.md](02-architecture.md)); serialization

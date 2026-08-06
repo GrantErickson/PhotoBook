@@ -349,6 +349,35 @@ bar (cancel = no-op, model untouched until commit):
 Each command commits as **one composite undo entry** (a before/after snapshot of the affected
 pages), so `Ctrl+Z` restores the entire previous state of the Chapter in one step.
 
+### 3.8a Auto-adjust (R6, R11)
+
+The same discipline, applied to photo corrections rather than pages. Three entry points:
+
+1. **Auto-adjust all**, on the Photos-tab toolbar. Book-wide, and the only batch. Follows §3.8
+   exactly: a dialog with concrete counts before anything runs (*"312 photos will be adjusted…
+   47 that you edited by hand will be left alone"*), cancelling changes nothing because the whole
+   run is measured before any of it is committed, progress on the job queue, and one composite undo
+   entry for the lot. The §3.8 *include pinned pages* checkbox has a direct analogue here — **also
+   replace my edits and put those photos back on auto** — off by default, and the answer is a
+   button rather than a checkbox so the safe one can be the default.
+2. **Auto**, beside *Reset all* in the Adjust panel (§2.4). One photo, no dialog: it is a single
+   `Ctrl+Z` away and the user is looking straight at the result. Deliberately overrides hand edits —
+   this is the *reset to automatic* verb of §2.2, and the only per-photo route back.
+3. **Auto-adjust this photo**, on the Pages-tab slot context menu (§3.5), beside *Re-run smart crop*.
+   The same verb for the other half of a photo.
+
+A chip in the Adjust panel says which of kernel §4's three states the photo is in — absent for
+*Untouched*, because that is the default and saying so is noise. It updates on undo: `Ctrl+Z` moves a
+photo between automatic and manual as surely as a slider does.
+
+*Reset all* on an automatic photo takes it off auto as well as clearing the parameters. Clearing a
+correction is a decision, and without this the next book-wide run would put it straight back.
+
+The book's `LookProfile` — strength, brightness, warmth, contrast, colour, straighten, and the
+adjust-on-import opt-in — lives in Book settings and applies with no *Apply* button, because it
+changes no photo until a run happens. The panel says how many automatic photos the current settings
+have put out of date.
+
 ### 3.9 Remove from bin = Exclude, with permanence (R17)
 
 *Exclude from book* on an Unplaced-bin item (or `E` in the Photos tab, or the Outside-book tray)

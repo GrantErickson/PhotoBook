@@ -106,6 +106,37 @@ percentile **within the month**, which maps to a Tier: **S** = top 10%, **A** = 
 **B** = next 45%, **C** = bottom 20%. Tier drives slot-size affinity. A user promote/demote sets
 the Tier **absolutely** and it is never re-derived (R26).
 
+### AdjustmentStack provenance and auto-adjust
+
+Auto-adjust chooses an `AdjustmentStack` from what a photo's *original* pixels measure plus the
+book's `LookProfile`. A photo is therefore in exactly one of three states, derived from two stored
+fields and never stored directly:
+
+| State | Stored as | Auto-adjust |
+| --- | --- | --- |
+| **Untouched** | no `autoAdjust`, identity stack | adjusts it |
+| **Automatic** | `autoAdjust` stamp present | re-derives it, so changing the look takes effect |
+| **Manual** | `adjustmentsUserEdited`, **or** a non-identity stack with no stamp | never touches it |
+
+> **Decision:** **A hand edit is absolute.** One slider move takes a photo off auto for good, exactly
+> as a promote/demote does to a Tier — the engine is opinionated but never entitled to undo a human
+> (P6). The only way back is the per-photo *Auto* command, or the explicitly opt-in checkbox on the
+> batch, both of which are the user asking.
+
+The third row is what makes this safe to add to an existing book: a `photos.json` written before the
+feature has neither field, and adjustments in such a file can only have come from a person.
+
+The stamp carries the measurement, not just a rules version. Measuring is a decode per photo and
+choosing is arithmetic, so changing the look settings and re-running is instant rather than a
+book-length decode. It carries **no timestamp** — a wall-clock field would rewrite every photo row on
+every run and break doc 04 §4 rule 5. Everything is measured on the unadjusted original, which is why
+running twice converges instead of correcting an already-corrected photo again.
+
+Auto-straighten is the one part that moves pixels: it invalidates the analysis copy, so a *later*
+analysis run measures the straightened, wedge-cropped frame and may re-tier the photo. Nothing
+re-runs analysis on its own, so this is never a surprise mid-edit — but it is why straightening is
+refused below a confidence threshold and is a separate switch in the `LookProfile`.
+
 ## 5. Project folder format
 
 ```
