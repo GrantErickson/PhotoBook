@@ -43,6 +43,30 @@ public sealed class ThumbnailProvider
     }
 
     /// <summary>
+    /// Drops a photo's decoded thumbnail so the next request reads the disk again.
+    /// <para>
+    /// The memo is keyed by content hash alone, which is correct — the bytes identify the photo. But
+    /// the <em>file</em> the cache resolves to also depends on the adjustment stack, so editing a
+    /// photo leaves this holding pixels from before the edit. One edit at a time is invisible because
+    /// the inspector pushes its own render into the tile; a book-wide auto-adjust is not, and without
+    /// this every grid tile but the selected one keeps its pre-adjust thumbnail until the project is
+    /// reopened.
+    /// </para>
+    /// </summary>
+    /// <param name="contentHash">The photo whose decoded thumbnail should be dropped.</param>
+    public void Forget(string contentHash)
+    {
+        if (string.IsNullOrEmpty(contentHash)) return;
+
+        lock (_gate)
+        {
+            if (!_memory.Remove(contentHash)) return;
+            var node = _order.Find(contentHash);
+            if (node is not null) _order.Remove(node);
+        }
+    }
+
+    /// <summary>
     /// Loads (generating if necessary) the thumbnail for a photo. Safe to call from a background
     /// thread; the returned bitmap is frozen and therefore usable from the UI thread.
     /// </summary>

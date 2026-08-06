@@ -95,6 +95,13 @@ public sealed partial class BookSettingsViewModel : ObservableObject
     /// <param name="session">The single writer.</param>
     /// <param name="undo">The book's undo history.</param>
     /// <param name="jobs">The background queue the optional layout run uses.</param>
+    /// <summary>
+    /// The book's auto-adjust look settings, hosted here because they are book-wide settings like
+    /// everything else on this panel — but with their own view model, since they apply immediately
+    /// and have nothing to stage behind an Apply button.
+    /// </summary>
+    public LookViewModel? Look { get; init; }
+
     public BookSettingsViewModel(ProjectSession session, UndoStack undo, JobQueue jobs)
     {
         _session = session;

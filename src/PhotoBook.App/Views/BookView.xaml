@@ -267,6 +267,22 @@
                                 ToolTip="{Binding Undo.RedoLabel}">
                             <pb:Icon Data="{StaticResource Icon.Redo}" Width="16" Height="16" />
                         </Button>
+                        <!-- Photos-tab only: the book-wide auto-adjust. It belongs beside the photos
+                             it acts on, not in the Pages toolbar where the selection is a slot. -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsPagesTab, Converter={StaticResource InverseBoolToVisibility}}">
+                            <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding AutoAdjustAllCommand}"
+                                    ToolTip="Correct every photo you have not edited by hand, using this book's look settings">
+                                <StackPanel Orientation="Horizontal">
+                                    <pb:Icon Data="{StaticResource Icon.Sparkle}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Auto-adjust all" Margin="9,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
                         <!-- Pages-tab panels. Toggles, so their state is always readable. -->
                         <StackPanel Orientation="Horizontal"
                                     Visibility="{Binding IsPagesTab, Converter={StaticResource BoolToVisibility}}">

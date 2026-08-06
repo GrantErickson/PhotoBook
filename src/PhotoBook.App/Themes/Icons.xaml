@@ -104,6 +104,12 @@
     <PathGeometry x:Key="Icon.Eye"
                   Figures="M2.6,12 C5.1,7.6 8.5,5.6 12,5.6 C15.5,5.6 18.9,7.6 21.4,12 C18.9,16.4 15.5,18.4 12,18.4 C8.5,18.4 5.1,16.4 2.6,12 Z M9.5,12 A2.5,2.5 0 1 1 14.5,12 A2.5,2.5 0 1 1 9.5,12 Z" />
 
+    <!-- Auto-adjust. A four-pointed sparkle with a small companion — the established visual language
+         for "the machine chose this", and distinct from Icon.Star, which means quality tier, and
+         Icon.Sync, which already carries both "reset to automatic" and OneDrive. -->
+    <PathGeometry x:Key="Icon.Sparkle"
+                  Figures="M10,3.4 C10.7,7.1 11.9,8.3 15.6,9 C11.9,9.7 10.7,10.9 10,14.6 C9.3,10.9 8.1,9.7 4.4,9 C8.1,8.3 9.3,7.1 10,3.4 Z M17.4,14 C17.8,16.1 18.4,16.7 20.5,17.1 C18.4,17.5 17.8,18.1 17.4,20.2 C17,18.1 16.4,17.5 14.3,17.1 C16.4,16.7 17,16.1 17.4,14 Z" />
+
     <!-- ================================================= quality and status -->
     <PathGeometry x:Key="Icon.Star"
                   Figures="M12,3.6 L14.6,9.1 L20.6,9.9 L16.3,14.2 L17.4,20.2 L12,17.3 L6.6,20.2 L7.7,14.2 L3.4,9.9 L9.4,9.1 Z" />

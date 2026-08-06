@@ -31,6 +31,7 @@ public partial class App : Application
         // Photos tab: the inspector and everything it edits.
         services.AddSingleton<PhotoEditor>();
         services.AddSingleton(sp => new PhotoPreviewService(sp.GetRequiredService<ProjectSession>()));
+        services.AddSingleton<AutoAdjustRunner>();
         services.AddSingleton<AdjustmentsViewModel>();
         services.AddSingleton<FocusRegionEditorViewModel>();
         services.AddSingleton<PhotoReorderController>();
@@ -47,7 +48,8 @@ public partial class App : Application
             sp.GetRequiredService<EditorSettingsService>(),
             new AdjustmentsViewModel(
                 sp.GetRequiredService<PhotoEditor>(),
-                sp.GetRequiredService<PhotoPreviewService>()),
+                sp.GetRequiredService<PhotoPreviewService>(),
+                sp.GetRequiredService<AutoAdjustRunner>()),
             sp.GetRequiredService<PhotoEditor>()));
         services.AddSingleton<BinsViewModel>();
         services.AddSingleton<TemplatePickerViewModel>();

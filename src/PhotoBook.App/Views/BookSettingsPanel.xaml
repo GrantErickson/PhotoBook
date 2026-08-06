@@ -237,6 +237,67 @@
                         <TextBlock Text="{Binding SeedNotice}" Margin="2,7,0,0" TextWrapping="Wrap"
                                    Style="{StaticResource MicroTextStyle}" />
 
+                        <!-- =============== look (R6, R11) -->
+                        <!-- Its own DataContext, because unlike everything above it there is nothing
+                             to stage: these settings change no photo until auto-adjust is next run,
+                             so an Apply button would only be something else to forget to press. -->
+                        <StackPanel DataContext="{Binding Look}"
+                                    Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibility}}">
+                            <Grid Margin="0,28,0,3">
+                                <TextBlock Text="Look" Style="{StaticResource SectionLabelTextStyle}" />
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Reset"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Margin="0,-4,0,0" Command="{Binding ResetCommand}"
+                                        ToolTip="Put every look setting back to its default" />
+                            </Grid>
+                            <TextBlock Style="{StaticResource CaptionMutedTextStyle}" TextWrapping="Wrap"
+                                       Margin="0,0,0,10"
+                                       Text="How auto-adjust should make this book's photos look. Changing these changes nothing on its own — run Auto-adjust all on the Photos tab to apply them." />
+
+                            <Grid>
+                                <TextBlock Text="Strength" Style="{StaticResource BodyTextStyle}" />
+                                <TextBlock Text="{Binding StrengthLabel}" HorizontalAlignment="Right"
+                                           Style="{StaticResource NumericTextStyle}" />
+                            </Grid>
+                            <Slider Minimum="0" Maximum="1" Value="{Binding Strength}" Margin="0,2,0,0"
+                                    ToolTip="How far to go. Every correction is scaled by this; at 0 auto-adjust does nothing." />
+
+                            <Grid Margin="0,14,0,0">
+                                <TextBlock Text="Brightness" Style="{StaticResource BodyTextStyle}" />
+                            </Grid>
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding Brightness}" Margin="0,2,0,0"
+                                    ToolTip="Moves the brightness auto-adjust aims for, rather than adding a fixed amount." />
+
+                            <TextBlock Text="Warmth" Style="{StaticResource BodyTextStyle}" Margin="0,14,0,0" />
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding Warmth}" Margin="0,2,0,0"
+                                    ToolTip="Cooler through warmer, on top of the white balance auto-adjust measures." />
+
+                            <TextBlock Text="Contrast" Style="{StaticResource BodyTextStyle}" Margin="0,14,0,0" />
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding Contrast}" Margin="0,2,0,0" />
+
+                            <TextBlock Text="Colour" Style="{StaticResource BodyTextStyle}" Margin="0,14,0,0" />
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding Saturation}" Margin="0,2,0,0"
+                                    ToolTip="Muted through vivid." />
+
+                            <CheckBox Margin="0,18,0,0" IsChecked="{Binding Straighten}"
+                                      Content="Straighten crooked photos" />
+                            <TextBlock Margin="22,4,0,0" TextWrapping="Wrap"
+                                       Style="{StaticResource MicroTextStyle}"
+                                       Text="The only setting here that moves pixels: levelling a photo crops the rotated corners away. Only applied when the photo's own lines agree clearly on an angle." />
+
+                            <CheckBox Margin="0,12,0,0" IsChecked="{Binding AdjustOnImport}"
+                                      Content="Auto-adjust newly imported photos" />
+
+                            <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap"
+                                               Style="{StaticResource BodySecondaryTextStyle}" />
+                                    <TextBlock Text="{Binding StaleSummary}" TextWrapping="Wrap" Margin="0,5,0,0"
+                                               Style="{StaticResource MicroTextStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- =============== the layout offer -->
                         <Border Style="{StaticResource CardStyle}" Margin="0,24,0,0"
                                 BorderBrush="{DynamicResource AmberFlagBrush}"

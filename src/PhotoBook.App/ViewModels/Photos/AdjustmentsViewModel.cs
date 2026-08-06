@@ -204,6 +204,7 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
 {
     private readonly PhotoEditor _editor;
     private readonly PhotoPreviewService _previews;
+    private readonly AutoAdjustRunner? _autoAdjust;
 
     private CancellationTokenSource? _renderCancellation;
     private BitmapSource? _originalPreview;
@@ -211,10 +212,13 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
 
     /// <param name="editor">The undoable edit service.</param>
     /// <param name="previews">The off-thread preview renderer.</param>
-    public AdjustmentsViewModel(PhotoEditor editor, PhotoPreviewService previews)
+    /// <param name="autoAdjust">The auto-adjust runner, for the per-photo <em>Auto</em> command.</param>
+    public AdjustmentsViewModel(
+        PhotoEditor editor, PhotoPreviewService previews, AutoAdjustRunner? autoAdjust = null)
     {
         _editor = editor;
         _previews = previews;
+        _autoAdjust = autoAdjust;
         _editor.PhotoChanged += OnPhotoChanged;
 
         Groups =
@@ -389,15 +393,97 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
     [RelayCommand]
     private void ResetAll()
     {
-        if (Photo is not { } photo || photo.Adjustments.IsIdentity)
+        if (Photo is not { } photo)
         {
             return;
         }
 
+        if (photo.Adjustments.IsIdentity && photo.AdjustmentOrigin == AdjustmentOrigin.Manual)
+        {
+            return;
+        }
+
+        var wasAutomatic = photo.AdjustmentOrigin == AdjustmentOrigin.Automatic;
+
         _editor.ResetAdjustments(photo);
         AfterEdit();
-        StatusMessage = "Adjustments reset. The original file was never touched.";
+
+        // Clearing an automatic photo is how someone says "leave this one alone"; saying so out loud
+        // is the difference between that working and it looking like the button did nothing when the
+        // next book-wide run puts the correction back.
+        StatusMessage = wasAutomatic
+            ? "Adjustments reset. This photo is now yours — auto-adjust will skip it."
+            : "Adjustments reset. The original file was never touched.";
     }
+
+    // ---- auto ----------------------------------------------------------------------------------
+
+    /// <summary>True when the current stack was written by auto-adjust and not touched since.</summary>
+    public bool IsAutoAdjusted => Photo?.AdjustmentOrigin == AdjustmentOrigin.Automatic;
+
+    /// <summary>True when the user has edited this photo, so book-wide runs will skip it.</summary>
+    public bool IsManuallyEdited => Photo?.AdjustmentOrigin == AdjustmentOrigin.Manual;
+
+    /// <summary>The provenance chip's text, or null when there is nothing worth saying.</summary>
+    public string? OriginLabel => Photo?.AdjustmentOrigin switch
+    {
+        AdjustmentOrigin.Automatic => "Auto-adjusted",
+        AdjustmentOrigin.Manual => "Edited by hand",
+        _ => null,
+    };
+
+    /// <summary>Why the chip says what it says.</summary>
+    public string OriginHint => Photo?.AdjustmentOrigin switch
+    {
+        AdjustmentOrigin.Automatic =>
+            "These values came from auto-adjust. Changing the book's look and running it again will update them.",
+        AdjustmentOrigin.Manual =>
+            "You edited this photo, so auto-adjust leaves it alone. Press Auto to hand it back.",
+        _ => "Auto-adjust has not been run on this photo.",
+    };
+
+    /// <summary>True while the per-photo auto command is measuring.</summary>
+    [ObservableProperty]
+    private bool _isAutoAdjusting;
+
+    /// <summary>
+    /// Corrects this one photo and puts it back into the automatic state, overriding whatever the
+    /// user had done to it. Deliberately overrides: this is the one route back for a photo someone
+    /// edited once and now regrets, and the counterpart of the book-wide run that skips it.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAutoAdjust))]
+    private async Task AutoAdjustAsync()
+    {
+        if (Photo is not { } photo || _autoAdjust is null)
+        {
+            return;
+        }
+
+        IsAutoAdjusting = true;
+        try
+        {
+            var changed = await _autoAdjust.RunOneAsync(photo).ConfigureAwait(true);
+
+            RefreshAll();
+            await RenderAsync().ConfigureAwait(true);
+
+            StatusMessage = changed
+                ? "Auto-adjusted. This photo now follows the book's look settings."
+                : "Auto-adjust found nothing to change in this photo.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Auto-adjust failed: {ex.Message}";
+        }
+        finally
+        {
+            IsAutoAdjusting = false;
+        }
+    }
+
+    private bool CanAutoAdjust() => _autoAdjust is not null && Photo is not null && !IsAutoAdjusting;
+
+    partial void OnIsAutoAdjustingChanged(bool value) => AutoAdjustCommand.NotifyCanExecuteChanged();
 
     /// <summary>Rotates a quarter turn anticlockwise, beyond the EXIF orientation.</summary>
     [RelayCommand]
@@ -710,6 +796,14 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
             OnPropertyChanged(nameof(IsBlackAndWhite));
             OnPropertyChanged(nameof(IsFlipped));
             OnPropertyChanged(nameof(RotationLabel));
+
+            // Undo and redo move a photo between auto and manual as surely as a slider does, so the
+            // chip has to be in this list or it will still claim "auto-adjusted" after a Ctrl+Z.
+            OnPropertyChanged(nameof(IsAutoAdjusted));
+            OnPropertyChanged(nameof(IsManuallyEdited));
+            OnPropertyChanged(nameof(OriginLabel));
+            OnPropertyChanged(nameof(OriginHint));
+            AutoAdjustCommand.NotifyCanExecuteChanged();
         }
         finally
         {

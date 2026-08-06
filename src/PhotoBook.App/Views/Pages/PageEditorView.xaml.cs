@@ -385,6 +385,17 @@ public partial class PageEditorView : UserControl
         {
             menu.Items.Add(MenuItemFor("Edit crop", "Enter", () => vm.ActivateSlot(page, slotId)));
             menu.Items.Add(MenuItemFor("Re-run smart crop", "0", () => vm.ResetCropCommand.Execute(null)));
+
+            // The per-photo half of auto-adjust, beside "Re-run smart crop" because it is the same
+            // verb for the other half of a photo: hand this one back to the engine.
+            menu.Items.Add(MenuItemFor("Auto-adjust this photo", "A", () =>
+            {
+                if (vm.Adjustments is { AutoAdjustCommand: { } command } && command.CanExecute(null))
+                {
+                    command.Execute(null);
+                }
+            }));
+
             menu.Items.Add(new Separator());
             menu.Items.Add(MenuItemFor("Unplace photo", "Del", () => vm.UnplaceSelectedCommand.Execute(null)));
         }

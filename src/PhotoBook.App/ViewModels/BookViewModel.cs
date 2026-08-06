@@ -53,6 +53,7 @@ public sealed partial class BookViewModel : ObservableObject
     private readonly ProjectSession _session;
     private readonly JobQueue _jobs;
     private readonly ThumbnailProvider _thumbnails;
+    private readonly AutoAdjustRunner? _autoAdjust;
 
     private bool _syncingPageContext;
 
@@ -69,8 +70,10 @@ public sealed partial class BookViewModel : ObservableObject
         PhotoInspectorViewModel inspector,
         StyleViewModel style,
         ExportViewModel export,
-        JournalReviewViewModel journalReview)
+        JournalReviewViewModel journalReview,
+        AutoAdjustRunner? autoAdjust = null)
     {
+        _autoAdjust = autoAdjust;
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(undo);
         ArgumentNullException.ThrowIfNull(pageEditor);
@@ -660,7 +663,10 @@ public sealed partial class BookViewModel : ObservableObject
             return;
         }
 
-        var model = new BookSettingsViewModel(_session, Undo, _jobs);
+        var model = new BookSettingsViewModel(_session, Undo, _jobs)
+        {
+            Look = _autoAdjust is null ? null : new LookViewModel(_session, _autoAdjust),
+        };
         var touched = new HashSet<int>();
         model.ChapterChanged += month => touched.Add(month);
 
@@ -991,7 +997,59 @@ public sealed partial class BookViewModel : ObservableObject
 
         IsBusy = false;
         await AnalyzeAsync().ConfigureAwait(true);
+        await AutoAdjustImportedAsync().ConfigureAwait(true);
         await SaveAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Auto-adjusts what an import just brought in, when the book asks for it.
+    /// <para>
+    /// Off by default and opted into per book, because correcting photos someone has not looked at
+    /// yet is a surprise the first time and a convenience only once they trust the result. It reuses
+    /// the ordinary batch, which by construction touches nothing already on the shelf: an existing
+    /// photo is either up to date or hand-edited.
+    /// </para>
+    /// </summary>
+    private async Task AutoAdjustImportedAsync()
+    {
+        if (_autoAdjust is null || _session.Book?.Look.AdjustOnImport != true)
+        {
+            return;
+        }
+
+        var plan = _autoAdjust.Describe();
+        if (plan.Work(includeManual: false) == 0)
+        {
+            return;
+        }
+
+        await _jobs.RunAsync("Auto-adjusting new photos", async job =>
+        {
+            job.IsIndeterminate = false;
+            var progress = new Progress<(int Done, int Total)>(p =>
+            {
+                job.Progress = p.Total <= 0 ? 100 : Math.Min(100, p.Done * 100.0 / p.Total);
+                job.Status = $"{p.Done} of {p.Total}";
+            });
+
+            var changed = await _autoAdjust
+                .RunAsync(includeManual: false, progress, job.Cancellation.Token)
+                .ConfigureAwait(false);
+
+            JobQueue.PostUi(() =>
+            {
+                if (changed > 0)
+                {
+                    StatusMessage = $"Auto-adjusted {changed} new photo{(changed == 1 ? "" : "s")}.";
+                }
+
+                foreach (var item in Photos)
+                {
+                    item.InvalidateThumbnail();
+                    item.Refresh();
+                }
+            });
+        }).ConfigureAwait(true);
     }
 
     private void JumpToFirstMonthWithPhotos()
@@ -1005,6 +1063,83 @@ public sealed partial class BookViewModel : ObservableObject
         {
             LoadChapter(SelectedChapter.Month);
         }
+    }
+
+    // ================================================================= auto-adjust (R6, R11)
+
+    /// <summary>
+    /// Corrects every photo the user has not edited by hand, and re-derives the ones auto-adjust
+    /// wrote before, so changing the book's look settings and running again brings the whole book up
+    /// to date.
+    /// <para>
+    /// Follows doc 09 §3.8's discipline for engine batch commands: the counts are put in front of the
+    /// user before anything runs, hand-edited photos are opted in explicitly rather than by default,
+    /// progress is on the job queue, cancelling changes nothing, and the whole run is one composite
+    /// undo entry.
+    /// </para>
+    /// </summary>
+    [RelayCommand]
+    private async Task AutoAdjustAllAsync()
+    {
+        if (_autoAdjust is null || _session.Book is null)
+        {
+            return;
+        }
+
+        var plan = _autoAdjust.Describe();
+        if (plan.Scope(includeManual: false) == 0 && plan.Manual == 0)
+        {
+            StatusMessage = "There are no photos to adjust yet.";
+            return;
+        }
+
+        var choice = AutoAdjustPrompt.Ask(plan);
+        if (choice is not { } includeManual)
+        {
+            return;
+        }
+
+        var total = plan.Scope(includeManual);
+        if (total == 0)
+        {
+            StatusMessage = "Every photo has been edited by hand; nothing was changed.";
+            return;
+        }
+
+        IsBusy = true;
+        var changed = 0;
+
+        await _jobs.RunAsync("Auto-adjusting photos", async job =>
+        {
+            job.IsIndeterminate = false;
+            var progress = new Progress<(int Done, int Total)>(p =>
+            {
+                job.Progress = p.Total <= 0 ? 100 : Math.Min(100, p.Done * 100.0 / p.Total);
+                job.Status = $"{p.Done} of {p.Total}";
+            });
+
+            changed = await _autoAdjust
+                .RunAsync(includeManual, progress, job.Cancellation.Token)
+                .ConfigureAwait(false);
+
+            JobQueue.PostUi(() =>
+            {
+                StatusMessage = changed == 0
+                    ? "Auto-adjust found nothing to change."
+                    : $"Auto-adjusted {changed} photo{(changed == 1 ? "" : "s")}" +
+                      (includeManual || plan.Manual == 0
+                          ? "."
+                          : $", leaving {plan.Manual} you edited by hand alone.");
+
+                foreach (var item in Photos)
+                {
+                    item.InvalidateThumbnail();
+                    item.Refresh();
+                }
+            });
+        }).ConfigureAwait(true);
+
+        IsBusy = false;
     }
 
     [RelayCommand]

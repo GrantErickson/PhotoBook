@@ -110,12 +110,32 @@
                               ToolTip="Hold to see the photo before your edits">
                     <pb:Icon Data="{StaticResource Icon.Eye}" Width="15" Height="15" />
                 </ToggleButton>
+                <!-- Beside Reset all, because the two are the same kind of verb: both replace the
+                     whole stack, and together they are how a photo moves between auto and manual. -->
+                <Button Style="{StaticResource GhostButtonStyle}" Content="Auto"
+                        Command="{Binding AutoAdjustCommand}" Margin="2,0,0,0"
+                        ToolTip="Correct this photo from the book's look settings. Replaces any edits you have made and puts it back on auto." />
                 <Button Style="{StaticResource GhostButtonStyle}" Content="Reset all"
                         Command="{Binding ResetAllCommand}" Margin="2,0,0,0"
                         IsEnabled="{Binding HasEdits}"
                         ToolTip="Return every parameter to neutral" />
             </StackPanel>
         </Grid>
+
+        <!-- Which of the three states this photo is in. Absent for a photo nobody has adjusted,
+             because "untouched" is the default and saying so is noise. -->
+        <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                ToolTip="{Binding OriginHint}"
+                Visibility="{Binding OriginLabel, Converter={StaticResource NullToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <pb:Icon Data="{StaticResource Icon.Sparkle}" Width="12" Height="12" Margin="0,0,5,0"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         Visibility="{Binding IsAutoAdjusted, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding OriginLabel}" Style="{StaticResource MicroTextStyle}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
 
         <!-- ============================================ live preview -->
         <Border CornerRadius="6" Background="{DynamicResource PageBlackBrush}" Height="184" Margin="0,10,0,0"

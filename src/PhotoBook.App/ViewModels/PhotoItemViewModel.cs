@@ -73,9 +73,17 @@ public sealed partial class PhotoItemViewModel : ObservableObject
         OnPropertyChanged(nameof(TakenAtDisplay));
     }
 
-    /// <summary>Drops the cached bitmap so the next edit re-renders it.</summary>
+    /// <summary>
+    /// Drops the cached bitmap so the tile re-reads it after the photo's pixels change.
+    /// <para>
+    /// Both halves are needed. Clearing the property alone is not enough — the provider's own LRU is
+    /// keyed by content hash, which an edit does not change, so the next fetch would hand back the
+    /// same stale bitmap it just discarded.
+    /// </para>
+    /// </summary>
     public void InvalidateThumbnail()
     {
+        _thumbnails.Forget(Photo.ContentHash);
         _requested = false;
         Thumbnail = null;
     }
