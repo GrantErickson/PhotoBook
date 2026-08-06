@@ -53,11 +53,46 @@
             </Grid>
         </DataTemplate>
 
+        <!-- Collapsible: the full stack is long, and a panel you scroll past is a panel whose
+             controls you never find. A folded group still says how many of its rows carry edits, so
+             nothing hides silently. -->
         <DataTemplate x:Key="AdjustmentGroupTemplate">
-            <StackPanel Margin="0,18,0,0">
-                <TextBlock Text="{Binding Name}" Style="{StaticResource SectionLabelTextStyle}" Margin="0,0,0,0" />
+            <StackPanel Margin="0,14,0,0">
+                <ToggleButton Style="{StaticResource ToggleButtonBaseStyle}"
+                              HorizontalContentAlignment="Stretch" Padding="0,4"
+                              Background="Transparent" BorderThickness="0"
+                              IsChecked="{Binding IsExpanded, Mode=TwoWay}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Two icons swapped by visibility rather than one icon with a styled Data
+                             trigger: the trigger form needs BasedOn the implicit pb:Icon style, and
+                             that resolution fails at load inside a DataTemplate. -->
+                        <Grid Grid.Column="0" Width="12" Height="12" Margin="0,0,7,0"
+                              VerticalAlignment="Center">
+                            <pb:Icon Data="{StaticResource Icon.ChevronDown}" Width="12" Height="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}" />
+                            <pb:Icon Data="{StaticResource Icon.ChevronRight}" Width="12" Height="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Visibility="{Binding IsExpanded, Converter={StaticResource InverseBoolToVisibility}}" />
+                        </Grid>
+
+                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                   Style="{StaticResource SectionLabelTextStyle}" VerticalAlignment="Center" />
+
+                        <TextBlock Grid.Column="2" Text="{Binding TouchedLabel}"
+                                   Style="{StaticResource MicroTextStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                </ToggleButton>
+
                 <ItemsControl ItemsSource="{Binding Sliders}"
-                              ItemTemplate="{StaticResource AdjustmentSliderTemplate}" />
+                              ItemTemplate="{StaticResource AdjustmentSliderTemplate}"
+                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}" />
             </StackPanel>
         </DataTemplate>
     </UserControl.Resources>

@@ -133,11 +133,16 @@ public sealed class AdjustmentPipeline
 
             // Auto-crop the wedge the rotation introduced: the largest axis-aligned rectangle of the
             // original aspect that fits inside the rotated frame (doc 05: "auto-crops the wedge").
+            // Rounding DOWN matters — rounding up would reach back into the wedge.
             var (cropWidth, cropHeight) = LargestInscribedRect(beforeWidth, beforeHeight, a.Straighten);
             var w = (uint)Math.Max(1, Math.Floor(cropWidth));
             var h = (uint)Math.Max(1, Math.Floor(cropHeight));
             if (w < image.Width || h < image.Height)
             {
+                // Rotate leaves a virtual-canvas offset behind, and Crop with a Gravity is resolved
+                // against that page rather than the pixels — so the page has to be cleared first or
+                // the centred crop is centred on the wrong origin and keeps a wedge.
+                image.ResetPage();
                 image.Crop(new MagickGeometry(w, h), Gravity.Center);
                 image.ResetPage();
             }
@@ -145,38 +150,43 @@ public sealed class AdjustmentPipeline
     }
 
     /// <summary>
-    /// Dimensions of the largest axis-aligned rectangle with the original aspect ratio that fits inside
-    /// a <paramref name="width"/>×<paramref name="height"/> rectangle rotated by
+    /// Dimensions of the largest centred axis-aligned rectangle <b>of the original aspect ratio</b>
+    /// that fits inside a <paramref name="width"/>×<paramref name="height"/> rectangle rotated by
     /// <paramref name="degrees"/>.
+    /// <para>
+    /// Deliberately not the maximum-area inscribed rectangle. That one is wider or taller than the
+    /// source — a 16:9 frame straightened by 6.5° comes back at 2.09:1 — and the aspect a photo
+    /// reports is load-bearing here: <see cref="PhotoBook.Core.Model.CropMath"/> derives every slot
+    /// crop from it, so a straighten that silently reshaped the frame would shift the photo inside
+    /// every slot it appears in. It also touches the rotated boundary exactly, which leaves a sliver
+    /// of the background wedge once the result is rounded to whole pixels.
+    /// </para>
+    /// <para>
+    /// A centred rect of half-extents (x, y) sits inside the rotated frame when
+    /// <c>x·cos + y·sin ≤ W/2</c> and <c>x·sin + y·cos ≤ H/2</c>. Scaling the source by <c>k</c>
+    /// gives <c>k = min(W / (W·cos + H·sin), H / (W·sin + H·cos))</c>.
+    /// </para>
     /// </summary>
     internal static (double Width, double Height) LargestInscribedRect(double width, double height, double degrees)
     {
         if (width <= 0 || height <= 0) return (width, height);
+
         var angle = Math.Abs(degrees % 180) * Math.PI / 180.0;
         if (angle > Math.PI / 2) angle = Math.PI - angle;
+
         var sin = Math.Abs(Math.Sin(angle));
         var cos = Math.Abs(Math.Cos(angle));
         if (sin < 1e-9) return (width, height);
 
-        var widthIsLong = width >= height;
-        var longSide = widthIsLong ? width : height;
-        var shortSide = widthIsLong ? height : width;
+        var scale = Math.Min(
+            width / ((width * cos) + (height * sin)),
+            height / ((width * sin) + (height * cos)));
 
-        double rectWidth, rectHeight;
-        if (shortSide <= 2 * sin * cos * longSide || Math.Abs(sin - cos) < 1e-9)
-        {
-            var half = 0.5 * shortSide;
-            rectWidth = widthIsLong ? half / sin : half / cos;
-            rectHeight = widthIsLong ? half / cos : half / sin;
-        }
-        else
-        {
-            var cos2a = cos * cos - sin * sin;
-            rectWidth = (width * cos - height * sin) / cos2a;
-            rectHeight = (height * cos - width * sin) / cos2a;
-        }
+        // A whisker inside the boundary: the fit above is exact, and an exact fit rounds outward into
+        // the wedge on some sizes.
+        scale *= 0.998;
 
-        return (Math.Max(1, rectWidth), Math.Max(1, rectHeight));
+        return (Math.Max(1, width * scale), Math.Max(1, height * scale));
     }
 
     // ---- stage 2: exposure ---------------------------------------------------------------------

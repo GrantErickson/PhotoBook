@@ -47,7 +47,8 @@ public partial class App : Application
             sp.GetRequiredService<EditorSettingsService>(),
             new AdjustmentsViewModel(
                 sp.GetRequiredService<PhotoEditor>(),
-                sp.GetRequiredService<PhotoPreviewService>())));
+                sp.GetRequiredService<PhotoPreviewService>()),
+            sp.GetRequiredService<PhotoEditor>()));
         services.AddSingleton<BinsViewModel>();
         services.AddSingleton<TemplatePickerViewModel>();
         services.AddSingleton<LayoutCommandsViewModel>();
@@ -90,6 +91,11 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            // Also write it down: a modal MessageBox is invisible to automation and to anyone
+            // running the app headlessly, and "it just doesn't start" is the worst bug report there
+            // is. The file is the first thing to read when the window never appears.
+            TryWriteStartupCrash(ex);
+
             // A failure here leaves no window to show the error in, so say so plainly and stop
             // rather than sitting invisible in the process list.
             MessageBox.Show(
@@ -98,6 +104,25 @@ public partial class App : Application
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    /// <summary>Records a startup failure beside the user's settings, best effort.</summary>
+    private static void TryWriteStartupCrash(Exception ex)
+    {
+        try
+        {
+            var folder = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhotoBook");
+            System.IO.Directory.CreateDirectory(folder);
+            System.IO.File.WriteAllText(
+                System.IO.Path.Combine(folder, "startup-error.txt"),
+                DateTime.Now.ToString("u", System.Globalization.CultureInfo.InvariantCulture)
+                    + Environment.NewLine + ex);
+        }
+        catch
+        {
+            // Nothing useful to do if even this fails.
         }
     }
 

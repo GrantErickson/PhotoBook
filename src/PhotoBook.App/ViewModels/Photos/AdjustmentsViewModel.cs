@@ -139,10 +139,49 @@ public sealed partial class AdjustmentSliderViewModel : ObservableObject
     }
 }
 
-/// <summary>A titled run of sliders — Light, Colour, Detail.</summary>
-/// <param name="Name">The group heading.</param>
-/// <param name="Sliders">Its rows, in order.</param>
-public sealed record AdjustmentGroupViewModel(string Name, IReadOnlyList<AdjustmentSliderViewModel> Sliders);
+/// <summary>
+/// A titled, collapsible run of sliders — Light, Colour, Detail. The whole stack is long enough that
+/// showing every row at once buries the controls a photo usually needs, so a group can be folded
+/// away and the panel remembers which are open for the session.
+/// </summary>
+public sealed partial class AdjustmentGroupViewModel : ObservableObject
+{
+    /// <summary>Creates a group.</summary>
+    /// <param name="name">The group heading.</param>
+    /// <param name="sliders">Its rows, in order.</param>
+    /// <param name="isExpanded">Whether it starts open.</param>
+    public AdjustmentGroupViewModel(
+        string name, IReadOnlyList<AdjustmentSliderViewModel> sliders, bool isExpanded = true)
+    {
+        Name = name;
+        Sliders = sliders;
+        _isExpanded = isExpanded;
+    }
+
+    /// <summary>The group heading.</summary>
+    public string Name { get; }
+
+    /// <summary>Its rows, in order.</summary>
+    public IReadOnlyList<AdjustmentSliderViewModel> Sliders { get; }
+
+    [ObservableProperty]
+    private bool _isExpanded;
+
+    /// <summary>How many rows in this group are away from their default, for the collapsed summary.</summary>
+    public int TouchedCount => Sliders.Count(s => Math.Abs(s.Value) > 1e-9);
+
+    /// <summary>"2 changed" when the group is folded and holds edits, otherwise blank.</summary>
+    public string TouchedLabel => TouchedCount == 0
+        ? string.Empty
+        : string.Create(CultureInfo.CurrentCulture, $"{TouchedCount} changed");
+
+    /// <summary>Re-reads the summary after the sliders were refreshed.</summary>
+    public void RefreshSummary()
+    {
+        OnPropertyChanged(nameof(TouchedCount));
+        OnPropertyChanged(nameof(TouchedLabel));
+    }
+}
 
 /// <summary>
 /// The inspector's <b>Adjust</b> section of doc 09 §2.4 (R11): the whole non-destructive
@@ -197,7 +236,9 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
                 Slider("blacks", "Blacks", "The black point itself — crush for depth, lift for a faded look.",
                     -1, 1, s => s.Blacks, (s, v) => s.Blacks = v),
             ]),
-            new AdjustmentGroupViewModel("Colour",
+            // Light open, the rest folded: the panel should read as a short list you expand into,
+            // not a wall of sliders. A folded group says how many of its rows carry edits.
+            new AdjustmentGroupViewModel("Colour", isExpanded: false, sliders:
             [
                 Slider("temperature", "Temperature", "Cool blue through to warm amber.", -1, 1,
                     s => s.Temperature, (s, v) => s.Temperature = v),
@@ -208,7 +249,7 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
                 Slider("vibrance", "Vibrance", "Muted colours move; skin tones stay put.", -1, 1,
                     s => s.Vibrance, (s, v) => s.Vibrance = v),
             ]),
-            new AdjustmentGroupViewModel("Detail",
+            new AdjustmentGroupViewModel("Detail", isExpanded: false, sliders:
             [
                 Slider("clarity", "Clarity", "Mid-tone local contrast — depth for a flat, hazy frame; soften to flatter skin.",
                     -1, 1, s => s.Clarity, (s, v) => s.Clarity = v),
@@ -656,6 +697,11 @@ public sealed partial class AdjustmentsViewModel : ObservableObject
             foreach (var slider in AllSliders)
             {
                 slider.Refresh();
+            }
+
+            foreach (var group in Groups)
+            {
+                group.RefreshSummary();
             }
 
             OnPropertyChanged(nameof(Stack));

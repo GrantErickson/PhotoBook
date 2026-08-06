@@ -57,7 +57,8 @@ public sealed partial class PageEditorViewModel : ObservableObject
         UndoStack undo,
         ThumbnailProvider? thumbnails = null,
         EditorSettingsService? settings = null,
-        ViewModels.Photos.AdjustmentsViewModel? adjustments = null)
+        ViewModels.Photos.AdjustmentsViewModel? adjustments = null,
+        PhotoEditor? photoEditor = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(undo);
@@ -67,6 +68,13 @@ public sealed partial class PageEditorViewModel : ObservableObject
         _thumbnails = thumbnails;
         _settings = settings;
         Adjustments = adjustments;
+
+        // A correction made in the side panel has to show on the page, or the panel is guessing:
+        // the whole reason to edit in place is judging the result against the layout it sits in.
+        if (photoEditor is not null)
+        {
+            photoEditor.PhotoChanged += OnPhotoChanged;
+        }
         _undo.Changed += OnUndoStackChanged;
         _showGuides = settings?.Settings.PageGuidesVisible ?? false;
 
@@ -374,6 +382,30 @@ public sealed partial class PageEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isAdjustOpen;
+
+    /// <summary>
+    /// Re-renders when an edited photo is on a page in view. The canvas debounces its own repaints,
+    /// so a slider drag costs one render per frame budget rather than one per pointer move.
+    /// </summary>
+    private void OnPhotoChanged(Photo photo)
+    {
+        if (photo is null)
+        {
+            return;
+        }
+
+        var onView =
+            IsPhotoOnPage(LeftPage, photo.Id) ||
+            IsPhotoOnPage(RightPage, photo.Id);
+
+        if (onView)
+        {
+            Refresh();
+        }
+    }
+
+    private static bool IsPhotoOnPage(Page? page, string photoId) =>
+        page is not null && page.Placements.Any(p => string.Equals(p.PhotoId, photoId, StringComparison.Ordinal));
 
     /// <summary>Nothing to correct means the panel cannot be open, however it was asked for.</summary>
     partial void OnIsAdjustOpenChanged(bool value)
