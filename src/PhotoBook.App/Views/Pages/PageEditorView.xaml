@@ -114,9 +114,16 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        <!-- The second column is the in-place corrections panel. Auto, so it is zero-wide until the
+             panel opens, and a real column rather than an overlay: a panel drawn over the sheet hides
+             the part of the page the correction is being judged against. -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
 
         <!-- ==================================================== toolbar -->
-        <Border Grid.Row="0" Height="{StaticResource CommandBarHeight}"
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Height="{StaticResource CommandBarHeight}"
                 Background="{DynamicResource SurfaceRaisedBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="False" Margin="12,0">
@@ -198,8 +205,7 @@
              canvas rather than floating over it, because the point is judging the correction against
              the page it sits on. Its own AdjustmentsViewModel, attached to the selected slot's photo,
              writing through the same editor and undo stack as the Photos-tab inspector. -->
-        <Border Grid.Row="1" Grid.RowSpan="2" Panel.ZIndex="2"
-                HorizontalAlignment="Right"
+        <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1"
                 Width="330"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
@@ -448,7 +454,8 @@
         </Border>
 
         <!-- The drag ghost of doc 09 §3.2: 60% opacity, follows the cursor, never hit-tests. -->
-        <Canvas Grid.Row="0" Grid.RowSpan="3" x:Name="GhostLayer" IsHitTestVisible="False" Panel.ZIndex="20">
+        <Canvas Grid.Row="0" Grid.RowSpan="3" Grid.ColumnSpan="2" x:Name="GhostLayer"
+                IsHitTestVisible="False" Panel.ZIndex="20">
             <Border x:Name="DragGhost" Visibility="Collapsed" Opacity="0.6"
                     Background="{DynamicResource SurfaceOverlayBrush}"
                     BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
