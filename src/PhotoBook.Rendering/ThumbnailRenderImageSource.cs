@@ -17,7 +17,7 @@ namespace PhotoBook.Rendering;
 /// size that still meets the placement's 300 DPI target, never upsampling (doc 12 "Image handling").
 /// </para>
 /// <para>
-/// Decoded images are cached by <c>(photoId, tier)</c> with a bounded, insertion-ordered eviction, so
+/// Decoded images are cached by <c>(photoId, tier, adjustmentHash)</c> with a bounded, insertion-ordered eviction, so
 /// the page loop's peak memory is roughly one full-resolution decode plus the current page's slots.
 /// Call <see cref="Dispose"/> when the export or the preview session ends.
 /// </para>
@@ -74,7 +74,12 @@ public sealed class ThumbnailRenderImageSource : IRenderImageSource, IDisposable
         if (photo is null || photo.DecodeFailed) return null;
 
         var tier = ChooseTier(photo, request);
-        var key = $"{photo.Id}|{tier}";
+
+        // The adjustment hash is part of the key, not just the photo and tier. Without it a photo
+        // edited after it was first drawn keeps returning the pixels it had before the edit, so a
+        // correction shows in the inspector's preview and never on the page.
+        var edit = PhotoBook.Imaging.AdjustmentHash.Compute(photo.Adjustments);
+        var key = $"{photo.Id}|{tier}|{edit}";
 
         lock (_gate)
         {
@@ -112,6 +117,11 @@ public sealed class ThumbnailRenderImageSource : IRenderImageSource, IDisposable
                 Touch(key);
                 return raced.Image;
             }
+
+            // Drop the same photo's older edit states rather than letting them age out: a slider drag
+            // mints a new hash per frame, and at this capacity those would evict the rest of the
+            // spread and make every neighbouring page re-decode.
+            DropOtherEditsOf(photo.Id, tier, key);
 
             _cache[key] = new CacheEntry(loaded);
             _order.AddLast(key);
@@ -237,6 +247,31 @@ public sealed class ThumbnailRenderImageSource : IRenderImageSource, IDisposable
         {
             _order.RemoveFirst();
             if (_cache.Remove(oldest.Value, out var entry)) entry.Image.Image.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Removes this photo's entries for the same tier that carry a different edit hash. One photo at
+    /// one tier only ever needs its current appearance resident; keeping superseded ones would let a
+    /// single slider drag flush the whole spread out of the cache.
+    /// </summary>
+    private void DropOtherEditsOf(string photoId, Tier tier, string keepKey)
+    {
+        var prefix = $"{photoId}|{tier}|";
+
+        for (var node = _order.First; node is not null;)
+        {
+            var next = node.Next;
+            var key = node.Value;
+
+            if (key.StartsWith(prefix, StringComparison.Ordinal) &&
+                !string.Equals(key, keepKey, StringComparison.Ordinal))
+            {
+                _order.Remove(node);
+                if (_cache.Remove(key, out var entry)) entry.Image.Image.Dispose();
+            }
+
+            node = next;
         }
     }
 
