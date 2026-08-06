@@ -121,7 +121,18 @@ public sealed record Photo
     /// </summary>
     public Tier EffectiveTier => UserTierOverride ?? Tier ?? PhotoBook.Core.Model.Tier.B;
 
-    /// <summary>Native aspect ratio (width / height) of the oriented image; NaN when unknown.</summary>
+    /// <summary>
+    /// Native aspect ratio (width / height) of the oriented image; NaN when unknown.
+    /// <para>
+    /// Not serialized, unlike the other derived properties on this record. An unreadable image is
+    /// catalogued with <c>decodeFailed</c> and zero dimensions, which makes this NaN — and
+    /// <c>System.Text.Json</c> refuses to write NaN, so the whole of <c>photos.json</c> would fail to
+    /// save from the moment one corrupt file was imported, permanently and for every later edit. The
+    /// ratio is derivable from the width and height already in the file, so nothing is lost by
+    /// leaving it out.
+    /// </para>
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public double Aspect => Height <= 0 ? double.NaN : (double)Width / Height;
 
     /// <summary>The calendar date of <see cref="TakenAt"/> — the day-grouping key (doc 08 phase 1).</summary>

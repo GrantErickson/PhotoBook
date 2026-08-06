@@ -174,8 +174,13 @@ public sealed record LookProfile
     /// Whether auto-adjust may also straighten a tilted photo. On by default. This is the one setting
     /// that moves pixels: the rotated wedge is cropped away, so a few percent of the frame edge is
     /// lost, and a later analysis run measures the straightened image.
+    /// <para>
+    /// Always written, unlike its neighbours. <c>WhenWritingDefault</c> compares against
+    /// <c>default(bool)</c> — which is <c>false</c>, not this property's initializer — so omitting it
+    /// would drop exactly the value worth storing and load it back as <c>true</c>. Turning
+    /// auto-straighten off would not survive a save.
+    /// </para>
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Straighten { get; set; } = true;
 
     /// <summary>Whether newly imported photos are auto-adjusted as they arrive. Off by default.</summary>

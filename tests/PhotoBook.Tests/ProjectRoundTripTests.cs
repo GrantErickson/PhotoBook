@@ -14,6 +14,47 @@ public class ProjectRoundTripTests
 {
     private static readonly DateTime CreatedAt = new(2026, 8, 3, 12, 0, 0, DateTimeKind.Utc);
 
+    /// <summary>
+    /// An unreadable image is catalogued with <c>decodeFailed</c> and zero dimensions — the importer
+    /// says so explicitly ("0 when unknown") and never aborts a batch over one bad file. Every photo
+    /// row must therefore survive a save with no dimensions at all.
+    /// </summary>
+    [Fact]
+    public async Task AnUndecodablePhotoDoesNotStopTheProjectFromSaving()
+    {
+        using var temp = new TempFolder();
+        await ProjectStore.CreateNewAsync(temp.Path, 2024, "Our 2024", seed: 1, createdAtUtc: CreatedAt);
+        var store = new ProjectStore(temp.Path);
+
+        var catalog = new PhotoCatalog
+        {
+            Photos =
+            {
+                new Photo
+                {
+                    Id = "ph-broken",
+                    ContentHash = new string('c', 64),
+                    OriginalFileName = "corrupt.jpg",
+                    OriginalPath = "originals/corrupt.jpg",
+                    TakenAt = new DateTime(2024, 3, 4, 9, 30, 0),
+                    Width = 0,
+                    Height = 0,
+                    DecodeFailed = true,
+                },
+            },
+        };
+
+        // Before the fix this threw ArgumentException from deep inside the serializer — "positive and
+        // negative infinity cannot be written as valid JSON" — because the derived aspect ratio of a
+        // zero-height photo is NaN. The project simply stopped saving, for good, from the moment one
+        // unreadable file was imported.
+        await store.SavePhotosAsync(catalog);
+
+        var reloaded = await store.LoadPhotosAsync();
+        Assert.Single(reloaded.Value.Photos);
+        Assert.True(reloaded.Value.Photos[0].DecodeFailed);
+    }
+
     [Fact]
     public async Task CreateSaveReload_PreservesEveryMeaningfulField()
     {

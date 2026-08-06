@@ -113,13 +113,45 @@ public sealed class PhotoEditor
     /// coalesce window fold together and two different sliders never merge. Pass null for a one-shot
     /// edit such as a reset.
     /// </param>
-    public void SetAdjustments(Photo photo, AdjustmentStack next, string description, string? coalesceKey = null)
+    public void SetAdjustments(Photo photo, AdjustmentStack next, string description, string? coalesceKey = null) =>
+        Write(photo, next, stamp: null, description, coalesceKey);
+
+    /// <summary>
+    /// Replaces a photo's stack with one auto-adjust derived, and marks it as machine-owned so a
+    /// later "auto-adjust all" is free to derive it again. The inverse of a hand edit, and the same
+    /// single undoable step.
+    /// </summary>
+    /// <param name="photo">The photo being adjusted.</param>
+    /// <param name="next">The stack the rules chose.</param>
+    /// <param name="stamp">The provenance to record, including the measurement it came from.</param>
+    /// <param name="description">Edit-menu text.</param>
+    public void SetAutoAdjustments(Photo photo, AdjustmentStack next, AutoAdjustStamp stamp, string description)
+    {
+        ArgumentNullException.ThrowIfNull(stamp);
+        Write(photo, next, stamp, description, coalesceKey: null);
+    }
+
+    /// <summary>
+    /// The one place a photo's adjustments and their provenance change.
+    /// <para>
+    /// Both travel in a single undo entry rather than two, because they are one fact. Recording them
+    /// separately would also break slider coalescing: <see cref="UndoStack.BeginBatch"/> collects
+    /// children verbatim, so a drag that emitted two commands per pointer frame would land hundreds
+    /// of uncoalesced entries in the stack instead of one.
+    /// </para>
+    /// </summary>
+    private void Write(
+        Photo photo, AdjustmentStack next, AutoAdjustStamp? stamp, string description, string? coalesceKey)
     {
         ArgumentNullException.ThrowIfNull(photo);
         ArgumentNullException.ThrowIfNull(next);
 
-        var before = photo.Adjustments with { };
-        var after = next with { };
+        var before = new AdjustmentState(
+            photo.Adjustments with { }, photo.AutoAdjust, photo.AdjustmentsUserEdited);
+
+        // A stamp means auto wrote this; its absence means a human did, and a human touching a photo
+        // takes it off auto for good (R6/R11, kernel §4).
+        var after = new AdjustmentState(next with { }, stamp, stamp is null);
 
         _undo.ExecuteValue(
             description,
@@ -127,12 +159,23 @@ public sealed class PhotoEditor
             after,
             value =>
             {
-                photo.Adjustments = value with { };
+                photo.Adjustments = value.Stack with { };
+                photo.AutoAdjust = value.Stamp;
+                photo.AdjustmentsUserEdited = value.UserEdited;
                 _session.MarkDirty();
                 PhotoChanged?.Invoke(photo);
             },
             coalesceKey);
     }
+
+    /// <summary>
+    /// A photo's edits and who owns them, captured by value so undo restores both together.
+    /// </summary>
+    /// <param name="Stack">The parameters.</param>
+    /// <param name="Stamp">The auto-adjust provenance, or null when a human owns the stack.</param>
+    /// <param name="UserEdited">Whether a human has touched it — see <see cref="Photo.AdjustmentOrigin"/>.</param>
+    private readonly record struct AdjustmentState(
+        AdjustmentStack Stack, AutoAdjustStamp? Stamp, bool UserEdited);
 
     /// <summary>
     /// Opens the coalescing scope for a slider drag: every frame between thumb-press and thumb-release
@@ -146,12 +189,19 @@ public sealed class PhotoEditor
         return _undo.BeginGesture($"adjust:{photo.Id}:{parameterId}");
     }
 
-    /// <summary>Returns the whole stack to identity in one undoable step.</summary>
+    /// <summary>
+    /// Returns the whole stack to identity in one undoable step, and takes the photo off auto.
+    /// <para>
+    /// Resetting is a decision, not the absence of one: someone who clears an auto-adjusted photo
+    /// wants it left alone, and the next run of "auto-adjust all" would otherwise put the correction
+    /// straight back. The <em>Auto</em> button is how they change their mind.
+    /// </para>
+    /// </summary>
     /// <param name="photo">The photo to reset.</param>
     public void ResetAdjustments(Photo photo)
     {
         ArgumentNullException.ThrowIfNull(photo);
-        if (photo.Adjustments.IsIdentity)
+        if (photo.Adjustments.IsIdentity && photo.AdjustmentOrigin == AdjustmentOrigin.Manual)
         {
             return;
         }
