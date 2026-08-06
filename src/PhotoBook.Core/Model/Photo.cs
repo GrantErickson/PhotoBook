@@ -50,6 +50,34 @@ public sealed record Photo
     /// <summary>Non-destructive parametric edits (R6, R11).</summary>
     public AdjustmentStack Adjustments { get; set; } = new();
 
+    /// <summary>
+    /// Proof that <see cref="Adjustments"/> was written by auto-adjust, and the measurement it was
+    /// derived from. Null for a photo nobody has adjusted and for one the user edited by hand.
+    /// </summary>
+    public AutoAdjustStamp? AutoAdjust { get; set; }
+
+    /// <summary>
+    /// True once the user has edited <see cref="Adjustments"/> themselves — including deliberately
+    /// resetting them to identity, which is a choice and not an absence of one. Set by the editor,
+    /// never by the engine.
+    /// </summary>
+    public bool AdjustmentsUserEdited { get; set; }
+
+    /// <summary>
+    /// Who owns <see cref="Adjustments"/> right now, and therefore whether auto-adjust may rewrite it.
+    /// <para>
+    /// The third clause is what makes the feature safe to add to an existing book: a project written
+    /// before auto-adjust existed has no stamp and no flag, but a photo carrying real edits in such a
+    /// file was necessarily edited by a human, and reading it as <see cref="AdjustmentOrigin.Manual"/>
+    /// is the only reading that cannot destroy their work on the first run.
+    /// </para>
+    /// </summary>
+    public AdjustmentOrigin AdjustmentOrigin =>
+        AdjustmentsUserEdited ? AdjustmentOrigin.Manual
+        : AutoAdjust is not null ? AdjustmentOrigin.Automatic
+        : Adjustments.IsIdentity ? AdjustmentOrigin.Untouched
+        : AdjustmentOrigin.Manual;
+
     /// <summary>Fused focus regions — user intent plus derived detections (R25).</summary>
     public IList<FocusRegion> FocusRegions { get; set; } = new List<FocusRegion>();
 
@@ -105,4 +133,16 @@ public sealed record Photo
     /// </summary>
     public bool BelongsToChapter(int year, int month) =>
         !Excluded && TakenAt.Year == year && TakenAt.Month == month;
+
+    /// <summary>
+    /// Members written by a newer minor revision of the app, preserved verbatim on round-trip so an
+    /// older build never silently deletes them (doc 04 §4 rule 6).
+    /// <para>
+    /// The root records have carried this since the beginning; a photo row did not, which meant an
+    /// older build could quietly drop a photo's auto-adjust provenance and leave the next auto run
+    /// free to overwrite hand edits. A row is exactly where that guarantee is most needed.
+    /// </para>
+    /// </summary>
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public IDictionary<string, System.Text.Json.JsonElement>? AdditionalData { get; set; }
 }

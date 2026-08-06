@@ -47,6 +47,13 @@ public sealed record Book
     public AnalysisSettings Analysis { get; set; } = new();
 
     /// <summary>
+    /// How auto-adjust should make this book's photos look (R6/R11). Book-level rather than per-photo
+    /// so a year of photos taken on different phones in different light comes out consistent, and so
+    /// that changing the look and re-running updates every automatic photo at once.
+    /// </summary>
+    public LookProfile Look { get; set; } = new();
+
+    /// <summary>
     /// Members written by a newer minor revision of the app, preserved verbatim on round-trip so an
     /// older build never silently deletes them (doc 04 §4 rule 6).
     /// </summary>
