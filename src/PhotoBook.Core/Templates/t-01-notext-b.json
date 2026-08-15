@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-notext-b",
+  "name": "Single hero, asymmetric outer band",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.016,
+        "y": 0.024,
+        "w": 0.9,
+        "h": 0.952
+      },
+      "aspect": 1.2234,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "S",
+      "captionPolicy": "overlay",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

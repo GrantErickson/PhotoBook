@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PhotoBook.Analysis/PhotoBook.Analysis.csproj" />
+    <Project Path="src/PhotoBook.App/PhotoBook.App.csproj" />
+    <Project Path="src/PhotoBook.Core/PhotoBook.Core.csproj" />
+    <Project Path="src/PhotoBook.Engine/PhotoBook.Engine.csproj" />
+    <Project Path="src/PhotoBook.Imaging/PhotoBook.Imaging.csproj" />
+    <Project Path="src/PhotoBook.Ingestion/PhotoBook.Ingestion.csproj" />
+    <Project Path="src/PhotoBook.Rendering/PhotoBook.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PhotoBook.Tests/PhotoBook.Tests.csproj" />
+  </Folder>
+</Solution>

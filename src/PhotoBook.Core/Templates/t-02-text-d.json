@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-d",
+  "name": "Portrait over landscape, offset pair",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.022,
+        "y": 0.028,
+        "w": 0.598,
+        "h": 0.6
+      },
+      "aspect": 1.2898,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.55,
+        "y": 0.028,
+        "w": 0.428,
+        "h": 0.944
+      },
+      "aspect": 0.5867,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.66,
+        "w": 0.44,
+        "h": 0.28
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

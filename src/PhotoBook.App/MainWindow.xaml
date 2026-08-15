@@ -1,0 +1,181 @@
+<Window x:Class="PhotoBook.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        xmlns:views="clr-namespace:PhotoBook.App.Views"
+        Title="{Binding WindowTitle}" Height="900" Width="1500"
+        MinHeight="620" MinWidth="1040"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource CanvasBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True">
+
+    <!-- Doc 09 §5's global keys. Undo/redo are window-wide so they work from any panel; the rest of
+         the map is routed by BookView, which can tell a text field from a canvas. F1 is here rather
+         than there because the shortcut list has to be reachable from the dashboard too. -->
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="Z" Command="{Binding Book.Undo.UndoCommand}" />
+        <KeyBinding Modifiers="Control" Key="Y" Command="{Binding Book.Undo.RedoCommand}" />
+        <KeyBinding Modifiers="Control+Shift" Key="Z" Command="{Binding Book.Undo.RedoCommand}" />
+        <KeyBinding Modifiers="Control" Key="S" Command="{Binding Book.SaveCommand}" />
+        <KeyBinding Key="F1" Command="{Binding ShowShortcutsCommand}" />
+        <KeyBinding Key="A" Command="{Binding Book.PageEditor.ToggleAdjustCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- ============================================ title bar -->
+        <Border DockPanel.Dock="Top" Height="{StaticResource TitleBarHeight}"
+                Background="{DynamicResource TitleBarBrush}"
+                MouseLeftButtonDown="OnTitleBarDrag">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
+                    <pb:Icon Data="{StaticResource Icon.AppMark}" Width="17" Height="17"
+                             Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding WindowTitle}" Margin="10,0,0,0"
+                               Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+
+                    <Button Style="{StaticResource GhostButtonStyle}" Margin="18,0,0,0" Padding="9,3"
+                            Command="{Binding CloseBookCommand}"
+                            Visibility="{Binding IsBookOpen, Converter={StaticResource BoolToVisibility}}"
+                            Content="Close book" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- The keyboard map, where a keyboard map has to be: always on screen, one click,
+                         and the same list the router dispatches from. -->
+                    <Button Style="{StaticResource SmallIconButtonStyle}" Margin="0,0,10,0"
+                            VerticalAlignment="Center" Command="{Binding ShowShortcutsCommand}"
+                            ToolTip="Keyboard shortcuts  (F1)">
+                        <pb:Icon Data="{StaticResource Icon.Help}" Width="15" Height="15" />
+                    </Button>
+
+                    <Button Style="{StaticResource WindowCaptionButtonStyle}" Click="OnMinimize">
+                        <pb:Icon Data="{StaticResource Chrome.Minimize}" Width="11" Height="11" />
+                    </Button>
+                    <Button Style="{StaticResource WindowCaptionButtonStyle}" Click="OnMaximizeRestore">
+                        <pb:Icon x:Name="MaxIcon" Data="{StaticResource Chrome.Maximize}" Width="11" Height="11" />
+                    </Button>
+                    <Button Style="{StaticResource WindowCloseButtonStyle}" Click="OnClose">
+                        <pb:Icon Data="{StaticResource Chrome.Close}" Width="11" Height="11" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================ jobs strip -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                Padding="16,8"
+                Visibility="{Binding Jobs.HasJobs, Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl ItemsSource="{Binding Jobs.Jobs}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Title}"
+                                       Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+                            <ProgressBar Grid.Column="1" Margin="14,0" Height="6" VerticalAlignment="Center"
+                                         IsIndeterminate="{Binding IsIndeterminate}" Value="{Binding Progress}"
+                                         Maximum="100" />
+                            <TextBlock Grid.Column="2" Text="{Binding PercentLabel}" MinWidth="38"
+                                       TextAlignment="Right"
+                                       Style="{StaticResource NumericTextStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="{Binding Status}" Margin="12,0,0,0"
+                                       Style="{StaticResource CaptionMutedTextStyle}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- ============================================ content -->
+        <Grid>
+            <views:DashboardView
+                Visibility="{Binding IsBookOpen, Converter={StaticResource InverseBoolToVisibility}}" />
+
+            <views:BookView DataContext="{Binding Book}"
+                            Visibility="{Binding DataContext.IsBookOpen,
+                                         RelativeSource={RelativeSource AncestorType=Window},
+                                         Converter={StaticResource BoolToVisibility}}" />
+
+            <!-- error toast -->
+            <!-- Opaque, not a wash: setup instructions must stay readable over a photo page. -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,76,0,24"
+                    Background="{DynamicResource SurfaceOverlayBrush}"
+                    BorderBrush="{DynamicResource ErrorBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,16" MaxWidth="760"
+                    Effect="{DynamicResource ElevationHigh}"
+                    Visibility="{Binding ErrorMessage, Converter={StaticResource NotNullToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Warning}"
+                             Foreground="{DynamicResource ErrorBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+
+                    <!-- Long messages (the OneDrive setup steps) scroll rather than clip. -->
+                    <ScrollViewer Grid.Column="1" Margin="14,0,0,0" MaxHeight="420"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap"
+                                   Style="{StaticResource BodyTextStyle}" />
+                    </ScrollViewer>
+
+                    <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
+                            Command="{Binding DismissErrorCommand}" VerticalAlignment="Top">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- recovery notice -->
+            <!-- Doc 04 §6: opening a project can quietly repair it — a file read from its .bak, an
+                 interrupted write swept away. A repair nobody is told about is indistinguishable from
+                 data loss, so it gets a banner. It is not an error, and does not look like one. -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,76,0,24"
+                    Background="{DynamicResource SurfaceOverlayBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="18,16" MaxWidth="760"
+                    Effect="{DynamicResource ElevationHigh}"
+                    Visibility="{Binding NoticeMessage, Converter={StaticResource NotNullToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <pb:Icon Grid.Column="0" Data="{StaticResource Icon.Info}"
+                             Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Top"
+                             Margin="0,2,0,0" />
+
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                        <TextBlock Text="{Binding NoticeTitle}" TextWrapping="Wrap"
+                                   Style="{StaticResource BodyStrongTextStyle}" />
+                        <ScrollViewer MaxHeight="300" Margin="0,6,0,0"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock Text="{Binding NoticeMessage}" TextWrapping="Wrap"
+                                       Style="{StaticResource BodySecondaryTextStyle}" />
+                        </ScrollViewer>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}" Margin="14,0,0,0"
+                            Command="{Binding DismissNoticeCommand}" VerticalAlignment="Top">
+                        <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

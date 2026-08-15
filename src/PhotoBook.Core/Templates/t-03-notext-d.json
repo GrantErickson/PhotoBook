@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-notext-d",
+  "name": "Diagonal cascade with offsets",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.02,
+        "y": 0.03,
+        "w": 0.42,
+        "h": 0.47
+      },
+      "aspect": 1.1564,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.3,
+        "y": 0.26,
+        "w": 0.46,
+        "h": 0.48
+      },
+      "aspect": 1.2402,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.6,
+        "y": 0.5,
+        "w": 0.38,
+        "h": 0.47
+      },
+      "aspect": 1.0463,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 2
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

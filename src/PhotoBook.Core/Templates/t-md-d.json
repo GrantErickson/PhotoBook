@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-d",
+  "name": "A hero day over a minor day",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 3,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.476
+      },
+      "aspect": 1.2941,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.476
+      },
+      "aspect": 1.2941,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.48,
+        "y": 0.64,
+        "w": 0.502,
+        "h": 0.315
+      },
+      "aspect": 2.0624,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.52,
+        "w": 0.91,
+        "h": 0.1
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.055,
+        "y": 0.66,
+        "w": 0.4,
+        "h": 0.27
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1",
+        "s2"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s3"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    }
+  ]
+}

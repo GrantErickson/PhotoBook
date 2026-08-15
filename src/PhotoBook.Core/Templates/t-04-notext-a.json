@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-notext-a",
+  "name": "Two by two grid",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.018,
+        "y": 0.508,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.506,
+        "y": 0.508,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

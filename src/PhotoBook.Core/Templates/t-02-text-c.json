@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-c",
+  "name": "Hero with an overlapping inset, journal below",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.022,
+        "y": 0.028,
+        "w": 0.956,
+        "h": 0.722
+      },
+      "aspect": 1.7135,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.62,
+        "y": 0.55,
+        "w": 0.358,
+        "h": 0.35
+      },
+      "aspect": 1.3237,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.78,
+        "w": 0.52,
+        "h": 0.165
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

@@ -1,0 +1,221 @@
+<UserControl x:Class="PhotoBook.App.Views.Pages.TemplatePickerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:conv="clr-namespace:PhotoBook.App.Converters">
+
+    <!--
+        The template gallery (doc 09 §3.4, R10/R12).
+
+        Every cell is a live preview: the candidate template rendered with this page's own photos,
+        assigned by the engine's Hungarian matching and smart-cropped, through the same renderer as
+        the PDF. Choosing one is a single undo entry; the two consequences that need a decision —
+        replacing a detached page's hand-built layout, and filling brand-new empty slots — are asked
+        inline rather than in a modal box.
+    -->
+
+    <UserControl.Resources>
+        <conv:PositiveCountToBooleanConverter x:Key="CountToBool" />
+        <conv:NonEmptyStringToVisibilityConverter x:Key="TextToVisibility" />
+
+        <DataTemplate x:Key="TemplateCellTemplate">
+            <Button Padding="0" Margin="6" HorizontalContentAlignment="Stretch"
+                    ToolTip="{Binding Id}"
+                    Command="{Binding DataContext.ApplyCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                    CommandParameter="{Binding}">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource GhostButtonStyle}">
+                        <Setter Property="MinHeight" Value="0" />
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Width="232">
+                    <Border x:Name="Frame" CornerRadius="5" Background="{DynamicResource PageBlackBrush}"
+                            BorderThickness="1.5" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                            SnapsToDevicePixels="True" ClipToBounds="True">
+                        <Grid Height="179">
+                            <!-- Wireframe placeholder until the render lands (< 500 ms, doc 09 §6). -->
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        Visibility="{Binding IsRendering, Converter={StaticResource BoolToVisibility}}">
+                                <pb:Icon Data="{StaticResource Icon.Template}" Width="20" Height="20"
+                                         Foreground="{DynamicResource TextTertiaryBrush}"
+                                         HorizontalAlignment="Center" />
+                                <TextBlock Text="Rendering…" Style="{StaticResource CaptionMutedTextStyle}"
+                                           Margin="0,6,0,0" HorizontalAlignment="Center" />
+                            </StackPanel>
+
+                            <Image Source="{Binding Preview}" Stretch="Uniform" />
+
+                            <Border Style="{StaticResource ChipStyle}" Margin="6" Padding="6,0,6,1"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                                    Background="{DynamicResource AccentBrush}"
+                                    Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Current" Style="{StaticResource MicroTextStyle}"
+                                           Foreground="{DynamicResource TextOnAccentBrush}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource TruncatingTextStyle}"
+                               Margin="2,8,2,0" />
+
+                    <StackPanel Orientation="Horizontal" Margin="2,4,2,0">
+                        <TextBlock Text="{Binding PhotoCountLabel}" Style="{StaticResource CaptionMutedTextStyle}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="·" Style="{StaticResource CaptionMutedTextStyle}" Margin="5,0"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding KindLabel}" Style="{StaticResource CaptionMutedTextStyle}"
+                                   VerticalAlignment="Center" />
+                        <pb:Icon Data="{StaticResource Icon.Journal}" Width="12" Height="12" Margin="6,0,0,0"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"
+                                 ToolTip="Has a journal slot"
+                                 Visibility="{Binding HasJournalSlot, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+
+                    <!-- What choosing this costs, said before the click (R10, R14). -->
+                    <TextBlock x:Name="Consequence" Text="{Binding ConsequenceLabel}" Margin="2,3,2,2"
+                               Style="{StaticResource MicroTextStyle}" />
+                </StackPanel>
+            </Button>
+
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                    <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AddsEmptySlots}" Value="True">
+                    <Setter TargetName="Consequence" Property="Foreground"
+                            Value="{DynamicResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplacesPhotos}" Value="True">
+                    <Setter TargetName="Consequence" Property="Foreground"
+                            Value="{DynamicResource TextSecondaryBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SurfaceOverlayBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+            CornerRadius="{StaticResource RadiusLarge}" Effect="{StaticResource ElevationHigh}"
+            MaxWidth="1040" MaxHeight="720">
+        <DockPanel>
+
+            <!-- ==================================================== header -->
+            <Grid DockPanel.Dock="Top" Margin="18,16,12,12">
+                <StackPanel>
+                    <TextBlock Text="Change template" Style="{StaticResource TitleTextStyle}" />
+                    <TextBlock Text="{Binding HeaderDetail}" Style="{StaticResource CaptionMutedTextStyle}"
+                               Margin="0,3,36,0" TextWrapping="Wrap"
+                               ToolTip="{Binding HeaderDetail}" />
+                </StackPanel>
+
+                <Button Style="{StaticResource IconButtonStyle}" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" ToolTip="Close" Command="{Binding CloseCommand}">
+                    <pb:Icon Data="{StaticResource Icon.Close}" />
+                </Button>
+            </Grid>
+
+            <!-- ==================================================== filters -->
+            <Grid DockPanel.Dock="Top" Margin="18,0,18,10">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource SegmentedGroupStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                          IsChecked="{Binding ShowSuggested}"
+                                          ToolTip="Layouts within two photos of this page's count">
+                                <TextBlock Text="Suggested" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                          IsChecked="{Binding ShowAll}"
+                                          ToolTip="Every layout in the library">
+                                <TextBlock Text="All" />
+                            </ToggleButton>
+                        </StackPanel>
+                    </Border>
+
+                    <ComboBox Margin="10,0,0,0" Width="150" VerticalAlignment="Center"
+                              ItemsSource="{Binding KindFilters}"
+                              SelectedItem="{Binding KindFilter}"
+                              DisplayMemberPath="Label" />
+                </StackPanel>
+
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="520"
+                           Text="{Binding Status}" Style="{StaticResource CaptionTextStyle}"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}"
+                           Visibility="{Binding Status, Converter={StaticResource TextToVisibility}}" />
+            </Grid>
+
+            <!-- ================================= detached-page confirmation -->
+            <Border DockPanel.Dock="Bottom" Margin="14,6,14,14" Padding="14,12"
+                    Background="{DynamicResource WarningWashBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMedium}"
+                    Visibility="{Binding PendingDetachedConfirm, Converter={StaticResource NotNullToVisibility}}">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="14,0,0,0"
+                                VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Cancel"
+                                Command="{Binding CancelDetachedConfirmCommand}" />
+                        <Button Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0"
+                                Content="Apply anyway" Command="{Binding ApplyCommand}"
+                                CommandParameter="{Binding PendingDetachedConfirm}" />
+                    </StackPanel>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="This page has a custom layout"
+                                   Style="{StaticResource BodyStrongTextStyle}" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"
+                                   Margin="0,3,0,0"
+                                   Text="{Binding PendingDetachedConfirm.Name,
+                                          StringFormat='Applying “{0}” discards those layout edits. The photos are kept, and Ctrl+Z brings the custom layout back.'}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- ======================================== fill-the-new-slots offer -->
+            <Border DockPanel.Dock="Bottom" Margin="14,6,14,14" Padding="14,12"
+                    Background="{DynamicResource AmberFlagWashBrush}"
+                    BorderBrush="{DynamicResource AmberFlagBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMedium}"
+                    Visibility="{Binding HasFillOffer, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="14,0,0,0"
+                                VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Leave them empty"
+                                ToolTip="Empty slots stay flagged amber until you fill them (R14)"
+                                Command="{Binding DismissFillOfferCommand}" />
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0"
+                                Command="{Binding FillFromUpcomingCommand}"
+                                IsEnabled="{Binding UpcomingAvailable, Converter={StaticResource CountToBool}}"
+                                ToolTip="Pull photos forward from later pages; their old slots become empty and flagged"
+                                Content="{Binding UpcomingAvailable, StringFormat='From Upcoming ({0})'}" />
+                        <Button Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0"
+                                Command="{Binding FillFromUnplacedCommand}"
+                                IsEnabled="{Binding UnplacedAvailable, Converter={StaticResource CountToBool}}"
+                                Content="{Binding UnplacedAvailable, StringFormat='From Unplaced ({0})'}" />
+                    </StackPanel>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding FillOfferLabel}" Style="{StaticResource BodyStrongTextStyle}" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                   Text="Best fits by aspect and tier go in first. You can also drag any photo from the bin onto a slot." />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- =================================================== gallery -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,0,12,10">
+                <ItemsControl ItemsSource="{Binding Candidates}"
+                              ItemTemplate="{StaticResource TemplateCellTemplate}"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

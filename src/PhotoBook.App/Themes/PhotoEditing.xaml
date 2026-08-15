@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Self-sufficient like Typography.xaml: the palette is merged by pack URI, which WPF caches,
+         so merging it again here is free and lets this dictionary resolve on its own. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/PhotoBook.App;component/Themes/Palette.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!--
+        Photos-tab editing surfaces — the semantic colours doc 09 §2 names that the base palette
+        does not already carry. Colour still lives in a dictionary, never in a view or a control:
+        this file is the "add a semantic entry here instead" that Palette.xaml asks for.
+
+        Focus Region colour code (doc 09 §2.2):
+            user      solid accent blue   — human intent, the only reshapeable kind
+            person    green + name label
+            face      teal
+            saliency  grey outline
+        A region whose weight is 0 is *disabled*, not deleted: it renders in the disabled grey with
+        a dashed stroke so "kept, grayed, re-enable anytime" is visible at a glance.
+    -->
+
+    <Color x:Key="FocusFaceColor">#FF35B9B4</Color>
+
+    <SolidColorBrush x:Key="FocusUserBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="FocusUserWashBrush" Color="#294C8DF5" />
+
+    <SolidColorBrush x:Key="FocusPersonBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="FocusPersonWashBrush" Color="#1F3FB765" />
+
+    <SolidColorBrush x:Key="FocusFaceBrush" Color="{StaticResource FocusFaceColor}" />
+    <SolidColorBrush x:Key="FocusFaceWashBrush" Color="#1F35B9B4" />
+
+    <SolidColorBrush x:Key="FocusSaliencyBrush" Color="{StaticResource TextTertiaryColor}" />
+    <SolidColorBrush x:Key="FocusSaliencyWashBrush" Color="#14767F8A" />
+
+    <SolidColorBrush x:Key="FocusDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+
+    <!-- The 8 resize handles of a user region: a light knob on a dark ring, the same pairing the
+         slider thumb uses, so handles read on a bright photo and on a dark one alike. -->
+    <SolidColorBrush x:Key="FocusHandleBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="FocusHandleBorderBrush" Color="#CC000000" />
+
+    <!-- The area outside the photo in the focus editor: darker than the canvas so the picture's own
+         edges are unmistakable when a region is snapped to them. -->
+    <SolidColorBrush x:Key="FocusSurfaceBrush" Color="#FF060708" />
+
+</ResourceDictionary>

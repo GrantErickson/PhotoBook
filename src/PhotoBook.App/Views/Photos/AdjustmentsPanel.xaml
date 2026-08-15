@@ -1,0 +1,235 @@
+<UserControl x:Class="PhotoBook.App.Views.Photos.AdjustmentsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls">
+    <UserControl.Resources>
+
+        <!-- One parameter: name, live readout, its own reset, and the track.
+             Bipolar parameters get the centre-detented track; 0..1 ones get the filled track, which
+             is why both are present and one is collapsed — the two styles carry different templates
+             and a slider cannot swap template by trigger. -->
+        <DataTemplate x:Key="AdjustmentSliderTemplate">
+            <Grid Margin="0,10,0,0" ToolTip="{Binding Hint}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Label}"
+                           Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ValueLabel}"
+                           Style="{StaticResource NumericTextStyle}" FontSize="11.5"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="52"
+                           TextAlignment="Right" />
+
+                <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource SmallIconButtonStyle}"
+                        Margin="4,0,-4,0" Command="{Binding ResetCommand}"
+                        ToolTip="Reset this one"
+                        Visibility="{Binding IsModified, Converter={StaticResource BoolToVisibility}}">
+                    <pb:Icon Data="{StaticResource Icon.Undo}" Width="13" Height="13" />
+                </Button>
+
+                <Slider Grid.Row="1" Grid.ColumnSpan="3" Margin="0,2,0,0"
+                        Style="{StaticResource BipolarSliderStyle}"
+                        Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                        SmallChange="{Binding SmallStep}" LargeChange="{Binding LargeStep}"
+                        Value="{Binding Value, Mode=TwoWay}"
+                        MouseDoubleClick="OnSliderDoubleClick"
+                        Visibility="{Binding IsBipolar, Converter={StaticResource BoolToVisibility}}" />
+
+                <Slider Grid.Row="1" Grid.ColumnSpan="3" Margin="0,2,0,0"
+                        Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                        SmallChange="{Binding SmallStep}" LargeChange="{Binding LargeStep}"
+                        Value="{Binding Value, Mode=TwoWay}"
+                        MouseDoubleClick="OnSliderDoubleClick"
+                        Visibility="{Binding IsBipolar, Converter={StaticResource InverseBoolToVisibility}}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- Collapsible: the full stack is long, and a panel you scroll past is a panel whose
+             controls you never find. A folded group still says how many of its rows carry edits, so
+             nothing hides silently. -->
+        <DataTemplate x:Key="AdjustmentGroupTemplate">
+            <StackPanel Margin="0,14,0,0">
+                <ToggleButton Style="{StaticResource ToggleButtonBaseStyle}"
+                              HorizontalContentAlignment="Stretch" Padding="0,4"
+                              Background="Transparent" BorderThickness="0"
+                              IsChecked="{Binding IsExpanded, Mode=TwoWay}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Two icons swapped by visibility rather than one icon with a styled Data
+                             trigger: the trigger form needs BasedOn the implicit pb:Icon style, and
+                             that resolution fails at load inside a DataTemplate. -->
+                        <Grid Grid.Column="0" Width="12" Height="12" Margin="0,0,7,0"
+                              VerticalAlignment="Center">
+                            <pb:Icon Data="{StaticResource Icon.ChevronDown}" Width="12" Height="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}" />
+                            <pb:Icon Data="{StaticResource Icon.ChevronRight}" Width="12" Height="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Visibility="{Binding IsExpanded, Converter={StaticResource InverseBoolToVisibility}}" />
+                        </Grid>
+
+                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                   Style="{StaticResource SectionLabelTextStyle}" VerticalAlignment="Center" />
+
+                        <TextBlock Grid.Column="2" Text="{Binding TouchedLabel}"
+                                   Style="{StaticResource MicroTextStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                </ToggleButton>
+
+                <ItemsControl ItemsSource="{Binding Sliders}"
+                              ItemTemplate="{StaticResource AdjustmentSliderTemplate}"
+                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+
+        <!-- ============================================ header -->
+        <Grid>
+            <TextBlock Text="Adjust" Style="{StaticResource SectionLabelTextStyle}" Margin="0,0,0,0"
+                       VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Margin="0,-4,0,0">
+                <ToggleButton Style="{StaticResource IconToggleButtonStyle}"
+                              IsChecked="{Binding ShowOriginal}"
+                              ToolTip="Hold to see the photo before your edits">
+                    <pb:Icon Data="{StaticResource Icon.Eye}" Width="15" Height="15" />
+                </ToggleButton>
+                <!-- Beside Reset all, because the two are the same kind of verb: both replace the
+                     whole stack, and together they are how a photo moves between auto and manual. -->
+                <Button Style="{StaticResource GhostButtonStyle}" Content="Auto"
+                        Command="{Binding AutoAdjustCommand}" Margin="2,0,0,0"
+                        ToolTip="Correct this photo from the book's look settings. Replaces any edits you have made and puts it back on auto." />
+                <Button Style="{StaticResource GhostButtonStyle}" Content="Reset all"
+                        Command="{Binding ResetAllCommand}" Margin="2,0,0,0"
+                        IsEnabled="{Binding HasEdits}"
+                        ToolTip="Return every parameter to neutral" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Which of the three states this photo is in. Absent for a photo nobody has adjusted,
+             because "untouched" is the default and saying so is noise. -->
+        <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                ToolTip="{Binding OriginHint}"
+                Visibility="{Binding OriginLabel, Converter={StaticResource NullToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <pb:Icon Data="{StaticResource Icon.Sparkle}" Width="12" Height="12" Margin="0,0,5,0"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         Visibility="{Binding IsAutoAdjusted, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding OriginLabel}" Style="{StaticResource MicroTextStyle}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <!-- ============================================ live preview -->
+        <Border CornerRadius="6" Background="{DynamicResource PageBlackBrush}" Height="184" Margin="0,10,0,0"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
+            <Grid>
+                <!-- The preview doubles as the white-balance target surface: while the eyedropper is
+                     armed a click here names a neutral (PickWhiteBalanceAt). -->
+                <Image x:Name="PreviewImage" Source="{Binding Preview}" Stretch="Uniform" Margin="5"
+                       MouseLeftButtonDown="OnPreviewClick">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPickingWhiteBalance}" Value="True">
+                                    <Setter Property="Cursor" Value="Cross" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="8" Background="{DynamicResource ScrimHeavyBrush}"
+                        Visibility="{Binding ShowOriginal, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Before" Style="{StaticResource MicroTextStyle}"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                </Border>
+
+                <Border Style="{StaticResource ChipStyle}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="8" IsHitTestVisible="False"
+                        Background="{DynamicResource AccentDimBrush}"
+                        BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
+                        Visibility="{Binding IsPickingWhiteBalance, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="Click a neutral" Style="{StaticResource MicroTextStyle}"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                </Border>
+
+                <ProgressBar IsIndeterminate="True" Height="2" VerticalAlignment="Bottom" Margin="1"
+                             Visibility="{Binding IsRendering, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+        </Border>
+
+        <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,7,0,0" TextWrapping="Wrap"
+                   Text="Edits are parameters, not pixels — the original file in originals/ is never written to." />
+
+        <!-- ============================================ tools -->
+        <!-- The two edits a slider is the wrong instrument for: an angle you can see but not name, and
+             a colour cast you can point at but not quantify. Both write the same parameters the
+             sliders below do. -->
+        <UniformGrid Columns="2" Margin="0,12,0,0">
+            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,3,0" MinWidth="0"
+                    Command="{Binding OpenStraightenToolCommand}"
+                    ToolTip="Drag a line along something that should be level, and the angle follows">
+                <StackPanel Orientation="Horizontal">
+                    <pb:Icon Data="{StaticResource Icon.Grid}" Width="15" Height="15" Margin="0,0,6,0" />
+                    <TextBlock Text="Straighten…" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="3,0,0,0" MinWidth="0"
+                    Command="{Binding ToggleWhiteBalancePickerCommand}"
+                    ToolTip="Then click something in the preview that should be neutral grey or white">
+                <StackPanel Orientation="Horizontal">
+                    <pb:Icon Data="{StaticResource Icon.FocusTarget}" Width="15" Height="15" Margin="0,0,6,0" />
+                    <TextBlock Text="Pick neutral" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </UniformGrid>
+
+        <!-- ============================================ geometry -->
+        <TextBlock Text="Orientation" Style="{StaticResource SectionLabelTextStyle}" Margin="0,18,0,0" />
+        <StackPanel Orientation="Horizontal">
+            <Button Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RotateLeftCommand}"
+                    MinWidth="0" Padding="10,4,10,5" ToolTip="Rotate a quarter turn anticlockwise">
+                <pb:Icon Data="{StaticResource Icon.Undo}" Width="15" Height="15" />
+            </Button>
+            <Button Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RotateRightCommand}"
+                    Margin="6,0,0,0" MinWidth="0" Padding="10,4,10,5" ToolTip="Rotate a quarter turn clockwise">
+                <pb:Icon Data="{StaticResource Icon.Redo}" Width="15" Height="15" />
+            </Button>
+            <Button Style="{StaticResource SecondaryButtonStyle}" Command="{Binding FlipCommand}"
+                    Margin="6,0,0,0" MinWidth="0" Padding="10,4,10,5" ToolTip="Mirror horizontally">
+                <pb:Icon Data="{StaticResource Icon.Spread}" Width="15" Height="15" />
+            </Button>
+            <TextBlock Text="{Binding RotationLabel}" Style="{StaticResource NumericTextStyle}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       VerticalAlignment="Center" Margin="10,0,0,0" />
+        </StackPanel>
+
+        <CheckBox Content="Black and white" Margin="0,14,0,0" IsChecked="{Binding IsBlackAndWhite}"
+                  ToolTip="Converts to greyscale with the slight contrast lift the print profile expects" />
+
+        <!-- ============================================ the stack -->
+        <ItemsControl ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource AdjustmentGroupTemplate}" />
+
+        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CaptionMutedTextStyle}"
+                   Margin="0,16,0,0" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

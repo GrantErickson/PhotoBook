@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <BundleOnnxModels>true</BundleOnnxModels>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- The integration tests synthesize their own fixtures: real image files via Magick.NET and a
+         real .docx journal via OpenXML, so nothing depends on a photo existing on the machine. -->
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PhotoBook.Core\PhotoBook.Core.csproj" />
+    <ProjectReference Include="..\..\src\PhotoBook.Imaging\PhotoBook.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\PhotoBook.Analysis\PhotoBook.Analysis.csproj" />
+    <ProjectReference Include="..\..\src\PhotoBook.Ingestion\PhotoBook.Ingestion.csproj" />
+    <ProjectReference Include="..\..\src\PhotoBook.Engine\PhotoBook.Engine.csproj" />
+    <ProjectReference Include="..\..\src\PhotoBook.Rendering\PhotoBook.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>

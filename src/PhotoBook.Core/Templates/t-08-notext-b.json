@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "t-08-notext-b",
+  "name": "Two heroes over an overlapping thumbnail rail",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 8,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.572
+      },
+      "aspect": 1.0769,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.572
+      },
+      "aspect": 1.0769,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.018,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.1807,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.3433,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s6",
+      "rect": {
+        "x": 0.506,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s7",
+      "rect": {
+        "x": 0.6687,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s8",
+      "rect": {
+        "x": 0.8313,
+        "y": 0.56,
+        "w": 0.1507,
+        "h": 0.385
+      },
+      "aspect": 0.5064,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

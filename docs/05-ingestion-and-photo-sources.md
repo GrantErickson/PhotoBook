@@ -58,7 +58,18 @@ they land, current month first.
   OneDrive, so no write scope is ever requested.
 - **Flow:** WAM broker (`WithBroker`) first for silent Windows SSO; interactive system-browser
   fallback. `AcquireTokenSilent` on every sync; interactive prompt only when the refresh token is
-  dead.
+  dead. The broker needs the `Microsoft.Identity.Client.Broker` package, which ships the native
+  `msalruntime` used by the Windows account picker.
+- **Redirect URIs:** the registration carries **both**
+  `ms-appx-web://microsoft.aad.brokerplugin/{client-id}` (broker) and `http://localhost` (browser
+  fallback), registered under the portal's *Mobile and desktop applications* platform — that
+  platform is what marks the app a public client. `redirectUri` is deliberately left unset in
+  `onedrive.json`: MSAL then picks the broker's own redirect and falls back to loopback by itself,
+  whereas pinning either value breaks the other path. The legacy `nativeclient` redirect is **not**
+  used; it belongs to embedded-webview flows, which this app does not host.
+- **Parent window:** WAM parents its account picker to a caller-supplied HWND, so the app passes
+  the shell's main window handle. Without it the picker can open behind the app. The lookup must
+  marshal to the UI thread — MSAL calls the provider from whichever thread acquires the token.
 - **Token cache:** MSAL cache serialized to `%LOCALAPPDATA%\PhotoBook\msal.cache`, encrypted with
   DPAPI (current user). Tokens and client secrets never enter the project folder — `book.json`
   and friends must stay shareable and human-diffable.
@@ -106,9 +117,9 @@ entries in `photos.json`:
 // rect: normalized image coords, top-left origin; omitted if Graph gives name only
 ```
 
-Whether Graph actually exposes this metadata is an open question — see the spike below. The
-connector is written against an internal `IPeopleTagProvider` so the answer changes one adapter,
-not the pipeline.
+**Graph does not expose this metadata** — the spike below is resolved and the answer was no. The
+connector keeps its internal `IPeopleTagProvider` seam so a future Graph surface would change one
+adapter rather than the pipeline, but ingestion contributes no `person` regions today.
 
 ### Download to originals: content-hash naming
 
@@ -160,24 +171,35 @@ machine is online). Semantics:
 - Re-sync never touches: user-set dates, `AdjustmentStack`, user Focus Regions,
   `userTierOverride`, placements, Pinned pages. User intent lives in project JSON only.
 
-## SPIKE: Graph people-tag availability
+## SPIKE (RESOLVED): Graph people-tag availability
 
-Flagged honestly (kernel §10, and scheduled in M1 per [14-roadmap.md](14-roadmap.md)): it is
-**unverified** whether consumer OneDrive people tags are readable through Microsoft Graph at all.
-Scope of the spike — answer four questions against a real family OneDrive:
+> **Outcome — no-go, 2026-08-04.** Consumer OneDrive people tags are **not exposed through
+> Microsoft Graph**. Measured against a real family OneDrive (47 items sampled across 6 albums,
+> delegated `Files.Read`): no `tags`, `people`, `persons` or face property appears on any item,
+> and `$select=…,tags` silently drops the field rather than returning it. The documented fallback
+> is therefore the permanent design: **local face detection only**.
 
-1. **Exposure:** does any v1.0 or beta Graph surface (driveItem facet, `$expand`, listItem
-   fields, or the legacy OneDrive `tags` facet) return people tags for a photo?
-2. **Shape:** names only, or names **with bounding boxes**? (Boxes make tags first-class Focus
-   Regions; names-only degrades to a naming/bonus signal — see
-   [06-image-analysis.md](06-image-analysis.md).)
-3. **Reach:** are tags present on album (bundle) children identically to folder children?
-4. **Access:** does `Files.Read` suffice, and is latency sane at ~200 items/page?
+What Graph *does* return per item, and what we use it for:
 
-Exit criteria: a short written go/no-go with sample payloads. **Fallback (fully functional
-either way):** local YuNet face detection only — unnamed `face` regions, no `person` regions,
-smart-crop and Tier bonuses work unchanged. The fallback is the floor, not a degraded app; the
-spike only decides whether faces get names for free.
+| Facet | Contents | Used for |
+|---|---|---|
+| `photo` | `takenDateTime`, `cameraMake`, `cameraModel`, `orientation`, `iso`, `fNumber`, `focalLength`, exposure | The date chain (kernel §10) — `takenDateTime` was present on **43 of 47** sampled items, camera make on 41 |
+| `image` | pixel width/height | Aspect ratio before download |
+| `file`, `fileSystemInfo` | hashes, client-side timestamps | Dedupe and the mtime date fallback |
+| `location` | GPS | Nothing today; a possible future grouping signal |
+| `video`, `media` | video items | **Albums do contain videos** — the importer skips them as unsupported (video is a v1 non-goal) |
+
+Consequences, all already implemented and requiring no redesign:
+
+- `PersonTag` stays in the model and remains populated by the **user**, not by OneDrive.
+  `IPeopleTagProvider` keeps its seam so a future Graph surface changes one adapter.
+- Focus Regions come from saliency and, once the models are installed, local face detection —
+  unnamed `face` regions, no `person` regions. Smart-crop and Tier bonuses are unaffected
+  ([06-image-analysis.md](06-image-analysis.md)); the fusion priority simply never sees a
+  `person` entry from ingestion.
+- One UX consequence worth acting on: the sampled account had **47 albums, nearly all
+  auto-generated by OneDrive** ("Your weekend recap…", date-named). The album picker must offer
+  search or filtering, or the deliberately curated "Book 2024" album is lost in the noise.
 
 ## Local-folder import
 

@@ -116,6 +116,36 @@ A Slot's `captionPolicy` decides placement; style decides appearance:
 
 Most photos have no caption (R5); an empty caption renders nothing — no empty scrim.
 
+### The panel scrim — text a template puts *on* a photo
+
+A caption anchored to a photo's bottom edge is one case. The other, added with the deliberate-overlap
+templates of [07-layout-template-system.md](07-layout-template-system.md), is a journal block or a
+month title that a template places in the quiet part of a photo (`textSlot.scrim: true`). Thirteen
+shipped templates do this and it is what makes a single-photo page a full-page photo instead of a
+photo with a margin of black beside it.
+
+The bottom-anchored gradient above is the wrong instrument there: these blocks sit *inside* an image,
+where a one-sided ramp leaves the first line on bare photo and cuts hard below the last. So they get a
+**panel scrim** instead:
+
+- `maxOpacity` black over the laid-out text plus `paddingPt` on every side, fading to nothing over a
+  further `paddingPt` — a soft plate, not a box.
+- Sized to the **words**, not to the slot: the widest laid-out line sets the width, alignment decides
+  which edge it hangs from, and the height is the block that actually rendered. A two-line entry in a
+  tall journal slot gets a two-line plate.
+- **Clipped to the photos the text sits on**, so a hand-edited Detached page whose text hangs off its
+  photo darkens the photo and not the page around it.
+- Same switches as the caption scrim: `overlayScrim.enabled: false` removes it, `maxOpacity` and
+  `paddingPt` tune it. A text slot that touches no placed photo never draws one.
+
+Month titles take the same treatment whenever they land on a photo (R24, §7), which is what makes
+`t-title-a` — a full-bleed photo with the month name on it — readable on any picture the engine picks.
+
+> **Decision:** **Scrims are built from flat fills and plain linear/radial gradients, never a blur.**
+> Those are the primitives `SKDocument.CreatePdf` writes natively; a mask filter would rasterize on the
+> PDF path and silently break the one-draw-path guarantee of [ADR-0003](adr/0003-rendering-skiasharp.md).
+> The same rule governs the overlap lift of doc 07.
+
 ## 5. Image borders — one switch, every image (R23)
 
 `imageBorder` applies to **all placed photos on all pages** in the level's scope — flipping

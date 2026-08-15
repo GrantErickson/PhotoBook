@@ -1,0 +1,20 @@
+<Project>
+
+  <!--
+    Copies the bundled ONNX models (models/README.md) next to the executable, so PhotoBook.Analysis
+    finds them at AppContext.BaseDirectory\models and face detection plus saliency work with no
+    setup step. Opt in with <BundleOnnxModels>true</BundleOnnxModels>; only projects that actually
+    run - the app and the test project - need them, and copying 4.6 MB into every class library's
+    output would be waste.
+
+    Missing files are not an error: OnnxAnalyzer reports what it found and falls back to the
+    classical pipeline for the rest, which is how the unbundled NIMA stage behaves.
+  -->
+  <ItemGroup Condition="'$(BundleOnnxModels)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)models\*.onnx"
+          Link="models\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-text-c",
+  "name": "Hero with journal scrim over two below",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.956,
+        "h": 0.552
+      },
+      "aspect": 2.2413,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.018,
+        "y": 0.6,
+        "w": 0.476,
+        "h": 0.345
+      },
+      "aspect": 1.7855,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.506,
+        "y": 0.6,
+        "w": 0.476,
+        "h": 0.345
+      },
+      "aspect": 1.7855,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.3,
+        "w": 0.34,
+        "h": 0.25
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

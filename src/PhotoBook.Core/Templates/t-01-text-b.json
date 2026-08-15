@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-text-b",
+  "name": "Hero at the outer edge, journal column on a scrim",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.058,
+        "y": 0.024,
+        "w": 0.918,
+        "h": 0.952
+      },
+      "aspect": 1.2479,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.1,
+        "y": 0.3,
+        "w": 0.27,
+        "h": 0.46
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "t-01-notext-a",
+  "name": "Single hero, generous outer margin",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.042,
+        "y": 0.024,
+        "w": 0.936,
+        "h": 0.93
+      },
+      "aspect": 1.3025,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "S",
+      "captionPolicy": "overlay",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

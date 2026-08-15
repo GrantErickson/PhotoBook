@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-notext-a",
+  "name": "Two landscapes, full-height band",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.06,
+        "w": 0.476,
+        "h": 0.88
+      },
+      "aspect": 0.7,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.506,
+        "y": 0.06,
+        "w": 0.476,
+        "h": 0.88
+      },
+      "aspect": 0.7,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "below",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

@@ -1,0 +1,106 @@
+<Window xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        x:Class="PhotoBook.App.Views.Journal.JournalReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+        xmlns:conv="clr-namespace:PhotoBook.App.Converters"
+        xmlns:journal="clr-namespace:PhotoBook.App.Views.Journal"
+        xmlns:vm="clr-namespace:PhotoBook.App.ViewModels.Journal"
+        Title="Journal"
+        Width="1120" Height="740" MinWidth="900" MinHeight="580"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ShowInTaskbar="False"
+        shell:WindowChrome.WindowChrome="{StaticResource AppWindowChrome}"
+        Background="{DynamicResource SurfaceBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource AppFontFamily}"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
+
+        <Style x:Key="ReviewTabStyle" TargetType="{x:Type RadioButton}"
+               BasedOn="{StaticResource SegmentedRadioButtonStyle}">
+            <Setter Property="Padding" Value="14,6,14,7" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+        <DockPanel>
+
+            <!-- title bar -->
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBarBrush}"
+                    Height="{StaticResource TitleBarHeight}" MouseLeftButtonDown="OnHeaderDrag">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
+                        <pb:Icon Data="{StaticResource Icon.Journal}" Width="15" Height="15"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="Journal" Margin="10,0,0,0" VerticalAlignment="Center"
+                                   Style="{StaticResource BodyStrongTextStyle}" />
+                    </StackPanel>
+                    <Button Style="{StaticResource WindowCloseButtonStyle}" HorizontalAlignment="Right"
+                            Click="OnClose">
+                        <pb:Icon Data="{StaticResource Chrome.Close}" Width="10" Height="10" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- the two halves: what has a date, and what has a home -->
+            <Border DockPanel.Dock="Top" Padding="18,12"
+                    Background="{DynamicResource SurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Border Style="{StaticResource SegmentedGroupStyle}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton GroupName="JournalReviewSection" Style="{StaticResource ReviewTabStyle}"
+                                         IsChecked="{Binding IsReportSection, Mode=OneWay}"
+                                         Command="{Binding SelectSectionCommand}"
+                                         CommandParameter="{x:Static vm:JournalReviewSection.Report}"
+                                         ToolTip="What the date matcher made of each entry">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Import report" VerticalAlignment="Center" />
+                                    <Border Style="{StaticResource AmberBadgeStyle}" Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding AttentionCount,
+                                                         Converter={StaticResource CountToVisibility}}">
+                                        <TextBlock Text="{Binding AttentionCount}" />
+                                    </Border>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton GroupName="JournalReviewSection" Style="{StaticResource ReviewTabStyle}"
+                                         IsChecked="{Binding IsDaysSection, Mode=OneWay}"
+                                         Command="{Binding SelectSectionCommand}"
+                                         CommandParameter="{x:Static vm:JournalReviewSection.Days}"
+                                         ToolTip="Which pages carry each day's text">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Where it landed" VerticalAlignment="Center" />
+                                    <Border Style="{StaticResource AmberBadgeStyle}" Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HomelessDayCount,
+                                                         Converter={StaticResource CountToVisibility}}">
+                                        <TextBlock Text="{Binding HomelessDayCount}" />
+                                    </Border>
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right"
+                            MinWidth="90" Content="Done" Command="{Binding CloseCommand}" />
+                </Grid>
+            </Border>
+
+            <Grid>
+                <journal:JournalImportReportPanel DataContext="{Binding Report}"
+                                                  Visibility="{Binding DataContext.IsReportSection,
+                                                               RelativeSource={RelativeSource AncestorType=Window},
+                                                               Converter={StaticResource BoolToVisibility}}" />
+                <journal:JournalDayMapPanel DataContext="{Binding Days}"
+                                            Visibility="{Binding DataContext.IsDaysSection,
+                                                         RelativeSource={RelativeSource AncestorType=Window},
+                                                         Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

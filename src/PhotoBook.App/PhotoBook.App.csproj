@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoBook.Core\PhotoBook.Core.csproj" />
+    <ProjectReference Include="..\PhotoBook.Imaging\PhotoBook.Imaging.csproj" />
+    <ProjectReference Include="..\PhotoBook.Analysis\PhotoBook.Analysis.csproj" />
+    <ProjectReference Include="..\PhotoBook.Ingestion\PhotoBook.Ingestion.csproj" />
+    <ProjectReference Include="..\PhotoBook.Engine\PhotoBook.Engine.csproj" />
+    <ProjectReference Include="..\PhotoBook.Rendering\PhotoBook.Rendering.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <BundleOnnxModels>true</BundleOnnxModels>
+  </PropertyGroup>
+
+</Project>

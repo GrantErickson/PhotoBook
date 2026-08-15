@@ -112,7 +112,7 @@ public Property Pinned_pages_never_change_on_relayout(
 
 Invariants (each is one property):
 
-- **No overlapping Slots.** On every emitted page, image-slot rects intersect pairwise with area ≤ 1e-9. Text slots may overlap an image slot only when paired via `captionPolicy: "overlay"` (R5).
+- **Overlap is declared or it is a bug.** On every emitted page, two image-slot rects intersect by more than 0.002 only when the template sets `overlaps: true` and the two slots sit on different `layer`s; a text slot lands on an image slot only when the template sets `overlaps: true` and the text slot sets `scrim: true`, or when the two are paired via `captionPolicy: "overlay"` (R5). The pairing rules are [07-layout-template-system.md](07-layout-template-system.md) L2 and L3.
 - **Every placed photo exists** in the input catalog, and no photo id appears in more than one slot per Chapter.
 - **Conservation.** placed ∪ Unplaced bin ∪ excluded = input catalog, and the three sets are disjoint (R10, R13, R17).
 - **Pinned pages never change on re-layout.** Layout once; mark a random subset of pages Pinned; mutate the inputs (add 10 photos, flip 5 tiers, change the Seed); re-layout the Chapter. Every Pinned page's serialized form is byte-identical to before (R16).
@@ -127,7 +127,7 @@ The linter is a library function (`TemplateLinter.Lint(Template) → LintError[]
 Per-template checks:
 
 - `id` unique across the library, matches `^t-[a-z0-9-]+$`; `photoCount == slots.Count` and 1 ≤ `photoCount` ≤ 8 (R20).
-- Every `rect` inside [0,1]² with `w,h > 0`; image slots pairwise non-overlapping; `aspect > 0`; `0 ≤ aspectTolerance ≤ 1`; `tierAffinity ∈ {S,A,B,C,any}`; `captionPolicy ∈ {none,below,overlay}`; `kind` in the schema enum.
+- Every `rect` inside [0,1]² with `w,h > 0`; image slots pairwise non-overlapping **unless the template declares it** (L2); `aspect > 0`; `0 ≤ aspectTolerance ≤ 1`; `tierAffinity ∈ {S,A,B,C,any}`; `captionPolicy ∈ {none,below,overlay}`; `kind` in the schema enum.
 - Text slots fully inside the Safe area: normalized insets **x ≥ 0.0341** (0.375 in / 11 in) and **y ≥ 0.0441** (0.375 in / 8.5 in) — geometry from [12-pdf-export.md](12-pdf-export.md).
 - `mirrorable: true` ⇒ the horizontally mirrored variant re-passes every check above.
 - `kind: "multiDay"` ⇒ `sections` non-empty and the sections exactly partition the template's slots and text slots.
@@ -159,6 +159,30 @@ Layout goldens catch *structural* drift; visual regression catches *paint* drift
 - **Perceptual diff, not byte diff:** a pixel differs if any channel delta > **3** (of 255); a page fails if > **0.1%** of pixels differ. This absorbs sub-pixel anti-aliasing wiggle while still catching a moved caption or wrong border color.
 - Baselines are committed PNGs in `tests/fixtures/baselines/`. On failure CI uploads a triptych artifact (baseline / actual / diff heatmap). Updating a baseline is a reviewed commit, same policy as goldens.
 - PR runs a **12-page** representative set (one page per template `kind`, a Spread, an overlay caption, a `zoom < 1` letterbox page, a mirrored pair); nightly renders **every** shipped template once with placeholder-but-real photos.
+
+### Pixel assertions for the things a golden cannot see
+
+A layout golden compares the *emitted page*, so it passes whether or not the renderer honored what
+the template declared. Deliberate overlap (doc 07) is exactly that shape of risk — `layer` and
+`scrim` are template facts that only exist as pixels — and it shipped once with the library
+declaring both and the draw path honoring neither: templates linted clean, laid out clean, and
+rendered a journal entry onto bare photo. `OverlapRenderingTests` closes that seam without a
+baseline image, by rendering flat-colour photos onto a **white** page and reading device pixels back
+through `PageRenderResult.SlotRects`:
+
+- the slot on the higher `layer` owns the pixels where the two rects meet, even when the lower slot
+  is authored *after* it, so reading order alone cannot produce the result;
+- a lifted slot casts its shadow just outside its own edge and nowhere else;
+- a `scrim: true` text slot darkens the photo behind its words, leaves the rest of that photo alone,
+  and stops at the photo's edge rather than smearing the page around it;
+- a text slot touching no photo gets nothing.
+
+The white page is the point: on the shipped black background (R21) "the scrim did not spill here" is
+unfalsifiable, because black over black is black.
+
+> **Decision:** **A declaration the renderer can ignore needs a pixel test, not a golden.** Any future
+> template field that changes only how a page is painted — borders per slot, background images (R21) —
+> lands with an assertion of this kind in the same commit.
 
 ## CI on windows-latest
 

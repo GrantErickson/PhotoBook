@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-d",
+  "name": "Month name on a scrim over a hero",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 1,
+  "mirrorable": false,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.1,
+        "y": 0.028,
+        "w": 0.878,
+        "h": 0.872
+      },
+      "aspect": 1.303,
+      "aspectTolerance": 0.3,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.52,
+        "y": 0.6,
+        "w": 0.42,
+        "h": 0.22
+      },
+      "role": "monthTitle",
+      "align": "right",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

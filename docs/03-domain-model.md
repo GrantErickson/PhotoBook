@@ -141,17 +141,62 @@ regions). Graph people-tag availability is an open spike — see
 
 ### AdjustmentStack
 
-Non-destructive, parametric, applied by Magick.NET at render time in a fixed pipeline order;
-originals are never touched (R6, R11). All values default to `0` (identity).
+Non-destructive, parametric, applied by Magick.NET at render time in a fixed stage order —
+**geometry → exposure → colour → finish** — so the same parameters give the same pixels whatever
+order the sliders were moved in. Originals are never touched (R6, R11). Every value defaults to its
+identity, and a parameter sitting at its default is omitted, so an unedited photo serializes as `{}`.
 
 ```jsonc
-AdjustmentStack { "brightness": -1.0-1.0, "contrast": -1.0-1.0,
-                  "saturation": -1.0-1.0, "temperature": -1.0-1.0,
-                  "tint": -1.0-1.0, "sharpness": 0.0-1.0 }
+AdjustmentStack {
+  // geometry
+  "rotate": 0|90|180|270, "straighten": -15.0-15.0, "flipHorizontal": bool,
+  // exposure
+  "exposureEv": -2.0-2.0, "brightness": -1.0-1.0, "contrast": -1.0-1.0,
+  "highlights": -1.0-1.0, "shadows": -1.0-1.0, "whites": -1.0-1.0, "blacks": -1.0-1.0,
+  // colour
+  "temperature": -1.0-1.0, "tint": -1.0-1.0, "saturation": -1.0-1.0, "vibrance": -1.0-1.0,
+  // finish
+  "noiseReduction": 0.0-1.0, "clarity": -1.0-1.0, "sharpness": 0.0-1.0,
+  "vignette": 0.0-1.0, "blackAndWhite": bool
+}
 ```
 
-Advanced color controls added later extend this record additively (versioned via `schemaVersion`
-of `photos.json`); the render pipeline order is owned by [02-architecture.md](02-architecture.md).
+Sliders are stored on the `-1..1` scale.
+[05-ingestion-and-photo-sources.md](05-ingestion-and-photo-sources.md) writes the same parameters as
+`-100..100` for the UI; divide by 100. The one spelling difference is
+`sharpness` here against the imaging layer's `sharpen`, mapped explicitly on both sides. Growing this
+record was purely additive — new optional fields defaulting to identity — so `photos.json` stayed at
+`schemaVersion` 1; the render pipeline order is owned by [02-architecture.md](02-architecture.md).
+
+Crop is deliberately **not** here: framing is a property of photo-in-slot and lives in the
+Placement's `CropState`.
+
+### AutoAdjustStamp and LookProfile
+
+Who owns the stack above, and what auto-adjust should aim for. The three-state machine and the
+never-clobber-a-human rule are in [00-spec-kernel.md](00-spec-kernel.md) §4.
+
+```jsonc
+// on Photo — absent entirely for a photo auto-adjust has not written
+AutoAdjustStamp { "rulesVersion": "auto-1;s0.75;b0;w0;c0;v0;t",  // algorithm + look settings
+                  "sourceHash": "…",                              // the bytes it measured
+                  "measurement": { "medianLuma": 0.31, "blackPoint": 0.02, "whitePoint": 0.94,
+                                   "clipLow": 0.004, "clipHigh": 0.001,
+                                   "meanRed": 0.5, "meanGreen": 0.48, "meanBlue": 0.44,
+                                   "chroma": 0.11,
+                                   "tiltDegrees": -1.8, "tiltConfidence": 0.72 } }
+
+// on Book
+LookProfile { "strength": 0.0-1.0,        // scales every correction; 0.75 = "normal"
+              "brightness": -1.0-1.0, "warmth": -1.0-1.0,
+              "contrast": -1.0-1.0, "saturation": -1.0-1.0,
+              "straighten": bool,          // always written; its default is true
+              "adjustOnImport": bool }
+```
+
+`rulesVersion` fuses the algorithm version with the look settings, so changing either marks every
+automatic photo out of date and the next run brings them up to date. Storing the measurement is what
+makes that re-run arithmetic rather than a decode of the whole book.
 
 ## 4. Book, Chapter, Page, Placement
 

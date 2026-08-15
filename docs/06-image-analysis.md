@@ -103,7 +103,19 @@ Contract rules:
 ## LocalOnnxAnalyzer: the default pipeline
 
 Four detectors over the 1024 px analysis copy, all via ONNX Runtime (CPU execution provider;
-DirectML is a v-next option, not a dependency). Model files ship in the app's `models/` folder.
+DirectML is a v-next option, not a dependency). Model files live in the app's `models/` folder,
+copied there at build time from the repository's [`models/`](../models/) directory.
+
+> **Decision:** The redistributable models are **committed to the repository** —
+> YuNet (MIT) and U²-Netp (Apache-2.0) — so face detection and saliency work with no setup step.
+> `Directory.Build.targets` copies them next to the executable for the app and test projects only,
+> under the opt-in `BundleOnnxModels` property, so class libraries do not carry 4.6 MB they never
+> read. **NIMA is not bundled:** no maintained ONNX build exists (published implementations ship
+> Keras or PyTorch weights, and the AVA-trained weights have unclear redistribution terms), so the
+> aesthetic component falls back to the classical proxy below. Each model is discovered
+> independently by file name, and a missing one degrades that stage only —
+> `OnnxAvailability` reports a *partial* install naming the absent file rather than failing.
+> Verified tensor shapes and provenance: [`models/README.md`](../models/README.md).
 
 ### YuNet — face detection
 

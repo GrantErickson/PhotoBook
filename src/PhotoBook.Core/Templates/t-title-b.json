@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-b",
+  "name": "Photo above the month name",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 1,
+  "mirrorable": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.964,
+        "h": 0.686
+      },
+      "aspect": 1.8186,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.745,
+        "w": 0.91,
+        "h": 0.185
+      },
+      "role": "monthTitle",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

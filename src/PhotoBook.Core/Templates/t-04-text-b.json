@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "t-04-text-b",
+  "name": "Two by two grid, journal on a scrim",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 4,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.506,
+        "y": 0.024,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.018,
+        "y": 0.508,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.506,
+        "y": 0.508,
+        "w": 0.476,
+        "h": 0.468
+      },
+      "aspect": 1.3162,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.63,
+        "w": 0.38,
+        "h": 0.27
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-text-b",
+  "name": "Three across the top, journal band below",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.2444,
+        "h": 0.572
+      },
+      "aspect": 0.5529,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.2744,
+        "y": 0.024,
+        "w": 0.4512,
+        "h": 0.572
+      },
+      "aspect": 1.0208,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "below",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.7376,
+        "y": 0.024,
+        "w": 0.2444,
+        "h": 0.572
+      },
+      "aspect": 0.5529,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.63,
+        "w": 0.91,
+        "h": 0.315
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

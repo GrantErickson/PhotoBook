@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-e",
+  "name": "Three days, two photos each",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 6,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.03,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.365,
+        "y": 0.03,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.018,
+        "y": 0.3423,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.365,
+        "y": 0.3423,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.018,
+        "y": 0.6547,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s6",
+      "rect": {
+        "x": 0.365,
+        "y": 0.6547,
+        "w": 0.335,
+        "h": 0.2903
+      },
+      "aspect": 1.4932,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.715,
+        "y": 0.05,
+        "w": 0.25,
+        "h": 0.2503
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.715,
+        "y": 0.3623,
+        "w": 0.25,
+        "h": 0.2503
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t3",
+      "rect": {
+        "x": 0.715,
+        "y": 0.6747,
+        "w": 0.25,
+        "h": 0.2503
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1",
+        "s2"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s3",
+        "s4"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    },
+    {
+      "id": "d3",
+      "slotIds": [
+        "s5",
+        "s6"
+      ],
+      "textSlotIds": [
+        "t3"
+      ]
+    }
+  ]
+}

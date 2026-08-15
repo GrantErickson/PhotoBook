@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "t-05-notext-b",
+  "name": "Quincunx with an overlapping centre",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 5,
+  "mirrorable": false,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.016,
+        "y": 0.024,
+        "w": 0.34,
+        "h": 0.42
+      },
+      "aspect": 1.0476,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.644,
+        "y": 0.024,
+        "w": 0.34,
+        "h": 0.42
+      },
+      "aspect": 1.0476,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.016,
+        "y": 0.556,
+        "w": 0.34,
+        "h": 0.42
+      },
+      "aspect": 1.0476,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.644,
+        "y": 0.556,
+        "w": 0.34,
+        "h": 0.42
+      },
+      "aspect": 1.0476,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.28,
+        "y": 0.22,
+        "w": 0.44,
+        "h": 0.56
+      },
+      "aspect": 1.0168,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

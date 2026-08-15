@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "id": "t-07-text-a",
+  "name": "Hero with a thumbnail band, journal on a scrim",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 7,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.956,
+        "h": 0.672
+      },
+      "aspect": 1.841,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.018,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.1807,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.3433,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.506,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s6",
+      "rect": {
+        "x": 0.6687,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s7",
+      "rect": {
+        "x": 0.8313,
+        "y": 0.72,
+        "w": 0.1507,
+        "h": 0.235
+      },
+      "aspect": 0.8297,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "C",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.36,
+        "w": 0.34,
+        "h": 0.3
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

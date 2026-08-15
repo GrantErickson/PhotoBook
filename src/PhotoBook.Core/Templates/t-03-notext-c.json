@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "t-03-notext-c",
+  "name": "Hero with two corner insets",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 3,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.1,
+        "y": 0.05,
+        "w": 0.8,
+        "h": 0.9
+      },
+      "aspect": 1.1503,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.02,
+        "y": 0.03,
+        "w": 0.24,
+        "h": 0.33
+      },
+      "aspect": 0.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.74,
+        "y": 0.64,
+        "w": 0.24,
+        "h": 0.33
+      },
+      "aspect": 0.9412,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false,
+      "layer": 1
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}

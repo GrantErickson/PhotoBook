@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Dependency rule (kernel §12, doc 02 §2): Analysis references Core and ONLY Core. It never
+       references PhotoBook.Imaging — when it needs pixels it either receives a decoded bitmap from
+       the job queue or decodes the analysis copy itself through IAnalysisImageLoader, whose default
+       implementation uses the Magick.NET package directly (ADR-0004: one decode backend). -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoBook.Core\PhotoBook.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

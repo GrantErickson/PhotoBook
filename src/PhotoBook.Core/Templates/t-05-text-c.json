@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "t-05-text-c",
+  "name": "Journal band above a five-photo filmstrip",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 5,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.47,
+        "w": 0.1816,
+        "h": 0.485
+      },
+      "aspect": 0.4846,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.2136,
+        "y": 0.47,
+        "w": 0.1816,
+        "h": 0.485
+      },
+      "aspect": 0.4846,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.4092,
+        "y": 0.47,
+        "w": 0.1816,
+        "h": 0.485
+      },
+      "aspect": 0.4846,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s4",
+      "rect": {
+        "x": 0.6048,
+        "y": 0.47,
+        "w": 0.1816,
+        "h": 0.485
+      },
+      "aspect": 0.4846,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s5",
+      "rect": {
+        "x": 0.8004,
+        "y": 0.47,
+        "w": 0.1816,
+        "h": 0.485
+      },
+      "aspect": 0.4846,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "B",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.055,
+        "y": 0.05,
+        "w": 0.91,
+        "h": 0.39
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

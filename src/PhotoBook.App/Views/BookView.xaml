@@ -1,0 +1,655 @@
+<UserControl x:Class="PhotoBook.App.Views.BookView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pb="clr-namespace:PhotoBook.App.Controls"
+             xmlns:views="clr-namespace:PhotoBook.App.Views"
+             xmlns:pages="clr-namespace:PhotoBook.App.Views.Pages"
+             xmlns:photos="clr-namespace:PhotoBook.App.Views.Photos"
+             xmlns:store="clr-namespace:PhotoBook.Core.Persistence;assembly=PhotoBook.Core"
+             Focusable="True" FocusVisualStyle="{x:Null}">
+    <UserControl.Resources>
+
+        <!--
+            The save indicator (doc 04 §6). It reports the autosave loop's own state, so "Saved 14:32"
+            means a write finished at 14:32 — not that someone called Save. Colour carries the state:
+            muted when everything is on disk, amber the moment an edit is only in memory, red when a
+            write actually failed, because that one is not going to fix itself by being ignored.
+        -->
+        <Style x:Key="SaveStatusTextStyle" TargetType="{x:Type TextBlock}"
+               BasedOn="{StaticResource CaptionMutedTextStyle}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Dirty}">
+                    <Setter Property="Foreground" Value="{DynamicResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Failed}">
+                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SaveStatusDotStyle" TargetType="{x:Type Ellipse}">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Dirty}">
+                    <Setter Property="Fill" Value="{DynamicResource AmberFlagBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Saving}">
+                    <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SaveState}" Value="{x:Static store:AutosaveState.Failed}">
+                    <Setter Property="Fill" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- One photo tile: the picture dominates, badges stay subordinate. -->
+        <DataTemplate x:Key="PhotoTileTemplate">
+            <Grid Width="176" Height="176" Margin="5">
+                <Border x:Name="Frame" CornerRadius="6" Background="{DynamicResource ThumbnailPlaceholderBrush}"
+                        BorderThickness="2" BorderBrush="Transparent" SnapsToDevicePixels="True">
+                    <Grid>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+
+                        <!-- Bottom scrim carries the badges so they stay legible on any photo. -->
+                        <Border VerticalAlignment="Bottom" Height="34" CornerRadius="0,0,4,4">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#00000000" Offset="0" />
+                                    <GradientStop Color="#B0000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid Margin="8,0,8,6" VerticalAlignment="Bottom">
+                                <TextBlock Text="{Binding TakenAtDisplay}" Style="{StaticResource MicroTextStyle}"
+                                           Foreground="#E8FFFFFF" HorizontalAlignment="Left" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <pb:Icon Data="{StaticResource Icon.FocusTarget}" Width="12" Height="12"
+                                             Foreground="#E8FFFFFF" Margin="0,0,5,0"
+                                             Visibility="{Binding HasUserFocus, Converter={StaticResource BoolToVisibility}}" />
+                                    <pb:Icon Data="{StaticResource Icon.Warning}" Width="12" Height="12"
+                                             Foreground="{DynamicResource AmberFlagBrush}" Margin="0,0,5,0"
+                                             Visibility="{Binding DateUncertain, Converter={StaticResource BoolToVisibility}}" />
+                                    <Border CornerRadius="3" Padding="5,1"
+                                            Background="{Binding EffectiveTier, Converter={StaticResource TierToBrush}}">
+                                        <TextBlock Text="{Binding TierLabel}" Style="{StaticResource MicroTextStyle}"
+                                                   Foreground="#FF101010" FontWeight="SemiBold" />
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Excluded photos read as removed without vanishing (R17). -->
+                        <Border Background="#B0101010"
+                                Visibility="{Binding Excluded, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <pb:Icon Data="{StaticResource Icon.Exclude}" Width="22" Height="22"
+                                         Foreground="{DynamicResource TextSecondaryBrush}"
+                                         HorizontalAlignment="Center" />
+                                <TextBlock Text="Excluded" Style="{StaticResource MicroTextStyle}"
+                                           Margin="0,6,0,0" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource CanvasBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="248" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============================================ chapter rail -->
+        <Border Grid.Column="0" Background="{DynamicResource SurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="18,20,18,14">
+                    <TextBlock Text="{Binding BookTitle}" Style="{StaticResource SubtitleTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Year}" Style="{StaticResource CaptionMutedTextStyle}"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Padding="14,12" BorderThickness="0,1,0,0"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}">
+                    <StackPanel>
+                        <Button Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding ImportFolderCommand}" HorizontalContentAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Import}" VerticalAlignment="Center" />
+                                <TextBlock Text="Import photos…" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <!-- Re-sync the remembered album; shown only once a book is bound to one. -->
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding ResyncOneDriveCommand}" HorizontalContentAlignment="Left"
+                                ToolTip="{Binding OneDriveSourceLabel, StringFormat='Download anything new from {0}'}"
+                                Visibility="{Binding HasOneDriveSource, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                                <TextBlock Text="Sync now" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding SyncOneDriveCommand}" HorizontalContentAlignment="Left"
+                                ToolTip="Sign in with your Windows account and choose a OneDrive album or folder">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Sync}" VerticalAlignment="Center" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+                                            <Setter Property="Text" Value="OneDrive…" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasOneDriveSource}" Value="True">
+                                                    <Setter Property="Text" Value="Change source…" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostButtonStyle}" Margin="0,6,0,0"
+                                Command="{Binding ImportJournalCommand}" HorizontalContentAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Journal}" VerticalAlignment="Center" />
+                                <TextBlock Text="Import journal…" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Chapters}" Margin="8,0,8,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.SelectChapterCommand,
+                                                  RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource GhostButtonStyle}"
+                                        HorizontalContentAlignment="Stretch" Padding="10,9" Margin="0,1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                   Style="{StaticResource BodyTextStyle}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding PhotoCount}"
+                                                   Style="{StaticResource CaptionMutedTextStyle}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================ workspace -->
+        <DockPanel Grid.Column="1">
+
+            <!-- command bar -->
+            <Border DockPanel.Dock="Top" Height="{StaticResource CommandBarHeight}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                <!-- Three columns, not two overlapping panels: the status line has to be squeezed
+                     and trimmed by the buttons, never drawn on top of them. -->
+                <Grid Margin="16,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="0" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Style="{StaticResource SegmentedGroupStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                              IsChecked="{Binding IsPagesTab, Converter={StaticResource InverseBool}}"
+                                              Command="{Binding ShowPhotosCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <pb:Icon Data="{StaticResource Icon.Grid}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Photos" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </ToggleButton>
+                                <ToggleButton Style="{StaticResource SegmentedToggleButtonStyle}"
+                                              IsChecked="{Binding IsPagesTab}"
+                                              Command="{Binding ShowPagesCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <pb:Icon Data="{StaticResource Icon.Pages}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Pages" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </ToggleButton>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                        <Button Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding LayoutChapterCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Layers}" VerticalAlignment="Center" />
+                                <TextBlock Text="Lay out this month" Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0"
+                                Command="{Binding OpenExportCommand}"
+                                ToolTip="Run preflight and write a print-ready PDF">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Export}" VerticalAlignment="Center" />
+                                <TextBlock Text="Export PDF" Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                        <!-- Undo / redo. The labels name the edit, so the user knows what will go. -->
+                        <Button Style="{StaticResource SmallIconButtonStyle}"
+                                Command="{Binding Undo.UndoCommand}"
+                                ToolTip="{Binding Undo.UndoLabel}">
+                            <pb:Icon Data="{StaticResource Icon.Undo}" Width="16" Height="16" />
+                        </Button>
+                        <Button Style="{StaticResource SmallIconButtonStyle}" Margin="2,0,0,0"
+                                Command="{Binding Undo.RedoCommand}"
+                                ToolTip="{Binding Undo.RedoLabel}">
+                            <pb:Icon Data="{StaticResource Icon.Redo}" Width="16" Height="16" />
+                        </Button>
+                        <!-- Photos-tab only: the book-wide auto-adjust. It belongs beside the photos
+                             it acts on, not in the Pages toolbar where the selection is a slot. -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsPagesTab, Converter={StaticResource InverseBoolToVisibility}}">
+                            <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding AutoAdjustAllCommand}"
+                                    ToolTip="Correct every photo you have not edited by hand, using this book's look settings">
+                                <StackPanel Orientation="Horizontal">
+                                    <pb:Icon Data="{StaticResource Icon.Sparkle}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Auto-adjust all" Margin="9,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Pages-tab panels. Toggles, so their state is always readable. -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsPagesTab, Converter={StaticResource BoolToVisibility}}">
+                            <Border Style="{StaticResource VerticalDividerStyle}" Margin="14,0" />
+
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}"
+                                          IsChecked="{Binding IsTemplatePickerOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleTemplatePickerCommand}"
+                                          ToolTip="Template gallery for this page  (T)">
+                                <pb:Icon Data="{StaticResource Icon.Template}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding Bins.IsVisible, Mode=OneWay}"
+                                          Command="{Binding ToggleBinsCommand}"
+                                          ToolTip="Unplaced / Upcoming bins  (B)">
+                                <pb:Icon Data="{StaticResource Icon.Bin}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding PageOverride.IsActive, Mode=OneWay}"
+                                          Command="{Binding PageOverride.ToggleCommand}"
+                                          ToolTip="Edit this page's layout  (L)">
+                                <pb:Icon Data="{StaticResource Icon.Layers}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding PageEditor.ShowGuides, Mode=OneWay}"
+                                          Command="{Binding PageEditor.ToggleGuidesCommand}"
+                                          ToolTip="Bleed, trim, safe and gutter guides  (G)">
+                                <pb:Icon Data="{StaticResource Icon.Guides}" Width="16" Height="16" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource IconToggleButtonStyle}" Margin="2,0,0,0"
+                                          IsChecked="{Binding IsStylePanelOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleStylePanelCommand}"
+                                          ToolTip="Borders, type and colours for the whole book">
+                                <pb:Icon Data="{StaticResource Icon.Adjust}" Width="16" Height="16" />
+                            </ToggleButton>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                               Style="{StaticResource CaptionMutedTextStyle}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Margin="16,0,12,0" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding StatusMessage}" />
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Save is the indicator: one control that says where the project stands and
+                             writes it now if you press it. Two would let them disagree. -->
+                        <Button Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveCommand}"
+                                ToolTip="{Binding SaveStatusTooltip}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Style="{StaticResource SaveStatusDotStyle}" />
+                                <TextBlock Text="{Binding SaveStatusLabel}" Margin="9,0,0,0"
+                                           Style="{StaticResource SaveStatusTextStyle}"
+                                           MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Button>
+
+                        <Border Style="{StaticResource VerticalDividerStyle}" Margin="12,0" />
+
+                        <!-- Journal review (doc 11). The count sits beside the glyph rather than over
+                             it: a badge floated onto a 24 px icon button has nowhere to go but
+                             outside its own bounds. -->
+                        <Button Style="{StaticResource GhostButtonStyle}" Padding="9,5"
+                                Command="{Binding OpenJournalReviewCommand}"
+                                ToolTip="Journal: what got a date, and which pages carry it">
+                            <StackPanel Orientation="Horizontal">
+                                <pb:Icon Data="{StaticResource Icon.Journal}" Width="16" Height="16"
+                                         VerticalAlignment="Center" />
+                                <Border Style="{StaticResource AmberBadgeStyle}" Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasJournalFindings,
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding JournalAttentionCount}" />
+                                </Border>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource SmallIconButtonStyle}" Margin="4,0,0,0"
+                                Command="{Binding OpenBookSettingsCommand}"
+                                ToolTip="Book settings: title, year, page size, print profile, seed">
+                            <pb:Icon Data="{StaticResource Icon.Settings}" Width="16" Height="16" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Both tabs live in one filling cell: a bare child of a DockPanel would dock left and
+                 leave the workspace short of the window's right edge. -->
+            <Grid>
+
+            <!-- ======================================== PHOTOS -->
+            <Grid Visibility="{Binding IsPagesTab, Converter={StaticResource InverseBoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="320" />
+                </Grid.ColumnDefinitions>
+
+                <!-- empty state -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Visibility="{Binding HasPhotos, Converter={StaticResource InverseBoolToVisibility}}">
+                    <pb:Icon Data="{StaticResource Icon.PhotoPlus}" Width="34" Height="34"
+                             Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="No photos in this month" Style="{StaticResource SubtitleTextStyle}"
+                               Margin="0,16,0,0" HorizontalAlignment="Center" />
+                    <TextBlock Style="{StaticResource BodySecondaryTextStyle}" Margin="0,8,0,0"
+                               HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="380" TextWrapping="Wrap"
+                               Text="Import a folder and PhotoBook will file each photo into the month it was taken." />
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,20,0,0"
+                            HorizontalAlignment="Center" Command="{Binding ImportFolderCommand}"
+                            Content="Import photos…" />
+                </StackPanel>
+
+                <ListBox Grid.Column="0" ItemsSource="{Binding Photos}"
+                         SelectedItem="{Binding SelectedPhoto}"
+                         pb:PhotoGridReorder.Controller="{Binding Inspector.Reorder}"
+                         SelectionMode="Extended"
+                         ItemTemplate="{StaticResource PhotoTileTemplate}"
+                         Background="Transparent" BorderThickness="0" Padding="12"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         Visibility="{Binding HasPhotos, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <!-- inspector -->
+                <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="18" DataContext="{Binding SelectedPhoto}">
+                            <TextBlock Text="No photo selected" Style="{StaticResource BodySecondaryTextStyle}"
+                                       Visibility="{Binding Converter={StaticResource NullToVisibility}}" />
+
+                            <StackPanel Visibility="{Binding Converter={StaticResource NotNullToVisibility}}">
+                                <!-- The photo, big while Info is open. Adjust and Focus each carry a
+                                     working preview of their own, so this one steps aside for them
+                                     rather than showing the same picture twice and pushing their
+                                     controls below the fold. -->
+                                <Border CornerRadius="6" Background="{DynamicResource SurfaceSunkenBrush}">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Height" Value="200" />
+                                            <Style.Triggers>
+                                                <DataTrigger Value="False"
+                                                             Binding="{Binding DataContext.Inspector.IsInfoSection,
+                                                                       RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                    <Setter Property="Height" Value="104" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="6" />
+                                </Border>
+
+                                <TextBlock Text="{Binding FileName}" Margin="0,14,0,0"
+                                           Style="{StaticResource BodyStrongTextStyle}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding TakenAtDisplay}" Margin="0,3,0,0"
+                                           Style="{StaticResource CaptionMutedTextStyle}" />
+
+                                <Border Style="{StaticResource AmberBadgeStyle}" Margin="0,10,0,0"
+                                        HorizontalAlignment="Left"
+                                        Visibility="{Binding DateUncertain, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="Date guessed from the file" />
+                                </Border>
+
+                                <!-- Date, focus and adjustments (doc 09 §2.1, §2.2, §2.4). It sits
+                                     directly under the photo so its section switcher — and with it
+                                     the image corrections of R11 — is visible without scrolling. -->
+                                <photos:PhotoInspectorPanel
+                                    x:Name="Inspector"
+                                    Margin="0,18,0,0"
+                                    DataContext="{Binding DataContext.Inspector,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                                <!-- Tier and Exclude belong to the inspector's Info section; they
+                                     live here because they edit the shell's own selection. -->
+                                <StackPanel Visibility="{Binding DataContext.Inspector.IsInfoSection,
+                                                         RelativeSource={RelativeSource AncestorType=UserControl},
+                                                         Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="QUALITY" Style="{StaticResource SectionLabelTextStyle}"
+                                               Margin="0,24,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <Border CornerRadius="4" Padding="9,3"
+                                                Background="{Binding EffectiveTier, Converter={StaticResource TierToBrush}}">
+                                            <TextBlock Text="{Binding TierLabel}" Foreground="#FF101010"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                        <TextBlock Text="set by you" Style="{StaticResource CaptionMutedTextStyle}"
+                                                   VerticalAlignment="Center" Margin="10,0,0,0"
+                                                   Visibility="{Binding IsTierOverridden, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                Command="{Binding DataContext.PromoteCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                ToolTip="Give this photo more room on the page">
+                                            <pb:Icon Data="{StaticResource Icon.Promote}" />
+                                        </Button>
+                                        <Button Style="{StaticResource SecondaryButtonStyle}" Margin="6,0,0,0"
+                                                Command="{Binding DataContext.DemoteCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                ToolTip="Give this photo less room">
+                                            <pb:Icon Data="{StaticResource Icon.Demote}" />
+                                        </Button>
+                                        <Button Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0"
+                                                Command="{Binding DataContext.ResetTierCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Content="Reset" />
+                                    </StackPanel>
+
+                                    <Border Style="{StaticResource DividerStyle}" Margin="0,20,0,0" />
+
+                                    <Button Style="{StaticResource DangerButtonStyle}" Margin="0,16,0,0"
+                                            HorizontalContentAlignment="Left"
+                                            Command="{Binding DataContext.ToggleExcludeCommand,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <pb:Icon Data="{StaticResource Icon.Exclude}" VerticalAlignment="Center" />
+                                            <TextBlock Text="Exclude from book" Margin="10,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Style="{StaticResource MicroTextStyle}" Margin="0,8,0,0"
+                                               TextWrapping="Wrap"
+                                               Text="Excluding removes the photo from the book only. The original file is never deleted." />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <!-- ======================================== PAGES -->
+            <Grid Visibility="{Binding IsPagesTab, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- auto-layout commands (R16) + the page-state readout -->
+                <Border Grid.Row="0" Background="{DynamicResource SurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                    <pages:LayoutCommandsBar DataContext="{Binding LayoutCommands}" />
+                </Border>
+
+                <!-- The bin panel docks bottom, left or right; it is one control that moves cell
+                     (doc 09 §3.5), so the choice never costs a second copy of the thumbnails. -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- the editing surface -->
+                        <pages:PageEditorView Grid.Column="0" x:Name="PageSurface"
+                                              DataContext="{Binding PageEditor}"
+                                              OverrideModel="{Binding DataContext.PageOverride,
+                                                              RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                        <!-- Empty state: a month with photos but no pages yet. Opaque, so it stands
+                             in for the editor's own placeholder rather than colliding with it. -->
+                        <Border Grid.Column="0" Background="{DynamicResource CanvasBrush}"
+                                Visibility="{Binding HasPages, Converter={StaticResource InverseBoolToVisibility}}">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <pb:Icon Data="{StaticResource Icon.Pages}" Width="34" Height="34"
+                                         Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="This month has no pages yet" Style="{StaticResource SubtitleTextStyle}"
+                                           Margin="0,16,0,0" HorizontalAlignment="Center" />
+                                <TextBlock Style="{StaticResource BodySecondaryTextStyle}" Margin="0,8,0,0"
+                                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="400"
+                                           TextWrapping="Wrap"
+                                           Text="Lay out the month and PhotoBook will group the photos by day, pick layouts, and crop each picture around what matters in it." />
+                                <Button Style="{StaticResource PrimaryButtonStyle}" Margin="0,20,0,0"
+                                        HorizontalAlignment="Center" Command="{Binding LayoutChapterCommand}"
+                                        Content="Lay out this month" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- the override toolbar floats over the canvas and hides itself when off -->
+                        <!-- Floated at the foot of the canvas, where the crop bar sits: over the
+                             page it would cover the very containers it edits. -->
+                        <pages:PageOverrideToolbar Grid.Column="0"
+                                                   DataContext="{Binding PageOverride}"
+                                                   VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                                                   Margin="0,0,0,80" />
+
+                        <!-- right drawer: template gallery (T) or the style panel, never both -->
+                        <Border Grid.Column="1" Width="330"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
+                                Visibility="{Binding IsTemplatePickerOpen, Converter={StaticResource BoolToVisibility}}">
+                            <pages:TemplatePickerView DataContext="{Binding Templates}" />
+                        </Border>
+
+                        <Border Grid.Column="1" Width="330"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1,0,0,0"
+                                Visibility="{Binding IsStylePanelOpen, Converter={StaticResource BoolToVisibility}}">
+                            <!-- The panel carries its own title, so the drawer adds only the close
+                                 affordance, floated over the panel's header row. -->
+                            <Grid>
+                                <views:StylePanel DataContext="{Binding Style}" />
+                                <Button Style="{StaticResource SmallIconButtonStyle}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,12,12,0" Panel.ZIndex="2"
+                                        Command="{Binding ToggleStylePanelCommand}" ToolTip="Close  (Esc)">
+                                    <pb:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <pages:BinsPanel DataContext="{Binding Bins}"
+                                     Grid.Column="{Binding DataContext.BinColumn,
+                                                   RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     Grid.Row="{Binding DataContext.BinRow,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     Grid.RowSpan="{Binding DataContext.BinRowSpan,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </Grid>
+            </Grid>
+            </Grid>
+        </DockPanel>
+
+        <!-- ============================================ quick preview (Space) -->
+        <!-- Doc 09 §2's full-size look at the selection. An overlay, not a window: it is a glance,
+             and a glance must not cost a window to open and close. It covers the rail as well as the
+             grid, so there is no half-lit chrome competing with the photograph. -->
+        <Border Grid.ColumnSpan="2" Panel.ZIndex="20"
+                Background="{DynamicResource ScrimHeavyBrush}"
+                Visibility="{Binding IsQuickPreviewOpen, Converter={StaticResource BoolToVisibility}}"
+                MouseLeftButtonDown="OnQuickPreviewClicked">
+            <Grid Margin="48,40,48,32">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Image Grid.Row="0" Source="{Binding QuickPreviewImage}" Stretch="Uniform"
+                       StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality" />
+
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,20,0,0">
+                    <TextBlock Text="{Binding QuickPreviewTitle}" HorizontalAlignment="Center"
+                               Style="{StaticResource BodyStrongTextStyle}" />
+                    <TextBlock Text="{Binding QuickPreviewSubtitle}" HorizontalAlignment="Center"
+                               Style="{StaticResource CaptionMutedTextStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="Space or Esc to close" HorizontalAlignment="Center"
+                               Style="{StaticResource MicroTextStyle}" Margin="0,12,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

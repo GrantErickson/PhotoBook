@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-title-a",
+  "name": "Month title over a full-bleed photo",
+  "pageSize": "11x8.5-landscape",
+  "kind": "monthTitle",
+  "photoCount": 1,
+  "mirrorable": false,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": -0.0114,
+        "y": -0.0147,
+        "w": 1.0228,
+        "h": 1.0294
+      },
+      "aspect": 1.2858,
+      "aspectTolerance": 0.25,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": true
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.52,
+        "y": 0.66,
+        "w": 0.44,
+        "h": 0.22
+      },
+      "role": "monthTitle",
+      "align": "right",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

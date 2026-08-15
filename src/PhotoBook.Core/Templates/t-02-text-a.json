@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-text-a",
+  "name": "Two stacked photos, journal on a scrim",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.16,
+        "y": 0.024,
+        "w": 0.816,
+        "h": 0.468
+      },
+      "aspect": 2.2564,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.16,
+        "y": 0.508,
+        "w": 0.816,
+        "h": 0.468
+      },
+      "aspect": 2.2564,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.2,
+        "y": 0.56,
+        "w": 0.26,
+        "h": 0.36
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": null
+}

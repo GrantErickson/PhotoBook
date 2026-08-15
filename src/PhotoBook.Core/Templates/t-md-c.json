@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-c",
+  "name": "Three days in vertical thirds",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 3,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
+      },
+      "aspect": 0.6181,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.3433,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
+      },
+      "aspect": 0.6181,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s3",
+      "rect": {
+        "x": 0.6687,
+        "y": 0.024,
+        "w": 0.3133,
+        "h": 0.656
+      },
+      "aspect": 0.6181,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.0465,
+        "y": 0.71,
+        "w": 0.3093,
+        "h": 0.235
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.3433,
+        "y": 0.71,
+        "w": 0.3093,
+        "h": 0.235
+      },
+      "role": "journal",
+      "align": "left"
+    },
+    {
+      "id": "t3",
+      "rect": {
+        "x": 0.6687,
+        "y": 0.71,
+        "w": 0.2923,
+        "h": 0.235
+      },
+      "role": "journal",
+      "align": "left"
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s2"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    },
+    {
+      "id": "d3",
+      "slotIds": [
+        "s3"
+      ],
+      "textSlotIds": [
+        "t3"
+      ]
+    }
+  ]
+}

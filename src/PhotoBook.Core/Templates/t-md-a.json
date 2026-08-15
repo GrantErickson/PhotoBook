@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "t-md-a",
+  "name": "Two days, stacked photo bands with journal scrims",
+  "pageSize": "11x8.5-landscape",
+  "kind": "multiDay",
+  "photoCount": 2,
+  "mirrorable": true,
+  "overlaps": true,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.018,
+        "y": 0.024,
+        "w": 0.956,
+        "h": 0.442
+      },
+      "aspect": 2.799,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.018,
+        "y": 0.51,
+        "w": 0.956,
+        "h": 0.442
+      },
+      "aspect": 2.799,
+      "aspectTolerance": 0.35,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [
+    {
+      "id": "t1",
+      "rect": {
+        "x": 0.06,
+        "y": 0.24,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    },
+    {
+      "id": "t2",
+      "rect": {
+        "x": 0.5,
+        "y": 0.72,
+        "w": 0.44,
+        "h": 0.2
+      },
+      "role": "journal",
+      "align": "left",
+      "scrim": true
+    }
+  ],
+  "pair": null,
+  "sections": [
+    {
+      "id": "d1",
+      "slotIds": [
+        "s1"
+      ],
+      "textSlotIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "d2",
+      "slotIds": [
+        "s2"
+      ],
+      "textSlotIds": [
+        "t2"
+      ]
+    }
+  ]
+}

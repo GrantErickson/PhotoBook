@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "t-02-notext-d",
+  "name": "Two panorama strips",
+  "pageSize": "11x8.5-landscape",
+  "kind": "standard",
+  "photoCount": 2,
+  "mirrorable": false,
+  "slots": [
+    {
+      "id": "s1",
+      "rect": {
+        "x": 0.014,
+        "y": 0.06,
+        "w": 0.972,
+        "h": 0.43
+      },
+      "aspect": 2.9253,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "S",
+      "captionPolicy": "none",
+      "bleed": false
+    },
+    {
+      "id": "s2",
+      "rect": {
+        "x": 0.014,
+        "y": 0.51,
+        "w": 0.972,
+        "h": 0.43
+      },
+      "aspect": 2.9253,
+      "aspectTolerance": 0.45,
+      "tierAffinity": "A",
+      "captionPolicy": "none",
+      "bleed": false
+    }
+  ],
+  "textSlots": [],
+  "pair": null,
+  "sections": null
+}
