@@ -70,9 +70,17 @@ they land, current month first.
 - **Parent window:** WAM parents its account picker to a caller-supplied HWND, so the app passes
   the shell's main window handle. Without it the picker can open behind the app. The lookup must
   marshal to the UI thread — MSAL calls the provider from whichever thread acquires the token.
+- **Client id:** resolved by `OneDriveConfigurationLoader`, first hit wins: an explicit path, then
+  `PHOTOBOOK_ONEDRIVE_CLIENT_ID`, then the file named by `PHOTOBOOK_ONEDRIVE_CONFIG`, then
+  `onedrive.json` beside the executable (the build copies it from the repository root), then
+  `%LOCALAPPDATA%\PhotoBook\onedrive.json`. The beside-the-app location exists so a fresh clone
+  needs one file dropped in rather than a path hunt; it stays git-ignored because the repository is
+  public and a published client id lets strangers accumulate consents on the owner's registration.
+  There is no client *secret* to protect — this is a public client, so none exists.
 - **Token cache:** MSAL cache serialized to `%LOCALAPPDATA%\PhotoBook\msal.cache`, encrypted with
   DPAPI (current user). Tokens and client secrets never enter the project folder — `book.json`
-  and friends must stay shareable and human-diffable.
+  and friends must stay shareable and human-diffable. The cache is bound to one Windows account and
+  deliberately does not travel between machines; re-signing in is a single SSO click.
 - **Sign-out:** clears the MSAL cache; the project keeps working because originals are local.
 
 ### Album-based selection ("Album + in-app refine")

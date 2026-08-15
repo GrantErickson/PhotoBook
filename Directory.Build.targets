@@ -17,4 +17,20 @@
           Visible="false" />
   </ItemGroup>
 
+  <!--
+    Copies a developer's own onedrive.json from the repository root next to the executable, where
+    OneDriveConfigurationLoader looks for it. This is the "clone and drop one file in" path from
+    SETUP.md: the client id is a per-machine setting, so the file is git-ignored and simply absent
+    for most builds — Exists() keeps that a no-op rather than an error.
+
+    Deliberately NOT opted into by the test project. OneDriveConfigurationTests writes its own file
+    into the output directory to prove the search order, and a developer's real config landing there
+    would make that test pass or fail depending on whose machine it ran on.
+  -->
+  <ItemGroup Condition="'$(BundleOneDriveConfig)' == 'true' And Exists('$(MSBuildThisFileDirectory)onedrive.json')">
+    <None Include="$(MSBuildThisFileDirectory)onedrive.json"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
 </Project>

@@ -75,7 +75,9 @@ register two redirect URIs below.
 
 ### Tell PhotoBook the client id
 
-Create `%LOCALAPPDATA%\PhotoBook\onedrive.json` with **your** client id:
+Put `onedrive.json` in the **repository root** with **your** client id. The build copies it next to
+the executable, where the app looks for it — so setting up another machine is *clone, drop this one
+file in, run*. It is git-ignored and stays that way (see "Why not just commit it" below):
 
 ```json
 {
@@ -93,20 +95,39 @@ Create `%LOCALAPPDATA%\PhotoBook\onedrive.json` with **your** client id:
 > way to break sign-in. The field exists only for a registration that deviates from the above.
 
 ```powershell
-$dir = "$env:LOCALAPPDATA\PhotoBook"
-New-Item -ItemType Directory -Force $dir | Out-Null
-'{ "schemaVersion": 1, "clientId": "PASTE-YOUR-GUID-HERE" }' | Set-Content "$dir\onedrive.json"
+'{ "schemaVersion": 1, "clientId": "PASTE-YOUR-GUID-HERE" }' | Set-Content c:\Git\PhotoBook\onedrive.json
 ```
-
-Alternatively set the environment variable `PHOTOBOOK_ONEDRIVE_CLIENT_ID`, which wins over the file.
-`PHOTOBOOK_ONEDRIVE_CONFIG` points at a different config file if you want one.
 
 The placeholder GUIDs above are rejected on purpose: copying the sample without editing it gives you
 the friendly "not set up yet" message rather than an opaque sign-in failure.
 
-**The client id is not a secret** — it identifies the app, not you — but it deliberately lives
-outside the project folder so `book.json` stays shareable. Tokens live in the Windows broker, with a
-DPAPI-encrypted MSAL cache under your Windows account as backup; neither ever enters the project.
+### Where the client id can live
+
+First hit wins, most deliberate to most general:
+
+| Where | When you'd use it |
+|---|---|
+| `PHOTOBOOK_ONEDRIVE_CLIENT_ID` | A one-off run or a CI check; beats every file. |
+| `PHOTOBOOK_ONEDRIVE_CONFIG` | Points at a config file anywhere — e.g. one in your own OneDrive, so every machine you own picks up the same file after setting this variable once. |
+| `onedrive.json` in the repository root | **The normal choice.** Copied next to the executable at build. |
+| `%LOCALAPPDATA%\PhotoBook\onedrive.json` | The per-machine default, and where the app writes a template if you click OneDrive before setting any of the above. |
+
+### Why not just commit it
+
+Tempting — it would make a fresh clone work with nothing to copy. Don't, because **this repository is
+public**. The client id is genuinely not a secret (it names the app, not you, and no signature
+depends on it), but publishing it means anyone who clones can sign in against *your* app
+registration: their consent grants land on it, Graph throttles partly per app id, and someone can
+stand up a different app under your id whose Microsoft consent screen still says "PhotoBook". So the
+root `onedrive.json` is git-ignored, and the one-file copy is the price of that.
+
+To set up another machine, copy that one file across — or set `PHOTOBOOK_ONEDRIVE_CONFIG` once to a
+path that syncs, and skip even that.
+
+Tokens are a different matter and never travel: they live in the Windows broker, with a
+DPAPI-encrypted MSAL cache under your Windows account as backup. `%LOCALAPPDATA%\PhotoBook\msal.cache`
+is encrypted to *this* Windows account and will not decrypt elsewhere — leave it behind and sign in
+again, which is usually one click via single sign-on.
 
 ### If sign-in fails
 
@@ -196,7 +217,9 @@ select the `.ttf` files and *Install for all users*.
 | `src/PhotoBook.Rendering` | One SkiaSharp renderer for both screen and PDF, plus preflight |
 | `src/PhotoBook.App` | The WPF application |
 | [models/](models/) | Bundled YuNet + U²-Netp ONNX models, their licences, and provenance |
-| `%LOCALAPPDATA%\PhotoBook\` | OneDrive config, MSAL token cache, recent-books list |
+| `onedrive.json` (repo root) | Your OneDrive client id; git-ignored, copied next to the exe at build (§2) |
+| `%LOCALAPPDATA%\PhotoBook\` | Fallback OneDrive config, MSAL token cache, editor settings |
+| `%APPDATA%\PhotoBook\recent.json` | The recent-books list |
 
 A project folder holds `book.json`, `photos.json`, `journal.json`, `chapters/YYYY-MM.json`,
 `originals/` (immutable copies) and `cache/`. Everything except `cache/` is human-readable JSON and

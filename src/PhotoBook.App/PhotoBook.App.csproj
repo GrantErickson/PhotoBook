@@ -21,6 +21,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <BundleOnnxModels>true</BundleOnnxModels>
+    <BundleOneDriveConfig>true</BundleOneDriveConfig>
   </PropertyGroup>
 
 </Project>

@@ -27,6 +27,13 @@ public sealed record OneDriveConfiguration
     public int SchemaVersion { get; init; } = 1;
 
     /// <summary>
+    /// The placeholder client id in <see cref="SampleJson"/>. It is <see cref="Guid.Empty"/>, so
+    /// <see cref="IsUsableClientId"/> rejects it and copying the sample unedited reads as "not set
+    /// up yet".
+    /// </summary>
+    public const string SampleClientId = "00000000-0000-0000-0000-000000000000";
+
+    /// <summary>
     /// The Entra application (client) id of the user's own public-client app registration. Null or a
     /// placeholder means "not set up yet".
     /// </summary>
@@ -93,7 +100,7 @@ public sealed record OneDriveConfiguration
     public static string SampleJson => string.Create(CultureInfo.InvariantCulture, $$"""
         {
           "schemaVersion": 1,
-          "clientId": "00000000-0000-0000-0000-000000000000",
+          "clientId": "{{SampleClientId}}",
           "authority": "{{ConsumersAuthority}}",
           "scopes": [ "User.Read", "Files.Read" ]
         }

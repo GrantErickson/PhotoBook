@@ -38,8 +38,10 @@ public sealed class OneDriveNotConfiguredException : InvalidOperationException
         message.AppendLine($"one-time step. Follow \"Set up OneDrive\" in {SetupDocument}, then put the");
         message.AppendLine("application (client) id it gives you in either of these places:");
         message.AppendLine();
-        message.AppendLine($"  1. The environment variable {OneDriveConfigurationLoader.ClientIdEnvironmentVariable}, or");
-        message.AppendLine($"  2. The file {OneDriveConfigurationLoader.DefaultConfigurationFilePath}:");
+        message.AppendLine($"  1. The environment variable {OneDriveConfigurationLoader.ClientIdEnvironmentVariable};");
+        message.AppendLine($"  2. onedrive.json in the repository root, which the build copies to");
+        message.AppendLine($"     {OneDriveConfigurationLoader.AppDirectoryConfigurationFilePath}; or");
+        message.AppendLine($"  3. The file {OneDriveConfigurationLoader.DefaultConfigurationFilePath}:");
         message.AppendLine();
         foreach (var line in OneDriveConfiguration.SampleJson.Split('\n'))
             message.AppendLine("     " + line.TrimEnd('\r'));

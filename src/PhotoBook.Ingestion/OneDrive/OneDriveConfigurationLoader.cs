@@ -4,14 +4,19 @@ using PhotoBook.Core.Persistence;
 namespace PhotoBook.Ingestion.OneDrive;
 
 /// <summary>
-/// Finds the OneDrive client id (ADR-0011). Resolution order, first hit wins:
+/// Finds the OneDrive client id (ADR-0011). Resolution order, first hit wins, most deliberate to
+/// most general:
 /// <list type="number">
 /// <item><description>an explicit path passed by the caller;</description></item>
 /// <item><description>the environment variable <c>PHOTOBOOK_ONEDRIVE_CLIENT_ID</c> (with optional
 /// <c>PHOTOBOOK_ONEDRIVE_AUTHORITY</c> and <c>PHOTOBOOK_ONEDRIVE_REDIRECT_URI</c>) — handy for a
 /// one-off run or a CI check;</description></item>
 /// <item><description>the file named by <c>PHOTOBOOK_ONEDRIVE_CONFIG</c>;</description></item>
-/// <item><description><c>%LOCALAPPDATA%\PhotoBook\onedrive.json</c> — the documented location.</description></item>
+/// <item><description><c>onedrive.json</c> beside the running app, which the build copies from the
+/// repository root — one file to drop into a fresh clone, no <c>%LOCALAPPDATA%</c> spelunking;
+/// it is git-ignored, because the repository is public and a client id published there invites
+/// strangers to sign in against this app registration;</description></item>
+/// <item><description><c>%LOCALAPPDATA%\PhotoBook\onedrive.json</c> — the per-machine default.</description></item>
 /// </list>
 /// Nothing here reads or writes the project folder: the client id is a per-machine setting, and
 /// <c>book.json</c> stays shareable (doc 05).
@@ -42,6 +47,13 @@ public static class OneDriveConfigurationLoader
 
     /// <summary>The documented configuration file path, <c>%LOCALAPPDATA%\PhotoBook\onedrive.json</c>.</summary>
     public static string DefaultConfigurationFilePath => Path.Combine(AppDataFolder, ConfigFileName);
+
+    /// <summary>
+    /// <c>onedrive.json</c> beside the running executable. The build copies it there from the
+    /// repository root (<c>Directory.Build.targets</c>), so setting up a new machine is "clone, drop
+    /// one file in the repo root, run" rather than finding a path under <c>%LOCALAPPDATA%</c>.
+    /// </summary>
+    public static string AppDirectoryConfigurationFilePath => Path.Combine(AppContext.BaseDirectory, ConfigFileName);
 
     /// <summary>The documented token cache path, <c>%LOCALAPPDATA%\PhotoBook\msal.cache</c>.</summary>
     public static string DefaultTokenCachePath => Path.Combine(AppDataFolder, TokenCacheFileName);
@@ -82,6 +94,9 @@ public static class OneDriveConfigurationLoader
             var envFileConfig = TryReadFile(fromEnvFile, checkedPlaces);
             if (envFileConfig is not null) return envFileConfig;
         }
+
+        var appDirectoryConfig = TryReadFile(AppDirectoryConfigurationFilePath, checkedPlaces);
+        if (appDirectoryConfig is not null) return appDirectoryConfig;
 
         var defaultConfig = TryReadFile(DefaultConfigurationFilePath, checkedPlaces);
         if (defaultConfig is not null) return defaultConfig;

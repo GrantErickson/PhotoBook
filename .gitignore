@@ -11,3 +11,7 @@ models/nima-mobilenet.onnx
 # Local secrets: MSAL client id / Azure keys
 appsettings.local.json
 secrets.local.json
+# The OneDrive client id. Not a secret -- it names the app, not you -- but this repository is
+# public, and publishing it lets strangers sign in against Grant's app registration and collect
+# consents on it. Drop your own copy here and the build copies it next to the exe (SETUP.md 2).
+/onedrive.json
